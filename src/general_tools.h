@@ -42,8 +42,16 @@ void emptyarray(const int rowsize, ptr_2D**& A);
 template<typename ptr_3D>
 void emptyarray(const int rowsize, const int colsize, ptr_3D***& A);
 
+template<typename T>
+void emptypointer(T*& TT);
 
 // Memory freeing functions:
+
+template<typename T>         // free a one element pointer
+void emptypointer(T*& TT){
+
+    if(TT!=nullptr) { delete TT; TT=nullptr; }
+}
 
 template<typename ptr_1D>    // free 1D pointer
 void emptyarray(ptr_1D*& A)

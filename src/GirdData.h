@@ -70,11 +70,23 @@ struct GridData {
 
     void print_grid(){
 
-        register int i;
+        register int j;
 
-        cout << "\nPrint grid: "<<endl;
-        for(i=0; i<Nfaces; i++)
-            _print(i,X[i]);
+        char *fname=nullptr;
+        fname = new char[100];
+
+        sprintf(fname,"./output/x.dat");
+
+        FILE* coord_out=fopen(fname,"w");
+
+        for(j=0; j<Nfaces; j++){
+
+            fprintf(coord_out, "%2.10e\n", X[j]);
+        }
+
+        fclose(coord_out);
+
+        emptyarray(fname);
 
         return;
     }
@@ -84,70 +96,12 @@ struct GridData {
 
         emptyarray(X);
         emptyarray(h_j);
+        emptyarray(Xc);
 
         return;
     }
 
 };
 
-//void GridData::set_grid_param(const SimData& simdata_){
-
-//    Nelem = simdata_.Nelem_;
-
-//    x0 = simdata_.x0_;
-//    xf = simdata_.xf_;
-
-//    uniform = simdata_.uniform_;
-
-//    refine_level=simdata_.refine_level_;
-
-//    Nfaces = Nelem+1;
-
-//    X = new double[Nfaces];
-
-//    if(uniform==1) dx = (xf-x0)/Nelem;
-
-//    h_j = new double [Nelem];
-
-//    return;
-//}
-
-//void GridData::generate_grid(){
-
-//    register int i;
-
-//    for(i=0; i<Nfaces; i++){
-
-//        X[i]   = dx * (i)  + x0 ;  // node 0, element i
-//    }
-
-//    for (i=0; i<Nelem; i++){
-
-//        h_j[i]= X[i+1]-X[i];
-
-//        Xc[i] = 0.5 * ( X[i+1]+X[i] );
-//    }
-
-//    return;
-//}
-
-//void GridData::Reset_(){
-
-//    emptyarray(X);
-//    emptyarray(h_j);
-
-//    return;
-//}
-
-//void GridData::print_grid(){
-
-//    register int i;
-
-//    cout << "\nPrint grid: "<<endl;
-//    for(i=0; i<Nfaces; i++)
-//        _print(i,X[i]);
-
-//    return;
-//}
 
 #endif

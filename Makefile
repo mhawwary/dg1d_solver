@@ -63,7 +63,7 @@ vpath %.h include src
 vpath %.hpp include src
 
 # Objects
-OBJS	= $(OBJ)DG1DFlow.o $(OBJ)SimData.o $(OBJ)DGSolver.o # objects 
+OBJS	= $(OBJ)DG1DFlow.o $(OBJ)SimData.o $(OBJ)DGSolver.o $(OBJ)ExplicitTimeSolver.o # objects 
 INCLS	= 
 
 # Compile
@@ -88,6 +88,7 @@ $(OBJ)%.o : %.cpp
 $(OBJ)DG1DFlow.o:   DG1DFlow.cpp 
 $(OBJ)SimData.o:   SimData.hpp SimData.cpp
 $(OBJ)DGSolver.o:  DGSolver.hpp DGSolver.cpp
+$(OBJ)ExplicitTimeSolver.o: ExplicitTimeSolver.hpp ExplicitTimeSolver.cpp
 #$(OBJ)general_tools.o:   general_tools.h general_tools.cpp
 #$(OBJ)GridData.o:   GridData.hpp GridData.cpp
 
