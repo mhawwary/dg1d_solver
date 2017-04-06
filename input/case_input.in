@@ -1,0 +1,30 @@
+[Case]
+ num_elements = 20
+ x_begin = 0.0
+ x_end = 1.0
+ uniform_grid = 1
+ refinement_level = 0
+
+[Simulation] 
+ print_freq = 1000
+
+[wave]
+ wave_speed = 1;
+
+[space_solver]
+  polynomial_order = 1;
+  upwind_param=1; # 1: fully upwind, 0: fully central, (0,1) hybrid
+ 
+[time_solver]
+ CFL_no = 1.0
+
+ dt = 1e-3
+ initial_time = 0
+
+ final_time = 1.0
+ 
+ maximum_iteration = 1e6
+
+ [./explicit]
+
+  RK_order = 1
