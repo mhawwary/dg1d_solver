@@ -7,7 +7,7 @@ struct GaussQuad {
 
 public:
 
-    unsigned int Nq=1;  // order of quadrature which is accurate for 2(Nq-1)
+    int Nq=1;  // order of quadrature which is accurate for 2(Nq-1)
 
     double *Gaus_pts=nullptr;  // Gauss eta=xi Points
     //double *Gaus_X=nullptr;    // Gauss X coord

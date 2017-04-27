@@ -12,10 +12,11 @@ ExplicitTimeSolver::~ExplicitTimeSolver(){
  return;
 }
 
-void ExplicitTimeSolver::setupTimeSolver(DGSolver *dg_solver_, SimData *simdata_){
+void ExplicitTimeSolver::setupTimeSolver(DGSolver *dg_solver_, SimData *osimdata_){
 
     space_solver = dg_solver_;
-    simdata = simdata_;
+
+    simdata = osimdata_;
 
     Ndof = space_solver->GetNdof();
 
@@ -30,7 +31,7 @@ void ExplicitTimeSolver::setupTimeSolver(DGSolver *dg_solver_, SimData *simdata_
 
     dt_ = space_solver->GetTimeStep();
 
-    if(simdata_->RK_order_>1){
+    if(simdata->RK_order_>1){
 
         q_temp = new double* [simdata->Nelem_];
 
@@ -84,7 +85,7 @@ void ExplicitTimeSolver::CopyOldSol(double **q_t_, double **qn_){
 
     register int j;
 
-    unsigned int k;
+    int k;
 
     for(j=0; j<simdata->Nelem_; j++)
         for(k=0; k<Ndof; k++)
@@ -96,7 +97,7 @@ void ExplicitTimeSolver::CopyOldSol(double **q_t_, double **qn_){
 void ExplicitTimeSolver::FwdEuler(double **qn_){
 
     register int i;
-    unsigned int j;
+    int j;
 
 
     for(i=0; i<simdata->Nelem_; i++)
@@ -110,7 +111,7 @@ void ExplicitTimeSolver::SSPRK22(double **q_){
 
     register int j;
 
-    unsigned int k;
+    int k;
 
     CopyOldSol(q_temp,q_);  // Copying level n solution and saving it
 
@@ -138,7 +139,7 @@ void ExplicitTimeSolver::SSPRK33(double **q_){
 
     register int j;
 
-    unsigned int k;
+    int k;
 
     CopyOldSol(q_temp,q_);  // Copying level n solution and saving it
 
@@ -171,20 +172,13 @@ void ExplicitTimeSolver::SSPRK33(double **q_){
     return;
 }
 
-
 void ExplicitTimeSolver::Reset_time_solver(){
 
     emptyarray(simdata->Nelem_,resid);
     emptyarray(simdata->Nelem_,q_temp);
 
-    //emptypointer(space_solver);
-    //emptypointer(simdata);
-
-    _print("finshed deallocating time solver");
-
     return;
 }
-
 
 void ExplicitTimeSolver::UpdateIter(){
 

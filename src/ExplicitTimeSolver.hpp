@@ -30,7 +30,7 @@ protected:
     double **resid=nullptr;
     double **q_temp=nullptr;
 
-    unsigned int Ndof=1;
+    int Ndof=1;
 
     int IterNo=0;
 

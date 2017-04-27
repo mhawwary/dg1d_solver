@@ -15,33 +15,22 @@ DGSolver::~DGSolver(void){
 
 void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
-    grid_ = new GridData;
-    simdata_ = new SimData;
-
-    //grid_->set_grid_param(simdata_);
-
-    cout << "\n--finished setuping simdata_ and grid_ in DGSolver\n";
-
     grid_ = &meshdata_;
     simdata_ = &osimdata_;
-
-    cout << "\n--finished copying simdata_ and grid_ in DGSolver\n";
-
 
     Ndof= simdata_->poly_order_+1;
 
     Qn    =  new double* [grid_->Nelem];
-    //Resid =  new double* [grid_->Nelem];
+
+    Q_exact_aver = new double[grid_->Nelem];
 
     register int i;
 
-    for(i=0; i<grid_->Nelem; i++){
-
+    for(i=0; i<grid_->Nelem; i++)
         Qn[i]    = new double[Ndof];
-        //Resid[i] = new double[Ndof];
-    }
 
-    Q_exact = new double[grid_->Nfaces];
+
+    Q_exact = new double[grid_->no_points_exact_];
     Qv = new double[grid_->Nfaces];
 
     flux_com = new double[grid_->Nfaces];
@@ -49,6 +38,22 @@ void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
     SetPhyTime(simdata_->t_init_);
 
     CalcTimeStep();
+
+    ComputeExactSolShift();
+    Compute_exact_average_sol();
+    Compute_exact_vertex_sol();
+
+    // Screen Output of input and simulation parameters:
+    cout <<"\n===============================================\n";
+    cout << "CFL no.: "<<CFL<<endl;
+    cout << "dx     : "<<grid_->dx<<endl;
+    cout << "dt     : "<<time_step<<endl;
+    cout << "MaxIter: "<<simdata_->t_end_/time_step<<endl;
+    cout << "t_end  : "<<simdata_->t_end_<<endl;
+    cout << "\nNumber of Elements: "<< grid_->Nelem<<endl;
+    cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
+    cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
+    cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
 
     return;
 }
@@ -64,18 +69,9 @@ void DGSolver::Reset_solver(){
     emptyarray(Q_exact);
     emptyarray(flux_com);
     emptyarray(Qv);
+    emptyarray(Q_exact_aver);
 
     grid_->Reset_();
-
-//    _print("finshed Reseting grid_ in DGsolver");
-
-//    emptypointer(grid_);
-
-//    _print("finshed deallocating grid_ in DG solver");
-
-//    emptypointer(simdata_);
-
-//    _print("finshed deallocating DG solver");
 
 
     return;
@@ -85,19 +81,14 @@ void DGSolver::Reset_solver(){
 // Solver functions
 //-------------------------------------------
 
-void DGSolver::SetPhyTime(const double &time_){
-
-    phy_time=time_;
-
-    return;
-}
-
 void DGSolver::CalcTimeStep(){
 
     if(simdata_->calc_dt_flag==1){
 
         time_step = (grid_->dx * simdata_->CFL_ )/ simdata_->a_wave_;
+        CFL = simdata_->CFL_;
 
+        T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
 
     }else if(simdata_->calc_dt_flag==0){
 
@@ -113,48 +104,11 @@ void DGSolver::CalcTimeStep(){
     return;
 }
 
-double DGSolver::GetTimeStep(){
-
-    return time_step;
-}
-
-double DGSolver::GetCFL(){
-
-    return CFL;
-}
-
-unsigned int DGSolver::GetNdof(){
-
-    return Ndof;
-}
-
-double** DGSolver::GetNumSolution(){
-
-    return Qn;
-}
-
-double* DGSolver::GetVertexNumSol(){
-
-    return Qv;
-}
-
-double* DGSolver::GetExactSolution(){
-
-    return Q_exact;
-}
-
-double DGSolver::GetPhyTime(){
-
-    return phy_time;
-}
-
-
 void DGSolver::InitSol(){
 
     register int j;
 
-    unsigned int k=0;
-
+    int k=0;
 
     GaussQuad quad_;
 
@@ -175,10 +129,7 @@ double DGSolver::initSol_legendre_proj(const int &eID,
                                        const int &basis_k,
                                         const GaussQuad &quad_){
 
-    unsigned int i;
-    unsigned int k=0;
-
-    int j=0;
+    int i=0,j=0,k=0;
 
     k=basis_k;
     j=eID;
@@ -204,28 +155,58 @@ double DGSolver::initSol_legendre_proj(const int &eID,
     Lk_norm = eval_basis_norm_squared(k);
     II = II / Lk_norm ;
 
-    /*if(k==0){
-
-       double qq=(cos(2*PI* grid_->X[j])-cos(2*PI*grid_->X[j+1] ))/(2*PI*grid_->h_j[j]);
-        _compare(II,qq);
-        if(fabs(II-qq)>=1e-8)   FatalError("\nInitial sol Gauss projection is wrong");
-
-    }else if(k==1){
-
-        double qq= (3./(2*PI*PI*pow(grid_->h_j[j],2))) * ( sin(2*PI*grid_->X[j+1])-sin(2*PI*grid_->X[j] )
-                - PI*grid_->h_j[j]* ( cos(2*PI*grid_->X[j+1]) + cos(2*PI*grid_->X[j]) ) );
-         _compare(II,qq);
-         if(fabs(II-qq)>=1e-8)   FatalError("\nInitial sol Gauss projection is wrong");
-    }*/
-
     return II;
 }
 
-void DGSolver::UpdatePhyTime(const double& dt_){
+void DGSolver::ComputeExactSolShift(){
 
-    phy_time += dt_;
+    // Preparing shift information:
+    //-------------------------------
+    double Lambda=0;  // wave length
+    double final_time=0;
+    double a=0;
+    double Distance=0;
+
+    Lambda = grid_->xf - grid_->x0 ;
+    final_time = simdata_->Nperiods * T_period;
+    a = simdata_->a_wave_;
+    Distance = a * final_time;
+    exact_sol_shift = (simdata_->Nperiods*Lambda-Distance);
 
     return;
+}
+
+double DGSolver::ExactSol_legendre_proj(const int &eID,
+                                       const int &basis_k,
+                                        const GaussQuad &quad_){
+
+    int i=0,j=0,k=0;
+
+    k=basis_k;
+    j=eID;
+
+    double xx=0.0;
+    double II=0.0;
+    double Qinit_=0.0;
+    double Lk_=1.0;
+    double Lk_norm=1.0;  // norm^2
+
+    II=0.0;
+
+    for (i=0; i<quad_.Nq; i++){
+
+        xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j] + exact_sol_shift;
+        Qinit_= eval_init_sol(xx);
+
+        Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
+
+        II += quad_.Gaus_wts[i] * Qinit_ * Lk_ ;
+    }
+
+    Lk_norm = eval_basis_norm_squared(k);
+    II = II / Lk_norm ;
+
+    return II;
 }
 
 void DGSolver::UpdateResid(double **Resid_, double **Qn_){
@@ -257,7 +238,6 @@ void DGSolver::UpdateResid(double **Resid_, double **Qn_){
                                           , simdata_->upwind_param_);
     }
 
-    //_print("finished computing common fluxes inside space solver");
 
     // Element loop to calculate and update the residual:
     //----------------------------------------------------
@@ -273,7 +253,7 @@ void DGSolver::UpdateResidOneCell(const int &cellid, double *q_, double *resid_)
 
     unsigned int j=cellid;
 
-    unsigned int k=0;
+    int k=0;
 
     double Mkk=0.0;
     double Lk_p1=0.0, Lk_m1=0.0;
@@ -306,7 +286,6 @@ void DGSolver::UpdateResidOneCell(const int &cellid, double *q_, double *resid_)
     return;
 }
 
-
 double DGSolver::Compute_common_flux(const double &Ql, const double &Qr
                                       , const double &wave_speed
                                       , const double &upwind_Beta_){
@@ -317,13 +296,11 @@ double DGSolver::Compute_common_flux(const double &Ql, const double &Qr
 
     // f_upw = Rusanov(Ql,Qr,a_wave);
 
-    f_upw = 0.5 * (aa*(Ql+Qr) - fabs(aa) * (Qr-Ql) );
+    f_upw = 0.5 * ( aa*(Ql+Qr) - fabs(aa) * (Qr-Ql) );
 
     f_cent = 0.5 * aa * (Ql+Qr) ;
 
-    f_common_ = (BB * f_upw + (1.0-BB) * f_cent );
-
-    //_print("finished computing common flux inside commonflux function");
+    f_common_ = (BB * f_upw) + ((1.0-BB) * f_cent );
 
     return f_common_;
 }
@@ -352,13 +329,45 @@ void DGSolver::Compute_vertex_sol(){
     return;
 }
 
-void DGSolver::Compute_exact_sol(){
+void DGSolver::Compute_exact_vertex_sol(){
 
     register int j;
 
-    for(j=0; j<grid_->Nfaces; j++){
+//    double Lambda=0;  // wave length
+//    double final_time=0;
+//    double a=0;
+//    double Distance=0;
+    double xx=0.0;
 
-        Q_exact[j] = eval_init_sol(grid_->X[j]-simdata_->a_wave_*simdata_->t_end_);
+//    Lambda = grid_->xf - grid_->x0 ;
+
+//    final_time = simdata_->Nperiods * T_period;
+
+//    a = simdata_->a_wave_;
+
+//    Distance = a * final_time;
+
+
+    for(j=0; j<grid_->no_points_exact_; j++){
+
+        xx = grid_->xx_exact[j]+ exact_sol_shift;
+        Q_exact[j] = eval_init_sol( xx );
+    }
+
+    return;
+}
+
+void DGSolver::Compute_exact_average_sol(){
+
+    register int j;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(5);
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        Q_exact_aver[j] = ExactSol_legendre_proj(j,0,quad_);
     }
 
     return;
@@ -366,7 +375,16 @@ void DGSolver::Compute_exact_sol(){
 
 double DGSolver::eval_init_sol(const double& xx){
 
-    return sin(2*PI*xx);
+    if(simdata_->wave_form_==0){
+
+        return sin(2*PI*xx);
+
+    }else if(simdata_->wave_form_==1){
+
+        return exp(-simdata_->Gaussian_exponent_*pow(xx,2));
+    }else{
+        _notImplemented("Wave form is not implemented");
+    }
 }
 
 double DGSolver::eval_basis_poly(const double& xi_, const int& basis_k_){
@@ -407,7 +425,7 @@ double DGSolver::evalSolution(const double* q_, const double& xi_pt_){
     double xx=xi_pt_;
     double Q_=0.0;
 
-    unsigned int k;
+    int k;
 
     for(k=0; k<Ndof; k++){
 
@@ -417,9 +435,9 @@ double DGSolver::evalSolution(const double* q_, const double& xi_pt_){
     return Q_;
 }
 
-double DGSolver::eval_localflux_proj(const double *q_, const unsigned int &basis_k_){
+double DGSolver::eval_localflux_proj(const double *q_, const int &basis_k_){
 
-    unsigned int k=basis_k_;
+    int k=basis_k_;
 
     switch (k) {
     case 0:
@@ -450,110 +468,74 @@ double DGSolver::eval_localflux_proj(const double *q_, const unsigned int &basis
 
 }
 
-
-void DGSolver::print_num_vertex_sol(){
+void DGSolver::print_cont_vertex_sol(){
 
     register int j=0;
 
     char *fname=nullptr;
-    fname = new char[100];
+    fname = new char[200];
 
-    sprintf(fname,"./output/u_final.dat");
+    sprintf(fname,"%su_nodal_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir
+            ,simdata_->CFL_,simdata_->upwind_param_
+            ,simdata_->Nperiods);
 
     FILE* sol_out=fopen(fname,"w");
 
-    for(j=0; j<grid_->Nfaces; j++){
-
-        fprintf(sol_out, "%2.10e\n", Qv[j]);
-    }
+    for(j=0; j<grid_->Nfaces; j++)
+        fprintf(sol_out, "%2.10e %2.10e\n", grid_->X[j], Qv[j]);
 
     fclose(sol_out);
+
+    emptyarray(fname);
+
+    fname = new char[200];
+
+    sprintf(fname,"%su_nodal_exact_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir
+            ,simdata_->CFL_,simdata_->upwind_param_
+            ,simdata_->Nperiods);
+
+    FILE* sol_out1=fopen(fname,"w");
+
+    for(j=0; j<grid_->no_points_exact_; j++)
+        fprintf(sol_out1, "%2.10e %2.10e\n"
+                ,grid_->xx_exact[j], Q_exact[j]);
+
+    fclose(sol_out1);
 
     emptyarray(fname);
 
     return;
 }
 
-
-void DGSolver::print_exact_sol(){
-
-    register int j=0;
-
-    char *fname=nullptr;
-    fname = new char[100];
-
-    sprintf(fname,"./output/u_exact.dat");
-
-    FILE* sol_out=fopen(fname,"w");
-
-    for(j=0; j<grid_->Nfaces; j++){
-
-        fprintf(sol_out, "%2.10e\n", Q_exact[j]);
-    }
-
-    fclose(sol_out);
-
-    emptyarray(fname);
-
-
-    return;
-}
-
-
-void DGSolver::print_exact_average_sol(){
+void DGSolver::print_average_sol(){
 
     register int j;
 
-    double Q_exact_aver_=0.0;
+    char *fname=nullptr;
+    fname = new char[200];
 
     GaussQuad quad_;
 
     quad_.setup_quadrature(5);
 
-    char *fname=nullptr;
-    fname = new char[100];
-
-    sprintf(fname,"./output/u_aver_exact.dat");
-
-    FILE* sol_out=fopen(fname,"w");
-
-    for(j=0; j<grid_->Nelem; j++){
-
-        Q_exact_aver_ = initSol_legendre_proj(j,0,quad_);
-
-        fprintf(sol_out, "%2.10e\n", Q_exact_aver_);
-    }
-
-    fclose(sol_out);
-
-    emptyarray(fname);
-
-    return;
-}
-
-
-void DGSolver::print_num_average_sol(){
-
-    register int j;
-
-    char *fname=nullptr;
-    fname = new char[100];
-
-    sprintf(fname,"./output/u_aver_final.dat");
+    sprintf(fname,"%su_aver_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir
+            ,simdata_->CFL_,simdata_->upwind_param_
+            ,simdata_->Nperiods);
 
     FILE* sol_out=fopen(fname,"w");
 
-     for(j=0; j<grid_->Nelem; j++){
-
-         fprintf(sol_out, "%2.10e\n", Qn[j][0]);
-
-     }
+     for(j=0; j<grid_->Nelem; j++)
+         fprintf(sol_out, "%2.10e %2.10e %2.10e\n"
+                 ,grid_->Xc[j], Qn[j][0], Q_exact_aver[j]);
 
      fclose(sol_out);
 
      emptyarray(fname);
 
-     char *fname1=nullptr;
+     /*char *fname1=nullptr;
      fname1 = new char[100];
 
      sprintf(fname1,"./output/Xc.dat");
@@ -568,7 +550,7 @@ void DGSolver::print_num_average_sol(){
 
      fclose(sol_out1);
 
-     emptyarray(fname1);
+     emptyarray(fname1);*/
 
     return;
 }

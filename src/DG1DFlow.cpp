@@ -13,6 +13,7 @@ ExplicitTimeSolver time_solver_;
 void InitSim(const int& argc, char** argv);
 void RunSim();
 void PostProcess();
+void logo();
 
 int main(int argc, char** argv){
 
@@ -23,15 +24,13 @@ int main(int argc, char** argv){
         return(0);
     }
 
+    logo();
+
     InitSim(argc, argv);
 
     RunSim();
 
-    _print("back to the main function");
-
     PostProcess();
-
-    _print("finished post processing");
 
     return 0;
 }
@@ -41,29 +40,20 @@ void InitSim(const int& argc,char** argv){
     if(argc<6){  // Parsing through input file
 
         simdata_.Parse(argv[argc-1]);
-        simdata_.print_data();
     }
 
     meshdata_.set_grid_param(simdata_);
 
-    cout << "\n--finished setting up grid parameters\n";
-
     meshdata_.generate_grid();
-
-    cout << "\n--finished generating the grid\n";
 
     dg_solver_.setup_solver(meshdata_,simdata_);
 
     dg_solver_.InitSol();
 
-    cout << "\n--finished Initializing the Solution\n";
-
     return;
 }
 
 void RunSim(){
-
-    int n=0;
 
     double gtime=dg_solver_.GetPhyTime();
 
@@ -71,43 +61,46 @@ void RunSim(){
 
     time_solver_.setupTimeSolver(&dg_solver_,&simdata_);
 
-    _print("finished setting up time solver");
-
-    while ( gtime <=fabs( simdata_.t_end_ - pow(10,-10)) ){
-
-            gtime += dt_;
-
-            time_solver_.space_solver->UpdatePhyTime(dt_);
+    while ( gtime <=
+            fabs((simdata_.Nperiods * dg_solver_.T_period)-pow(10,-10)) ){
 
             time_solver_.SolveOneStep(dg_solver_.GetNumSolution());
 
-            n=time_solver_.GetIter();
-        }
+            time_solver_.space_solver->UpdatePhyTime(dt_);
 
-    _(n);
-    _(gtime);
-    _print("finished time loop");
+            gtime=dg_solver_.GetPhyTime();
+        }
 
     return;
 }
 
 void PostProcess(){
 
-    meshdata_.print_grid();
+    dg_solver_.Compute_vertex_sol();;
 
-    dg_solver_.Compute_vertex_sol();
-    dg_solver_.Compute_exact_sol();
+    dg_solver_.print_cont_vertex_sol();
+    dg_solver_.print_average_sol();
 
-    dg_solver_.print_exact_sol();
-    dg_solver_.print_num_vertex_sol();
-
-    dg_solver_.print_num_average_sol();
-    dg_solver_.print_exact_average_sol();
+    printf("\nFinal Iteration number is: %d\n",time_solver_.GetIter());
+    printf("Final time is: %1.2f\n\n",dg_solver_.GetPhyTime());
 
     return;
 }
 
+void logo(){
 
+    cout<<"_________________________________________________________________________________________"<<endl;
+    cout<<"                                                                                         "<<endl;
+    cout<<"               "<<"  Welcome to the Discontinuous Galerkin solver  "<<"                  "<<endl;
+    cout<<"               "<<"   for inviscid 1D wave and burgers equations   "<<"                  "<<endl;
+    cout<<"                                                                                         "<<endl;
+    cout<<"         Author:               Mohammad Alhawwary, PhD. Student                          "<<endl;
+    cout<<"    Affiliation:   Aerospace Engineering Department, University of Kansas, USA           "<< endl;
+    cout<<"_________________________________________________________________________________________"<<endl;
+
+
+    return;
+}
 
 
 

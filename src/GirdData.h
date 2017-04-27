@@ -16,6 +16,9 @@ struct GridData {
     double *Xc=nullptr;   // mesh X centroid
     double *h_j=nullptr;  // mesh width for each elements
 
+    double *xx_exact=nullptr;
+    int no_points_exact_=100;
+
     int Nelem=1;
     int Nfaces=2;
 
@@ -46,6 +49,10 @@ struct GridData {
 
         Xc = new double [Nelem];
 
+        no_points_exact_= 100;
+
+        xx_exact = new double[no_points_exact_];
+
         return;
     }
 
@@ -65,31 +72,41 @@ struct GridData {
             Xc[i] = 0.5 * ( X[i+1]+X[i] );
         }
 
-        return;
-    }
+        // New sampling for plotting a smooth exact solution
 
-    void print_grid(){
 
-        register int j;
+        double dxx = (xf - x0) / (no_points_exact_-1);
 
-        char *fname=nullptr;
-        fname = new char[100];
+        for(i=0; i<no_points_exact_; i++){
 
-        sprintf(fname,"./output/x.dat");
-
-        FILE* coord_out=fopen(fname,"w");
-
-        for(j=0; j<Nfaces; j++){
-
-            fprintf(coord_out, "%2.10e\n", X[j]);
+            xx_exact[i]   = dxx * (i)  + x0 ;
         }
 
-        fclose(coord_out);
-
-        emptyarray(fname);
-
         return;
     }
+
+//    void print_grid(){
+
+//        register int j;
+
+//        char *fname=nullptr;
+//        fname = new char[100];
+
+//        sprintf(fname,"%sx.dat");
+
+//        FILE* coord_out=fopen(fname,"w");
+
+//        for(j=0; j<Nfaces; j++){
+
+//            fprintf(coord_out, "%2.10e\n", X[j]);
+//        }
+
+//        fclose(coord_out);
+
+//        emptyarray(fname);
+
+//        return;
+//    }
 
 
     void Reset_(){
@@ -97,6 +114,7 @@ struct GridData {
         emptyarray(X);
         emptyarray(h_j);
         emptyarray(Xc);
+        //emptyarray(xx_exact);
 
         return;
     }

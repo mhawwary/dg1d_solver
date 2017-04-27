@@ -14,6 +14,9 @@
 class DGSolver{
 
 public:
+
+    double T_period=1;
+
 //  Construction Functions :
    DGSolver(void);
    ~DGSolver(void);
@@ -25,25 +28,63 @@ public:
    void UpdateSolution(double **Qn_);
    void ComputeError();
    void Compute_vertex_sol();
-   void Compute_exact_sol();
-   void UpdatePhyTime(const double& dt_);
 
-   void SetPhyTime(const double& time_);
-   double GetPhyTime();
-   double GetTimeStep();
-   double GetCFL();
-   unsigned int GetNdof();
-   double** GetNumSolution();
-   double* GetVertexNumSol();
-   double* GetExactSolution();
+   void UpdatePhyTime(const double& dt_){
 
-   void print_num_vertex_sol();
-   void print_exact_sol();
-   void print_exact_average_sol();
-   void print_num_average_sol();
+       phy_time += dt_;
+
+       return;
+   }
+
+   void SetPhyTime(const double &time_){
+
+       phy_time=time_;
+
+       return;
+   }
+
+   double GetTimeStep(){
+
+       return time_step;
+   }
+
+   double GetCFL(){
+
+       return CFL;
+   }
+
+   int GetNdof(){
+
+       return Ndof;
+   }
+
+   double** GetNumSolution(){
+
+       return Qn;
+   }
+
+   double* GetVertexNumSol(){
+
+       return Qv;
+   }
+
+   double* GetExactSolution(){
+
+       return Q_exact;
+   }
+
+   double GetPhyTime(){
+
+       return phy_time;
+   }
+
+   void print_cont_vertex_sol();
+   void print_average_sol();
 
 protected:
-   void UpdateResidOneCell(const int& cellid, double* q_, double* resid_);
+
+   void UpdateResidOneCell(const int& cellid, double* q_
+                           , double* resid_);
 
    double Compute_common_flux(const double& ql, const double& qr,
                                const double& wave_speed
@@ -58,52 +99,49 @@ protected:
    double eval_basis_norm_squared(const int& basis_k_);
    double evalSolution(const double* q_, const double& xi_pt);
 
-   double eval_localflux_proj(const double* q_, const unsigned int& basis_k_);
+   double eval_localflux_proj(const double* q_
+                              , const int& basis_k_);
+
    double initSol_legendre_proj(const int& eID, const int &basis_id,
                                 const GaussQuad & quad_);
+
+   double ExactSol_legendre_proj(const int &eID,
+                                 const int &basis_k,
+                                  const GaussQuad &quad_);
 
    void CalcTimeStep();
    void CalcLocalTimeStep();
 
    void Reset_solver();
+   void ComputeExactSolShift();
 
+   void Compute_exact_vertex_sol();
+   void Compute_exact_average_sol();
 
 protected:
 
    GridData *grid_=nullptr;
    SimData *simdata_=nullptr;
 
-   //int Nelem=1;
-   //int Nfaces=1;
-
-   //double *X=nullptr;
-   //double *Xc=nullptr;
-   //double *h_j=nullptr;
-
    double *xi=nullptr;
 
-   //int poly_order=1;
-   unsigned int Ndof = 1;
+   int Ndof = 1;
 
    double **Qn=nullptr;      // Nelem * Ndof long
 
    double *Q_exact=nullptr;  // Nfaces long
 
+   double *Q_exact_aver=nullptr; // Nelem long
+
    double *Qv=nullptr;       // Nfaces long
 
    double *flux_com=nullptr;  // common interface flux, Nfaces long
-
-   //double **Resid=nullptr;
-
-   //double *Mnn=nullptr;
-
-   //double *phy_n=nullptr;
 
    double phy_time=0.0;
    double time_step=1e-5;
    double CFL=1.0;
 
-   //int Beta_=1;  // upwind parameter
+   double exact_sol_shift=0.;
 
 };
 
