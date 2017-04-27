@@ -1,0 +1,11 @@
+dir:./Results/DGp2_RK2/
+aver:u_aver
+nodal_exact:u_nodal_exact
+nodal_num:u_nodal
+discont:u_disc
+DGp:2
+RK:2
+Nelem:20
+CFL:0.15
+Beta:0.50
+T:50

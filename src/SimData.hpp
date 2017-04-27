@@ -29,7 +29,8 @@ struct SimData {
     int wave_form_ = 0;  // 0: sine wave, 1: Gaussian wave
     double Gaussian_exponent_ = -40; // u(x) = exp(-38.6 *x^2)
 
-    int  Nelem_ = 1;  // no. of elements in the grid
+    int Nelem_ = 1;  // no. of elements in the grid
+    int Npplot = 1;  // no. of equally spaced points per element for plotting
 
     double x0_=0.0;
     double xf_=1.0;
@@ -42,7 +43,8 @@ struct SimData {
 
     void Parse(const std::string &fname);
 
-    void print_data();
+    void setup_output_directory();
+    void dump_python_inputfile();
 
 };
 

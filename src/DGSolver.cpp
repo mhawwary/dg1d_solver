@@ -468,6 +468,60 @@ double DGSolver::eval_localflux_proj(const double *q_, const int &basis_k_){
 
 }
 
+double DGSolver::ComputePolyError(){
+
+    register int j; int i;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(5);
+
+    double xx=0.0,L2_error=0.0,error=0.0,II=0.0,q_ex,q_n;
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        for(i=0; i<quad_.Nq; i++) {
+
+            xx= 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
+                    + grid_->Xc[j] + exact_sol_shift;
+
+            q_ex = eval_init_sol(xx);
+
+            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+
+            error = pow((q_ex - q_n),2);
+            II+= quad_.Gaus_wts[i] * error ;
+        }
+        II = 0.5 * grid_->h_j[j] * II ;
+    }
+
+    L2_error = sqrt(II/(grid_->xf-grid_->x0));
+
+    return L2_error;
+}
+
+double DGSolver::ComputeAverageError(){
+
+    register int j;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(5);
+
+    double L2_error=0.0,error=0.0,q_ex_aver=0.0;
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        q_ex_aver = ExactSol_legendre_proj(j,0,quad_);
+
+        error += pow((q_ex_aver - Qn[j][0]),2);
+    }
+
+    L2_error = sqrt(error/(grid_->Nelem ));
+
+    return L2_error;
+}
+
 void DGSolver::print_cont_vertex_sol(){
 
     register int j=0;
@@ -475,8 +529,8 @@ void DGSolver::print_cont_vertex_sol(){
     char *fname=nullptr;
     fname = new char[200];
 
-    sprintf(fname,"%su_nodal_CFL%1.2f_Beta%1.2f_%dT.dat"
-            ,simdata_->case_postproc_dir
+    sprintf(fname,"%su_nodal_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir, simdata_->Nelem_
             ,simdata_->CFL_,simdata_->upwind_param_
             ,simdata_->Nperiods);
 
@@ -491,8 +545,8 @@ void DGSolver::print_cont_vertex_sol(){
 
     fname = new char[200];
 
-    sprintf(fname,"%su_nodal_exact_CFL%1.2f_Beta%1.2f_%dT.dat"
-            ,simdata_->case_postproc_dir
+    sprintf(fname,"%su_nodal_exact_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir,simdata_->Nelem_
             ,simdata_->CFL_,simdata_->upwind_param_
             ,simdata_->Nperiods);
 
@@ -520,8 +574,8 @@ void DGSolver::print_average_sol(){
 
     quad_.setup_quadrature(5);
 
-    sprintf(fname,"%su_aver_CFL%1.2f_Beta%1.2f_%dT.dat"
-            ,simdata_->case_postproc_dir
+    sprintf(fname,"%su_aver_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir,simdata_->Nelem_
             ,simdata_->CFL_,simdata_->upwind_param_
             ,simdata_->Nperiods);
 
@@ -535,30 +589,71 @@ void DGSolver::print_average_sol(){
 
      emptyarray(fname);
 
-     /*char *fname1=nullptr;
-     fname1 = new char[100];
-
-     sprintf(fname1,"./output/Xc.dat");
-
-     FILE* sol_out1=fopen(fname1,"w");
-
-     for(j=0; j<grid_->Nelem; j++){
-
-         fprintf(sol_out1, "%2.10e\n", grid_->Xc[j]);
-
-     }
-
-     fclose(sol_out1);
-
-     emptyarray(fname1);*/
-
     return;
 }
 
 
+void DGSolver::dump_errors(double &sol_L2, double &aver_L2){
 
+    char *fname=nullptr;
+    fname = new char[200];
 
+    sprintf(fname,"%ssol_errors_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir
+            ,simdata_->CFL_,simdata_->upwind_param_
+            ,simdata_->Nperiods);
 
+    FILE* solerror_out=fopen(fname,"at+");
+
+    fprintf(solerror_out, "%d %2.10e %2.10e\n"
+            ,grid_->Nelem, sol_L2,aver_L2);
+
+     fclose(solerror_out);
+
+     emptyarray(fname);
+
+    return;
+}
+
+void DGSolver::dump_discont_sol(){
+
+    register int j; int k;
+
+    double xx=0.0,qq=0.0;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(5);
+
+    char *fname=nullptr;
+    fname = new char[200];
+
+    sprintf(fname,"%su_disc_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+            ,simdata_->case_postproc_dir
+            ,simdata_->Nelem_,simdata_->CFL_
+            ,simdata_->upwind_param_,simdata_->Nperiods);
+
+    FILE* sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        for(k=0; k<grid_->no_points_disc; k++) {
+
+            qq = evalSolution(&Qn[j][0],grid_->xx_disc[k]);
+
+            xx = ( 0.5 * grid_->h_j[j] * grid_->xx_disc[k])
+                    + grid_->Xc[j];
+
+            fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+        }
+    }
+
+    fclose(sol_out);
+
+    emptyarray(fname);
+
+    return;
+}
 
 
 

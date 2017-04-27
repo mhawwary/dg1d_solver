@@ -40,6 +40,8 @@ void InitSim(const int& argc,char** argv){
     if(argc<6){  // Parsing through input file
 
         simdata_.Parse(argv[argc-1]);
+        simdata_.setup_output_directory();
+        simdata_.dump_python_inputfile();
     }
 
     meshdata_.set_grid_param(simdata_);
@@ -76,13 +78,22 @@ void RunSim(){
 
 void PostProcess(){
 
-    dg_solver_.Compute_vertex_sol();;
+    double sol_L2_error=0.0,aver_L2_error=0.0;
+
+    dg_solver_.Compute_vertex_sol();
+    sol_L2_error = dg_solver_.ComputePolyError();
+    aver_L2_error= dg_solver_.ComputeAverageError();
 
     dg_solver_.print_cont_vertex_sol();
     dg_solver_.print_average_sol();
+    dg_solver_.dump_discont_sol();
+    dg_solver_.dump_errors(sol_L2_error,aver_L2_error);
 
     printf("\nFinal Iteration number is: %d\n",time_solver_.GetIter());
-    printf("Final time is: %1.2f\n\n",dg_solver_.GetPhyTime());
+    printf("Final time is: %1.2f\n",dg_solver_.GetPhyTime());
+    printf("Sol_L2_Error: %e \t, Aver_L2_error: %e\n\n"
+           ,sol_L2_error,aver_L2_error);
+
 
     return;
 }

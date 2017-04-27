@@ -4,6 +4,7 @@
  x_end = 1.0
  uniform_grid = 1
  refinement_level = 0
+ Npoints_plot = 5   # no. of equally spaced points per element for plotting discontinuous sol
 
 [Simulation] 
  print_freq = 1000
@@ -12,24 +13,24 @@
 
 [wave]
  wave_speed = 1.0;
- wave_form = 0;      # 0: sine wave, 1: Gaussian wave
+ wave_form = 1;      # 0: sine wave, 1: Gaussian wave
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
 
 [space_solver]
-  polynomial_order = 1
-  upwind_param = 1.0 # 1: fully upwind, 0: fully central, (0,1) hybrid
+  polynomial_order = 2
+  upwind_param = 0.5 # 1: fully upwind, 0: fully central, (0,1) hybrid
  
 [time_solver]
  calculate_dt_flag = 1 # 1: specify CFL and calc dt, 0: specify dt and calc CFL
  
- CFL_no = 0.1
+ CFL_no = 0.15
 
  dt = 1e-5
  initial_time = 0.0
 
  final_time = 3.0  
  
- no_of_periods = 50 ; #  period = (xf-x0) / wave_speed, must be an integer, if it is not, then use final time better and set the end_of_simulation_flag=1
+ no_of_periods = 50  #  period = (xf-x0) / wave_speed, must be an integer, if it is not, then use final time better and set the end_of_simulation_flag=1
  
  maximum_iteration = 1e4;
 
@@ -38,4 +39,4 @@
 
  [./explicit]
 
-  RK_order = 1
+  RK_order = 2

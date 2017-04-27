@@ -96,4 +96,9 @@ clean:
 	rm -f ./$(OBJ)*.o ./$(BIN)*.exe 
 	#rm -rf ./output/ 
 	@echo  removing all object and executable files
+clean2:
+
+python:
+	python DGplot.py -f ./input/case_python_input.in 
+
 

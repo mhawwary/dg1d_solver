@@ -15,6 +15,7 @@ void SimData::Parse(const std::string &fname){
 
     refine_level_ = gp_input("Case/refinement_level",0);
 
+    Npplot = gp_input("Case/Npoints_plot",2);
 
     print_freq_=gp_input("Simulation/print_freq",0);
     restart_iter_ = gp_input("Simulation/restart_iter",0);
@@ -47,6 +48,9 @@ void SimData::Parse(const std::string &fname){
 
     Nperiods = gp_input("time_solver/no_of_periods",1);
 
+}
+
+void SimData::setup_output_directory(){
 
     // Setting up some directories:
     //---------------------------------
@@ -76,18 +80,32 @@ void SimData::Parse(const std::string &fname){
 
     emptyarray(case_dir);
 
+    return;
 }
 
-void SimData::print_data(){
+void SimData::dump_python_inputfile(){
 
-    // Screen Output of input and simulation parameters:
-    cout <<"\n===============================================\n";
-    cout << "CFL no.:  "<<CFL_<<"\tWave Speed:  "<<a_wave_<<endl;
-    cout << "dt:  "<<dt_<<"\t"<< "dx:  "<<a_wave_*dt_/CFL_<<endl;
-    cout << "required no. of time steps: "<<t_end_/dt_<<endl;
-    cout << "Number of Elements:  "<<Nelem_<<endl;
-    cout << "Polynomial Order: "<<poly_order_<<endl;
-    cout << "RK_order:  "<< RK_order_ << endl <<"\n";
+    char *fname=nullptr;
+    fname = new char[100];
+
+    sprintf(fname,"./input/case_python_input.in");
+
+    FILE* python_out = fopen(fname,"w");
+
+    fprintf(python_out,"dir:%s\n",case_postproc_dir);
+    fprintf(python_out,"aver:%s\n",(char*)"u_aver");
+    fprintf(python_out,"nodal_exact:%s\n",(char*)"u_nodal_exact");
+    fprintf(python_out,"nodal_num:%s\n",(char*)"u_nodal");
+    fprintf(python_out,"discont:%s\n",(char*)"u_disc");
+    fprintf(python_out,"DGp:%d\n",poly_order_);
+    fprintf(python_out,"RK:%d\n",RK_order_);
+    fprintf(python_out,"Nelem:%d\n",Nelem_);
+    fprintf(python_out,"CFL:%1.2f\n",CFL_);
+    fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+    fprintf(python_out,"T:%d\n",Nperiods);
+
+    fclose(python_out);
+    emptyarray(fname);
 
     return;
 }

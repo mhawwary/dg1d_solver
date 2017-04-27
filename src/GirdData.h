@@ -17,7 +17,9 @@ struct GridData {
     double *h_j=nullptr;  // mesh width for each elements
 
     double *xx_exact=nullptr;
+    double *xx_disc=nullptr;
     int no_points_exact_=100;
+    int no_points_disc=1;
 
     int Nelem=1;
     int Nfaces=2;
@@ -49,9 +51,18 @@ struct GridData {
 
         Xc = new double [Nelem];
 
-        no_points_exact_= 100;
+        if(simdata_.poly_order_==0){
+            no_points_disc =1;
+        }else if(simdata_.poly_order_==1){
+            no_points_disc = 2;
+        }else if(simdata_.poly_order_>1){
+            no_points_disc = simdata_.Npplot;
+        }
+
+        no_points_exact_= 150;
 
         xx_exact = new double[no_points_exact_];
+        xx_disc = new double[no_points_disc];
 
         return;
     }
@@ -72,10 +83,18 @@ struct GridData {
             Xc[i] = 0.5 * ( X[i+1]+X[i] );
         }
 
+        // Discontinuous per element sampling
+        // for plotting a smooth numerical solution:
+        double dxx=2.0/(no_points_disc-1);
+
+        for(i=0; i<no_points_disc; i++){
+
+            xx_disc[i] = dxx * (i) + -1.0 ;
+        }
+
         // New sampling for plotting a smooth exact solution
 
-
-        double dxx = (xf - x0) / (no_points_exact_-1);
+        dxx = (xf - x0) / (no_points_exact_-1);
 
         for(i=0; i<no_points_exact_; i++){
 
@@ -85,36 +104,13 @@ struct GridData {
         return;
     }
 
-//    void print_grid(){
-
-//        register int j;
-
-//        char *fname=nullptr;
-//        fname = new char[100];
-
-//        sprintf(fname,"%sx.dat");
-
-//        FILE* coord_out=fopen(fname,"w");
-
-//        for(j=0; j<Nfaces; j++){
-
-//            fprintf(coord_out, "%2.10e\n", X[j]);
-//        }
-
-//        fclose(coord_out);
-
-//        emptyarray(fname);
-
-//        return;
-//    }
-
-
     void Reset_(){
 
         emptyarray(X);
         emptyarray(h_j);
         emptyarray(Xc);
-        //emptyarray(xx_exact);
+        emptyarray(xx_exact);
+        emptyarray(xx_disc);
 
         return;
     }
