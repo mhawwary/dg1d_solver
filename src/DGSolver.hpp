@@ -1,4 +1,4 @@
-#ifndef DGSOLVER_H
+﻿#ifndef DGSOLVER_H
 #define DGSOLVER_H
 
 
@@ -29,6 +29,7 @@ public:
 
    void Compute_vertex_sol();
    double ComputePolyError();
+   double Compute_projected_sol_error();
    double ComputeAverageError();
 
    void UpdatePhyTime(const double& dt_){
@@ -82,7 +83,7 @@ public:
 
    void print_cont_vertex_sol();
    void print_average_sol();
-   void dump_errors(double& sol_l2, double& aver_L2);
+   void dump_errors(double& proj_sol_L2, double &aver_L2);
    void dump_discont_sol();
 
 protected:
@@ -120,7 +121,7 @@ protected:
    void ComputeExactSolShift();
 
    void Compute_exact_vertex_sol();
-   void Compute_exact_average_sol();
+   void Compute_projected_exact_sol();
 
 protected:
 
@@ -135,7 +136,7 @@ protected:
 
    double *Q_exact=nullptr;  // Nfaces long
 
-   double *Q_exact_aver=nullptr; // Nelem long
+   double **Qex_proj=nullptr; // projected exact solution , Nelem long
 
    double *Qv=nullptr;       // Nfaces long
 

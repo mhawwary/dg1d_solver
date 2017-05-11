@@ -24,6 +24,7 @@ struct SimData {
     int restart_flag=0;  //0: start a new simulation; 1: restart a previous simulation
     int restart_iter_=0;
     int end_of_sim_flag_=0;  // 1: use max_iteration as a stopping criteria if not converged or diverged
+    std::string Sim_mode;
 
     double a_wave_=2;    // wave speed
     int wave_form_ = 0;  // 0: sine wave, 1: Gaussian wave
@@ -45,7 +46,6 @@ struct SimData {
 
     void setup_output_directory();
     void dump_python_inputfile();
-
 };
 
 

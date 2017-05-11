@@ -57,11 +57,19 @@ void InitSim(const int& argc,char** argv){
 
 void RunSim(){
 
-    double gtime=dg_solver_.GetPhyTime();
+    time_solver_.setupTimeSolver(&dg_solver_,&simdata_);
+
+    double gtime = dg_solver_.GetPhyTime();
 
     double dt_= dg_solver_.GetTimeStep();
 
-    time_solver_.setupTimeSolver(&dg_solver_,&simdata_);
+    time_solver_.ComputeInitialResid(dg_solver_.GetNumSolution());
+
+    time_solver_.SolveOneStep(dg_solver_.GetNumSolution());
+
+    time_solver_.space_solver->UpdatePhyTime(dt_);
+
+    gtime=dg_solver_.GetPhyTime();
 
     while ( gtime <=
             fabs((simdata_.Nperiods * dg_solver_.T_period)-pow(10,-10)) ){
@@ -78,21 +86,21 @@ void RunSim(){
 
 void PostProcess(){
 
-    double sol_L2_error=0.0,aver_L2_error=0.0;
+    double aver_L2_error=0.0,proj_sol_L2_error=0.0;
 
     dg_solver_.Compute_vertex_sol();
-    sol_L2_error = dg_solver_.ComputePolyError();
+    proj_sol_L2_error = dg_solver_.Compute_projected_sol_error();
     aver_L2_error= dg_solver_.ComputeAverageError();
 
     dg_solver_.print_cont_vertex_sol();
     dg_solver_.print_average_sol();
     dg_solver_.dump_discont_sol();
-    dg_solver_.dump_errors(sol_L2_error,aver_L2_error);
+    dg_solver_.dump_errors(proj_sol_L2_error,aver_L2_error);
 
     printf("\nFinal Iteration number is: %d\n",time_solver_.GetIter());
     printf("Final time is: %1.2f\n",dg_solver_.GetPhyTime());
-    printf("Sol_L2_Error: %e \t, Aver_L2_error: %e\n\n"
-           ,sol_L2_error,aver_L2_error);
+    printf("proj_sol_L2_Error: %e  , Aver_L2_error: %e\n\n"
+           ,proj_sol_L2_error,aver_L2_error);
 
 
     return;

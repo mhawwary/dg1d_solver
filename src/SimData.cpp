@@ -20,6 +20,7 @@ void SimData::Parse(const std::string &fname){
     print_freq_=gp_input("Simulation/print_freq",0);
     restart_iter_ = gp_input("Simulation/restart_iter",0);
     restart_flag = gp_input("Simulation/restart_flag",0);
+    Sim_mode = gp_input("Simulation/mode","normal");
 
 
     a_wave_ = gp_input("wave/wave_speed",1.0);
@@ -56,11 +57,14 @@ void SimData::setup_output_directory(){
     //---------------------------------
     allocator<char> allchar; // default allocator for char
 
-    case_postproc_dir =new char[200];
+    case_postproc_dir =new char[300];
 
-    char *case_dir=nullptr; case_dir=new char[100];
+    char *case_dir=nullptr; case_dir=new char[150];
 
-    sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
+    if(Sim_mode=="normal")
+        sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
+    else
+        sprintf(case_dir,"DGp%d_RK%d_test",poly_order_,RK_order_);
 
     char *current_working_dir=allchar.allocate(1500);
     getcwd(current_working_dir,1500);
@@ -72,6 +76,12 @@ void SimData::setup_output_directory(){
     case_postproc_dir = new char[200];
 
     sprintf(case_postproc_dir,"./Results/%s/",case_dir);
+
+    chdir(case_dir);
+
+    mkdir("./aver",0777);
+    mkdir("./nodal",0777);
+    mkdir("./errors",0777);
 
     chdir(current_working_dir);
 
@@ -93,10 +103,10 @@ void SimData::dump_python_inputfile(){
     FILE* python_out = fopen(fname,"w");
 
     fprintf(python_out,"dir:%s\n",case_postproc_dir);
-    fprintf(python_out,"aver:%s\n",(char*)"u_aver");
-    fprintf(python_out,"nodal_exact:%s\n",(char*)"u_nodal_exact");
-    fprintf(python_out,"nodal_num:%s\n",(char*)"u_nodal");
-    fprintf(python_out,"discont:%s\n",(char*)"u_disc");
+    fprintf(python_out,"aver:%s\n",(char*)"aver/u_aver");
+    fprintf(python_out,"nodal_exact:%s\n",(char*)"nodal/u_nodal_exact");
+    fprintf(python_out,"nodal_num:%s\n",(char*)"nodal/u_nodal");
+    fprintf(python_out,"discont:%s\n",(char*)"nodal/u_disc");
     fprintf(python_out,"DGp:%d\n",poly_order_);
     fprintf(python_out,"RK:%d\n",RK_order_);
     fprintf(python_out,"Nelem:%d\n",Nelem_);
