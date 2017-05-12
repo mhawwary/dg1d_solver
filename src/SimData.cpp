@@ -47,7 +47,7 @@ void SimData::Parse(const std::string &fname){
 
     RK_order_=gp_input("time_solver/explicit/RK_order",1);
 
-    Nperiods = gp_input("time_solver/no_of_periods",1);
+    Nperiods = gp_input("time_solver/no_of_periods",1.0);
 
 }
 
@@ -98,7 +98,7 @@ void SimData::dump_python_inputfile(){
     char *fname=nullptr;
     fname = new char[100];
 
-    sprintf(fname,"./input/case_python_input.in");
+    sprintf(fname,"./input/python_input.in");
 
     FILE* python_out = fopen(fname,"w");
 
@@ -112,7 +112,7 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"Nelem:%d\n",Nelem_);
     fprintf(python_out,"CFL:%1.2f\n",CFL_);
     fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
-    fprintf(python_out,"T:%d\n",Nperiods);
+    fprintf(python_out,"T:%1.2f\n",Nperiods);
 
     fclose(python_out);
     emptyarray(fname);

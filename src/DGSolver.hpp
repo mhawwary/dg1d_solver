@@ -147,6 +147,7 @@ protected:
    double CFL=1.0;
 
    double exact_sol_shift=0.;
+   double wave_length_=0.;
 
 };
 

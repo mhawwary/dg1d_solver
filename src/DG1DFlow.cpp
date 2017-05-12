@@ -71,15 +71,14 @@ void RunSim(){
 
     gtime=dg_solver_.GetPhyTime();
 
-    while ( gtime <=
-            fabs((simdata_.Nperiods * dg_solver_.T_period)-pow(10,-10)) ){
+    while ( gtime < (simdata_.t_end_-0.5*dt_) ){
 
             time_solver_.SolveOneStep(dg_solver_.GetNumSolution());
 
             time_solver_.space_solver->UpdatePhyTime(dt_);
 
             gtime=dg_solver_.GetPhyTime();
-        }
+    }
 
     return;
 }
@@ -116,7 +115,6 @@ void logo(){
     cout<<"         Author:               Mohammad Alhawwary, PhD. Student                          "<<endl;
     cout<<"    Affiliation:   Aerospace Engineering Department, University of Kansas, USA           "<< endl;
     cout<<"_________________________________________________________________________________________"<<endl;
-
 
     return;
 }

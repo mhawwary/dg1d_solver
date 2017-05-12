@@ -19,7 +19,7 @@ struct SimData {
     double t_end_ =1e20;  // end time
     double maxIter_ = 1e10; // maximum number of iterations
     double CFL_    = 1.0;   // CFL no.
-    int Nperiods = 1; // no. of periods for simulation
+    double Nperiods = 1.0; // no. of periods for simulation
 
     int restart_flag=0;  //0: start a new simulation; 1: restart a previous simulation
     int restart_iter_=0;

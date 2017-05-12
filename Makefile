@@ -98,10 +98,15 @@ clean:
 	@echo  removing all object and executable files
 clean2:
 
+plot_test:
+	python DGplot_test.py -f ./input/python_input.in 
 plot:
-	python DGplot.py -f ./input/case_python_input.in 
+	python DGplot.py -f ./input/python_input.in 
 
 plot_compare:
-	python DGplot_compare_Beta.py -f ./input/case_python_input_compare_Beta.in 
+	python DGplot_compare_Beta.py -f ./input/python_input_compare_Beta.in 
+
+plot_errors:
+	python DGplot_errors.py -f ./input/python_input_errors.in 
 
 

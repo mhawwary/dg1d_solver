@@ -32,7 +32,7 @@ void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
     }
 
 
-    Q_exact = new double[grid_->no_points_exact_];
+    Q_exact = new double[grid_->N_exact_ppts];
     Qv = new double[grid_->Nfaces];
 
     flux_com = new double[grid_->Nfaces];
@@ -45,18 +45,21 @@ void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
     Compute_projected_exact_sol();
     Compute_exact_vertex_sol();
 
-
     // Screen Output of input and simulation parameters:
     cout <<"\n===============================================\n";
-    cout << "CFL no.: "<<CFL<<endl;
-    cout << "dx     : "<<grid_->dx<<endl;
-    cout << "dt     : "<<time_step<<endl;
-    cout << "MaxIter: "<<simdata_->t_end_/time_step<<endl;
-    cout << "t_end  : "<<simdata_->t_end_<<endl;
-    cout << "\nNumber of Elements: "<< grid_->Nelem<<endl;
+    cout << "CFL no.        : "<<CFL<<endl;
+    cout << "time step, dt  : "<<time_step<<endl;
+    cout << "input Nperiods : "<<simdata_->Nperiods<<endl;
+    cout << "new   Nperiods : "<<simdata_->t_end_/T_period<<endl;
+    cout << "exact_sol_shift: "<<exact_sol_shift<<endl;
+    cout << "T_period       : "<<T_period<<endl;
+    printf("actual_end_time:%1.2f",simdata_->t_end_);
+
+    cout << "\nNumber of Elements: "<< grid_->Nelem<<"  dx:  "<<grid_->dx<<endl;
     cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
     cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
     cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
+    cout <<"===============================================\n";
 
     return;
 }
@@ -89,15 +92,26 @@ void DGSolver::CalcTimeStep(){
     if(simdata_->calc_dt_flag==1){
 
         time_step = (grid_->dx * simdata_->CFL_ )/ simdata_->a_wave_;
+
         CFL = simdata_->CFL_;
 
         T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
+
+        simdata_->t_end_ = simdata_->Nperiods * T_period;
+
+        // Modify the final_time to be
+        // an integer multiple of the time_step:
+        simdata_->t_end_ = ((int) floor(simdata_->t_end_/time_step)+1) * time_step;
 
     }else if(simdata_->calc_dt_flag==0){
 
         time_step = simdata_->dt_;
 
         CFL = simdata_->a_wave_ * time_step / grid_->dx ;
+
+        simdata_->t_end_ = floor(simdata_->t_end_/time_step) * time_step;
+
+        T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
 
     }else {
 
@@ -165,16 +179,11 @@ void DGSolver::ComputeExactSolShift(){
 
     // Preparing shift information:
     //-------------------------------
-    double Lambda=0;  // wave length
-    double final_time=0;
-    double a=0;
-    double Distance=0;
+    double a=0.;
 
-    Lambda = grid_->xf - grid_->x0 ;
-    final_time = simdata_->Nperiods * T_period;
+    wave_length_ = grid_->xf - grid_->x0 ;
     a = simdata_->a_wave_;
-    Distance = a * final_time;
-    exact_sol_shift = (simdata_->Nperiods*Lambda-Distance);
+    exact_sol_shift = (a * simdata_->t_end_ );
 
     return;
 }
@@ -189,6 +198,7 @@ double DGSolver::ExactSol_legendre_proj(const int &eID,
     j=eID;
 
     double xx=0.0;
+    double x0,x1;
     double II=0.0;
     double Qinit_=0.0;
     double Lk_=1.0;
@@ -198,8 +208,14 @@ double DGSolver::ExactSol_legendre_proj(const int &eID,
 
     for (i=0; i<quad_.Nq; i++){
 
-        xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j] + exact_sol_shift;
-        Qinit_= eval_init_sol(xx);
+        xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j] - exact_sol_shift;
+
+        x0 = xx - wave_length_*floor(xx/wave_length_);
+        x1 = xx + wave_length_*floor(xx/-wave_length_);
+
+        Qinit_= eval_init_sol(x0)+eval_init_sol(x1);
+
+        if(x0==0 && x1==0) Qinit_ = 0.5*Qinit_;
 
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
 
@@ -337,11 +353,19 @@ void DGSolver::Compute_exact_vertex_sol(){
     register int j;
 
     double xx=0.0;
+    double x0,x1;
 
-    for(j=0; j<grid_->no_points_exact_; j++){
+    for(j=0; j<grid_->N_exact_ppts; j++){
 
-        xx = grid_->xx_exact[j]+ exact_sol_shift;
-        Q_exact[j] = eval_init_sol( xx );
+        xx = grid_->x_exact_ppts[j]- exact_sol_shift;
+
+        x0 = xx - wave_length_*floor(xx/wave_length_);
+        x1 = xx + wave_length_*floor(xx/-wave_length_);
+
+        if(x0==0 && x1==0)
+            Q_exact[j] = 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
+        else
+            Q_exact[j] = (eval_init_sol(x0)+ eval_init_sol(x1));
     }
 
     return;
@@ -472,7 +496,7 @@ double DGSolver::ComputePolyError(){
         for(i=0; i<quad_.Nq; i++) {
 
             xx= 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
-                    + grid_->Xc[j] + exact_sol_shift;
+                    + grid_->Xc[j] - exact_sol_shift;
 
             q_ex = eval_init_sol(xx);
 
@@ -542,7 +566,7 @@ void DGSolver::print_cont_vertex_sol(){
     char *fname=nullptr;
     fname = new char[200];
 
-    sprintf(fname,"%snodal/u_nodal_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+    sprintf(fname,"%snodal/u_nodal_N%d_CFL%1.2f_Beta%1.2f_%1.1fT.dat"
             ,simdata_->case_postproc_dir, simdata_->Nelem_
             ,simdata_->CFL_,simdata_->upwind_param_
             ,simdata_->Nperiods);
@@ -558,16 +582,16 @@ void DGSolver::print_cont_vertex_sol(){
 
     fname = new char[200];
 
-    sprintf(fname,"%snodal/u_nodal_exact_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+    sprintf(fname,"%snodal/u_nodal_exact_N%d_CFL%1.2f_Beta%1.2f_%1.1fT.dat"
             ,simdata_->case_postproc_dir,simdata_->Nelem_
             ,simdata_->CFL_,simdata_->upwind_param_
             ,simdata_->Nperiods);
 
     FILE* sol_out1=fopen(fname,"w");
 
-    for(j=0; j<grid_->no_points_exact_; j++)
+    for(j=0; j<grid_->N_exact_ppts; j++)
         fprintf(sol_out1, "%2.10e %2.10e\n"
-                ,grid_->xx_exact[j], Q_exact[j]);
+                ,grid_->x_exact_ppts[j], Q_exact[j]);
 
     fclose(sol_out1);
 
@@ -587,7 +611,7 @@ void DGSolver::print_average_sol(){
 
     quad_.setup_quadrature(5);
 
-    sprintf(fname,"%saver/u_aver_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+    sprintf(fname,"%saver/u_aver_N%d_CFL%1.2f_Beta%1.2f_%1.1fT.dat"
             ,simdata_->case_postproc_dir,simdata_->Nelem_
             ,simdata_->CFL_,simdata_->upwind_param_
             ,simdata_->Nperiods);
@@ -610,7 +634,7 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
     char *fname=nullptr;
     fname = new char[200];
 
-    sprintf(fname,"%serrors/sol_errors_CFL%1.2f_Beta%1.2f_%dT.dat"
+    sprintf(fname,"%serrors/sol_errors_CFL%1.2f_Beta%1.2f_%1.1fT.dat"
             ,simdata_->case_postproc_dir
             ,simdata_->CFL_,simdata_->upwind_param_
             ,simdata_->Nperiods);
@@ -628,7 +652,7 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
      //--------------------------------------------------------
      fname = new char[200];
 
-     sprintf(fname,"%serrors/sol_errors_N%d_CFL%1.2f_allBeta_%dT.dat"
+     sprintf(fname,"%serrors/sol_errors_N%d_CFL%1.2f_allBeta_%1.1fT.dat"
              ,simdata_->case_postproc_dir
              ,grid_->Nelem
              ,simdata_->CFL_
@@ -659,7 +683,7 @@ void DGSolver::dump_discont_sol(){
     char *fname=nullptr;
     fname = new char[200];
 
-    sprintf(fname,"%snodal/u_disc_N%d_CFL%1.2f_Beta%1.2f_%dT.dat"
+    sprintf(fname,"%snodal/u_disc_N%d_CFL%1.2f_Beta%1.2f_%1.1fT.dat"
             ,simdata_->case_postproc_dir
             ,simdata_->Nelem_,simdata_->CFL_
             ,simdata_->upwind_param_,simdata_->Nperiods);
@@ -668,11 +692,37 @@ void DGSolver::dump_discont_sol(){
 
     for(j=0; j<grid_->Nelem; j++){
 
-        for(k=0; k<grid_->no_points_disc; k++) {
+        for(k=0; k<grid_->N_xi_disc_ppts; k++) {
 
-            qq = evalSolution(&Qn[j][0],grid_->xx_disc[k]);
+            qq = evalSolution(&Qn[j][0],grid_->xi_disc[k]);
 
-            xx = ( 0.5 * grid_->h_j[j] * grid_->xx_disc[k])
+            xx = ( 0.5 * grid_->h_j[j] * grid_->xi_disc[k])
+                    + grid_->Xc[j];
+
+            fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+        }
+    }
+
+    fclose(sol_out);
+
+    emptyarray(fname);
+
+    fname = new char[200];
+
+    sprintf(fname,"%snodal/uex_disc_N%d_CFL%1.2f_Beta%1.2f_%1.1fT.dat"
+            ,simdata_->case_postproc_dir
+            ,simdata_->Nelem_,simdata_->CFL_
+            ,simdata_->upwind_param_,simdata_->Nperiods);
+
+    sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        for(k=0; k<grid_->N_xi_disc_ppts; k++) {
+
+            qq = evalSolution(&Qex_proj[j][0],grid_->xi_disc[k]);
+
+            xx = ( 0.5 * grid_->h_j[j] * grid_->xi_disc[k])
                     + grid_->Xc[j];
 
             fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);

@@ -16,10 +16,10 @@ struct GridData {
     double *Xc=nullptr;   // mesh X centroid
     double *h_j=nullptr;  // mesh width for each elements
 
-    double *xx_exact=nullptr;
-    double *xx_disc=nullptr;
-    int no_points_exact_=100;
-    int no_points_disc=1;
+    double *x_exact_ppts=nullptr;
+    double *xi_disc=nullptr;
+    int N_exact_ppts=100;
+    int N_xi_disc_ppts=1;
 
     int Nelem=1;
     int Nfaces=2;
@@ -27,7 +27,6 @@ struct GridData {
     int uniform=1;  // 0: for nonuniform mesh elements
 
     int refine_level=0; // 0: no refinement
-
 
 
     void set_grid_param(const SimData& simdata_){
@@ -52,17 +51,17 @@ struct GridData {
         Xc = new double [Nelem];
 
         if(simdata_.poly_order_==0){
-            no_points_disc =1;
+            N_xi_disc_ppts =1;
         }else if(simdata_.poly_order_==1){
-            no_points_disc = 2;
+            N_xi_disc_ppts = 2;
         }else if(simdata_.poly_order_>1){
-            no_points_disc = simdata_.Npplot;
+            N_xi_disc_ppts = simdata_.Npplot;
         }
 
-        no_points_exact_= 150;
+        N_exact_ppts= 150;
 
-        xx_exact = new double[no_points_exact_];
-        xx_disc = new double[no_points_disc];
+        x_exact_ppts = new double[N_exact_ppts];
+        xi_disc = new double[N_xi_disc_ppts];
 
         return;
     }
@@ -85,20 +84,20 @@ struct GridData {
 
         // Discontinuous per element sampling
         // for plotting a smooth numerical solution:
-        double dxx=2.0/(no_points_disc-1);
+        double dxi_=2.0/(N_xi_disc_ppts-1);
 
-        for(i=0; i<no_points_disc; i++){
+        for(i=0; i<N_xi_disc_ppts; i++){
 
-            xx_disc[i] = dxx * (i) + -1.0 ;
+            xi_disc[i] = dxi_ * (i) + -1.0 ;
         }
 
         // New sampling for plotting a smooth exact solution
 
-        dxx = (xf - x0) / (no_points_exact_-1);
+        double dxx_ = (xf - x0) / (N_exact_ppts-1);
 
-        for(i=0; i<no_points_exact_; i++){
+        for(i=0; i<N_exact_ppts; i++){
 
-            xx_exact[i]   = dxx * (i)  + x0 ;
+            x_exact_ppts[i]   = dxx_ * (i)  + x0 ;
         }
 
         return;
@@ -109,8 +108,8 @@ struct GridData {
         emptyarray(X);
         emptyarray(h_j);
         emptyarray(Xc);
-        emptyarray(xx_exact);
-        emptyarray(xx_disc);
+        emptyarray(x_exact_ppts);
+        emptyarray(xi_disc);
 
         return;
     }
