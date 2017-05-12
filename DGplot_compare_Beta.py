@@ -1,19 +1,21 @@
 import numpy                 #loading our favorite library
 from matplotlib import pyplot    #and the useful plotting library
-# %matplotlib inline
-#from numpy import *
-from numpy import sin,cos,pi,linspace,ones,zeros,abs,min,max,exp, shape, empty_like , size 
+from numpy import sin,cos,pi,linspace,ones,zeros,abs,min,max,exp, shape, empty_like , size , arange
 import argparse
 from decimal import Decimal
 import csv
 
 pyplot.rc('legend',**{'loc':'upper left'});
-pyplot.rcParams[u'legend.fontsize'] = 18
+pyplot.rcParams[u'legend.fontsize'] = 15
+pyplot.rcParams[u'legend.edgecolor']='white'
 pyplot.rcParams[u'font.weight']='normal'
-pyplot.rcParams[u'xtick.labelsize']=15
-pyplot.rcParams[u'ytick.labelsize']=15
-pyplot.rcParams[u'axes.titlesize']=22
-pyplot.rcParams[u'axes.labelsize']=22
+#pyplot.rcParams['font.serif']='false'
+pyplot.rcParams[u'xtick.labelsize']=14
+pyplot.rcParams[u'ytick.labelsize']=14
+pyplot.rcParams[u'axes.titlesize']=18
+pyplot.rcParams[u'axes.labelsize']=15
+pyplot.rcParams[u'axes.spines.right']='false';
+pyplot.rcParams[u'axes.spines.top']='false';
 pyplot.rcParams[u'lines.linewidth'] = 1.5;
 pyplot.rcParams[u'lines.markersize'] = 8;
 
@@ -39,7 +41,7 @@ with open(args.python_input) as file:
         elif row[0] == 'Nelem':    
             Nelem=str(int(row[1]));
         elif row[0] == 'T':     
-            T=int(row[1]);
+            T=Decimal(row[1]);
         elif row[0] =='dir':    
             dir1 = str(row[1]);
         elif row[0] =='aver':   
@@ -60,6 +62,7 @@ for ii in range(0,size(Beta)):
     Beta[ii] = Decimal(Beta[ii].quantize(Decimal('.01')));
 
 CFL=Decimal(CFL.quantize(Decimal('.01')));
+T=Decimal(T.quantize(Decimal('.1')));
 
 fname_un_ex = dir1+nodal_exact+str("_N")+Nelem\
 +str("_CFL")+str(CFL)+str("_Beta")\
@@ -73,23 +76,44 @@ import matplotlib.colors as colors
 import matplotlib.cm as cmx
 
 jet = cm = pyplot.get_cmap('jet') 
-cNorm  = colors.Normalize(vmin=0, vmax=float(Beta[-1]))
+cNorm  = colors.Normalize(vmin=float(Beta[0]), vmax=float(Beta[-1]))
 scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet);
+
+#cluster = ['o','^','v','p','s'];
+#lines_ = ['-','--','-','--','-'];
 
 #! Plotting The figure:
 #---------------------------
-fig = pyplot.figure(figsize=(15, 10.0));
+if int(DG)<=1:
+    Np = 2;
+else:
+    Np=10;
 
-pyplot.plot(xn_exact,un_exact,'-k',label='Exact sol'); 
+
+fig, ax = pyplot.subplots(figsize=(15, 10.0)) ;
+#pyplot.figure(figsize=(15, 10.0));
+pyplot.plot(xn_exact,un_exact,'-k',label='exact sol'); 
+
+ylim_0 = list();
+ylim_1 = list();
+
+ylim_0.append(min(un_exact));
+ylim_1.append(max(un_exact));
 
 for ii in range(0,size(Beta)):
-    fname_un_disc = dir1+discont+str("_N")+Nelem+str("_CFL")+str(CFL)+str("_Beta")+str(Beta[ii])+str("_")+str(T)+str("T.dat");
+
+    fname_un_disc = dir1+discont+str("_N")+Nelem\
+    +str("_CFL")+str(CFL)+str("_Beta")+str(Beta[ii])\
+    +str("_")+str(T)+str("T.dat");
+
     data_disc= numpy.loadtxt(fname_un_disc);
     x_disc = data_disc[:,0];
     u_disc = data_disc[:,1];
 
+    ylim_0.append(min(u_disc));
+    ylim_1.append(max(u_disc));
+
     nn = size(x_disc);
-    Np = 2;
 
     for i in range(0,size(x_disc)-1,Np):
         xx = x_disc[i:i+Np];
@@ -99,15 +123,35 @@ for ii in range(0,size(Beta)):
 
     xx = x_disc[i:i+Np];
     uu = u_disc[i:i+Np];
-    ll = str("Numerical sol, (")+r'$\beta= $'+str(Beta[ii])+" )"; 
+    #ll = str("Numerical sol, (")+r'$\beta= $'+str(Beta[ii])+" )";
+    ll = r'$\beta= $'+str(Beta[ii]);  
     pyplot.plot(xx,uu,color=colorVal,label=ll); 
+    #pyplot.plot(xx,uu,marker=cluster[ii],color=colorVal,label=ll,markevery=5);
+    #pyplot.plot(xx,uu,ls=lines_[ii],color=colorVal,label=ll); 
 
 
 pyplot.legend(loc='upper left');
-title_a = str("DGp")+ DG + " RK"+ RK +" for CFL="+ str(CFL)+ " and at t/T="+str(T);
-pyplot.title(title_a);
+CFL=Decimal(CFL.quantize(Decimal('.1')));
+title_a = str("DGp")+ DG + " RK"+ RK \
++" for CFL="+ str(CFL)+ " and at t/T="+str(T);
+#pyplot.title(title_a);
+
 pyplot.xlabel('X');
-pyplot.ylabel('u(x)');
+pyplot.ylabel('u');
+
+pyplot.xlim(-1.0,1.0);
+pyplot.ylim(min(ylim_0)*1.05,max(ylim_1)*1.05);
+
+from matplotlib.ticker import FormatStrFormatter
+ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+xlabels=[-1.0,-0.5,0,0.5,1.0];
+xlocs=[-1.0,-0.5,0,0.5,1.0];
+pyplot.xticks(xlocs, xlabels);
+
+ylabels=arange(0,1.2,0.2);
+ylocs=arange(0,1.2,0.2);
+pyplot.yticks(ylocs,ylabels);
 
 pyplot.savefig('fig1.png',bbox='tight')
 
