@@ -54,7 +54,7 @@ endif
 SRC	= src/
 OBJ	= obj/
 BIN	= bin/
-INC	= include/      
+INC	= include/
 
 vpath %.cpp src
 vpath %.c src
@@ -93,10 +93,13 @@ $(OBJ)ExplicitTimeSolver.o: ExplicitTimeSolver.hpp ExplicitTimeSolver.cpp
 #$(OBJ)GridData.o:   GridData.hpp GridData.cpp
 
 clean:
-	rm -f ./$(OBJ)*.o ./$(BIN)*.exe 
-	#rm -rf ./output/ 
+	rm -f ./$(OBJ)*.o ./$(BIN)*.exe  
 	@echo  removing all object and executable files
-clean2:
+
+clean_temp:
+	rm -f ./input/*.*~ ./$(OBJ)*.*~ ./$(BIN)*.*~ ./$(SRC)*.*~ ./$(INC)*.*~ ./*.*~ ./*~
+	rm -f ./Results/*.*~ ./Results/*/*.*~ ./Results/*/*/*.*~ ./Results/*/*/*/*.*~ 
+	
 
 plot_test:
 	python DGplot_test.py -f ./input/python_input.in 

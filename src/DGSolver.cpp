@@ -2,11 +2,7 @@
 
 // Constructor/Destructor/ Setup functions:
 //------------------------------------------------
-DGSolver::DGSolver(void){
-
-    //Reset_solver();
-
-}
+DGSolver::DGSolver(void){}
 
 DGSolver::~DGSolver(void){
 

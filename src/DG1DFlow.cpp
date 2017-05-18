@@ -109,12 +109,12 @@ void logo(){
 
     cout<<"_________________________________________________________________________________________"<<endl;
     cout<<"                                                                                         "<<endl;
-    cout<<"               "<<"  Welcome to the Discontinuous Galerkin solver  "<<"                  "<<endl;
-    cout<<"               "<<"   for inviscid 1D wave and burgers equations   "<<"                  "<<endl;
+    cout<<"                 "<<"  Welcome to the Discontinuous Galerkin solver  "<<"                "<<endl;
+    cout<<"                  "<<"   for 1D wave and scalar conservation laws    "<<"                "<<endl;
     cout<<"                                                                                         "<<endl;
-    cout<<"         Author:               Mohammad Alhawwary, PhD. Student                          "<<endl;
-    cout<<"    Affiliation:   Aerospace Engineering Department, University of Kansas, USA           "<< endl;
-    cout<<"_________________________________________________________________________________________"<<endl;
+    cout<<"       Author:               Mohammad Alhawwary, PhD. Student                            "<<endl;
+    cout<<"  Affiliation:   Aerospace Engineering Department, University of Kansas, USA             "<< endl;
+    cout<<"_______________________________________04/05/2017________________________________________"<<endl;
 
     return;
 }

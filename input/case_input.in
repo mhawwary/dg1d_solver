@@ -1,5 +1,5 @@
 [Case]
- num_elements = 50
+ num_elements = 10
  x_begin = -1.0
  x_end = 1.0
  uniform_grid = 1
@@ -19,20 +19,20 @@
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
 
 [space_solver]
-  polynomial_order = 1
+  polynomial_order = 3
   upwind_param = 0.0  # 1: fully upwind, 0: fully central, (0,1) hybrid
  
 [time_solver]
  calculate_dt_flag = 1 # 1: specify CFL and calc dt, 0: specify dt and calc CFL
  
- CFL_no = 0.433
+ CFL_no = 0.214
 
  dt = 1e-5
  initial_time = 0.0
 
  final_time = 4.0
  
- no_of_periods = 2.0 #  period = (xf-x0) / wave_speed
+ no_of_periods = 5000.0 #  period = (xf-x0) / wave_speed
  
  maximum_iteration = 1e4;
 
@@ -41,4 +41,4 @@
 
  [./explicit]
 
-  RK_order = 3
+  RK_order = 4
