@@ -1,5 +1,5 @@
 [Case]
- num_elements = 10
+ num_elements = 50
  x_begin = -1.0
  x_end = 1.0
  uniform_grid = 1
@@ -12,26 +12,27 @@
  restart_iter = 1e6
  mode = test  # normal/test
 
+
 [wave]
  wave_speed = 1.0;
  wave_form = 1;      # 0: sine wave, 1: Gaussian wave
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
 
 [space_solver]
-  polynomial_order = 2
-  upwind_param = 0.85  # 1: fully upwind, 0: fully central, (0,1) hybrid
+  polynomial_order = 1
+  upwind_param = 0.0  # 1: fully upwind, 0: fully central, (0,1) hybrid
  
 [time_solver]
  calculate_dt_flag = 1 # 1: specify CFL and calc dt, 0: specify dt and calc CFL
  
- CFL_no = 0.235
+ CFL_no = 0.433
 
  dt = 1e-5
  initial_time = 0.0
 
- final_time = 3.0  
+ final_time = 4.0
  
- no_of_periods = 2000.0 #  period = (xf-x0) / wave_speed, must be an integer, if it is not, then use final time better and set the end_of_simulation_flag=1
+ no_of_periods = 2.0 #  period = (xf-x0) / wave_speed
  
  maximum_iteration = 1e4;
 

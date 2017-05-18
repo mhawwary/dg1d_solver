@@ -97,11 +97,19 @@ void DGSolver::CalcTimeStep(){
 
         T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
 
-        simdata_->t_end_ = simdata_->Nperiods * T_period;
+        if(simdata_->end_of_sim_flag_==0){
 
-        // Modify the final_time to be
-        // an integer multiple of the time_step:
-        simdata_->t_end_ = ((int) floor(simdata_->t_end_/time_step)+1) * time_step;
+            simdata_->t_end_ = simdata_->Nperiods * T_period;
+
+            // Modify the final_time to be
+            // an integer multiple of the time_step:
+            simdata_->t_end_ =
+                    ceil(simdata_->t_end_/time_step) * time_step;
+
+        }else if(simdata_->end_of_sim_flag_==1){
+
+            simdata_->Nperiods = simdata_->t_end_/T_period;
+        }
 
     }else if(simdata_->calc_dt_flag==0){
 
@@ -109,9 +117,13 @@ void DGSolver::CalcTimeStep(){
 
         CFL = simdata_->a_wave_ * time_step / grid_->dx ;
 
-        simdata_->t_end_ = floor(simdata_->t_end_/time_step) * time_step;
+        if(simdata_->end_of_sim_flag_==2){
+            simdata_->t_end_ = simdata_->maxIter_ * time_step;
+        }
 
         T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
+
+        simdata_->Nperiods = simdata_->t_end_/T_period;
 
     }else {
 
