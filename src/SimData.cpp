@@ -59,23 +59,35 @@ void SimData::setup_output_directory(){
 
     case_postproc_dir =new char[300];
 
-    char *case_dir=nullptr; case_dir=new char[150];
+    char *case_dir=nullptr,*case_title=nullptr;
+    case_dir=new char[70];
+    case_title=new char[20];
+
+    if(wave_form_==0) sprintf(case_title,"sine_wave");
+    else if(wave_form_==1) sprintf(case_title,"Gaussian_wave");
 
     if(Sim_mode=="normal")
         sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
-    else
+    else if(Sim_mode=="test")
         sprintf(case_dir,"DGp%d_RK%d_test",poly_order_,RK_order_);
+    else if(Sim_mode=="error_analysis_CFL" ||Sim_mode=="error_analysis_dt")
+        sprintf(case_dir,"DGp%d_RK%d_error_analysis",poly_order_,RK_order_);
+    else FatalError_exit("Simulation mode is not defined");
 
     char *current_working_dir=allchar.allocate(1500);
     getcwd(current_working_dir,1500);
 
     chdir("./Results");
 
+    mkdir(case_title,0777);
+
+    chdir(case_title);
+
     mkdir(case_dir,0777);
 
     case_postproc_dir = new char[200];
 
-    sprintf(case_postproc_dir,"./Results/%s/",case_dir);
+    sprintf(case_postproc_dir,"./Results/%s/%s/",case_title,case_dir);
 
     chdir(case_dir);
 
@@ -110,9 +122,9 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"DGp:%d\n",poly_order_);
     fprintf(python_out,"RK:%d\n",RK_order_);
     fprintf(python_out,"Nelem:%d\n",Nelem_);
-    fprintf(python_out,"CFL:%1.2f\n",CFL_);
+    fprintf(python_out,"CFL:%1.3f\n",CFL_);
     fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
-    fprintf(python_out,"T:%1.2f\n",Nperiods);
+    fprintf(python_out,"T:%1.3f\n",Nperiods);
 
     fclose(python_out);
     emptyarray(fname);

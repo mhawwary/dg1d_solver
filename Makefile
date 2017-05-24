@@ -3,7 +3,7 @@
 
 COMP	= GCC
 TECIO	= NO
-CODE	= DEBUG
+CODE	= RELEASE
 OPENMP	= NO
 
 # Specifing Standard Variables:
@@ -111,5 +111,8 @@ plot_compare:
 
 plot_errors:
 	python DGplot_errors.py -f ./input/python_input_errors.in 
+
+plot_error_analys:
+	python DGplot_error_analysis.py -f ./input/python_input_error_analysis.in 
 
 

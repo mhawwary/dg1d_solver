@@ -1,44 +1,45 @@
 [Case]
- num_elements = 10
- x_begin = -1.0
- x_end = 1.0
+ title = Gaussian   # sine wave
+ num_elements = 320
+ x_begin =  0.0 
+ x_end   =  1.0
  uniform_grid = 1
  refinement_level = 0
- Npoints_plot = 10   # no. of equally spaced points per element for plotting discontinuous sol
+ Npoints_plot = 5  # no. of equally spaced points per element for plotting discontinuous sol
 
 [Simulation] 
  print_freq = 1000
  restart_flag = 0
  restart_iter = 1e6
- mode = test  # normal/test
+ mode = error_analysis_dt # normal/test/error_analysis_dt/error_analysis_CFL
 
 
 [wave]
  wave_speed = 1.0;
- wave_form = 1;      # 0: sine wave, 1: Gaussian wave
+ wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
 
 [space_solver]
-  polynomial_order = 3
-  upwind_param = 0.0  # 1: fully upwind, 0: fully central, (0,1) hybrid
+  polynomial_order = 2
+  upwind_param = 1.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
  
 [time_solver]
- calculate_dt_flag = 1 # 1: specify CFL and calc dt, 0: specify dt and calc CFL
+ calculate_dt_flag = 0  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
  
- CFL_no = 0.214
+ CFL_no = 0.300
 
- dt = 1e-5
+ dt = 0.0001
  initial_time = 0.0
 
  final_time = 4.0
  
- no_of_periods = 5000.0 #  period = (xf-x0) / wave_speed
+ no_of_periods = 2.0 #  period = (xf-x0) / wave_speed
  
- maximum_iteration = 1e4;
+ maximum_iteration = 50000;
 
  end_of_simulation_flag = 0  
-# 0: use no. of periods to calc final time and then use final time, 1: use final time directly and then calculate no of periods,2:  use max_iteration as a stopping criteria if not converged or diverged 
+# 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged 
 
  [./explicit]
 
-  RK_order = 4
+  RK_order = 3

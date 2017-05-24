@@ -93,6 +93,8 @@ void ExplicitTimeSolver::SolveOneStep(double **qn_){
 
     IterNo++;
 
+    if(IterNo==simdata->maxIter_-1) dt_ = space_solver->GetLastTimeStep();
+
     return;
 }
 

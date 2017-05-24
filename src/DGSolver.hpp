@@ -31,6 +31,7 @@ public:
    double ComputePolyError();
    double Compute_projected_sol_error();
    double ComputeAverageError();
+   double ComputeDiscNodalError();
 
    void UpdatePhyTime(const double& dt_){
 
@@ -49,6 +50,11 @@ public:
    double GetTimeStep(){
 
        return time_step;
+   }
+
+   double GetLastTimeStep(){
+
+       return last_time_step;
    }
 
    double GetCFL(){
@@ -144,6 +150,7 @@ protected:
 
    double phy_time=0.0;
    double time_step=1e-5;
+   double last_time_step=1e-5;
    double CFL=1.0;
 
    double exact_sol_shift=0.;

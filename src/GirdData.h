@@ -51,7 +51,7 @@ struct GridData {
         Xc = new double [Nelem];
 
         if(simdata_.poly_order_==0){
-            N_xi_disc_ppts =1;
+            N_xi_disc_ppts =2;
         }else if(simdata_.poly_order_==1){
             N_xi_disc_ppts = 2;
         }else if(simdata_.poly_order_>1){
@@ -84,11 +84,17 @@ struct GridData {
 
         // Discontinuous per element sampling
         // for plotting a smooth numerical solution:
-        double dxi_=2.0/(N_xi_disc_ppts-1);
 
-        for(i=0; i<N_xi_disc_ppts; i++){
+        if(N_xi_disc_ppts==1){
 
-            xi_disc[i] = dxi_ * (i) + -1.0 ;
+            xi_disc[0] = 0.0;
+
+        }else{
+
+            double dxi_=2.0/(N_xi_disc_ppts-1);
+
+            for(i=0; i<N_xi_disc_ppts; i++)
+                xi_disc[i] = dxi_ * (i) + -1.0 ;
         }
 
         // New sampling for plotting a smooth exact solution

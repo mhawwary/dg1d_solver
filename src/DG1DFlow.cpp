@@ -41,7 +41,6 @@ void InitSim(const int& argc,char** argv){
 
         simdata_.Parse(argv[argc-1]);
         simdata_.setup_output_directory();
-        simdata_.dump_python_inputfile();
     }
 
     meshdata_.set_grid_param(simdata_);
@@ -51,6 +50,8 @@ void InitSim(const int& argc,char** argv){
     dg_solver_.setup_solver(meshdata_,simdata_);
 
     dg_solver_.InitSol();
+
+    simdata_.dump_python_inputfile();
 
     return;
 }
@@ -71,14 +72,22 @@ void RunSim(){
 
     gtime=dg_solver_.GetPhyTime();
 
-    while ( gtime < (simdata_.t_end_-0.5*dt_) ){
+    while ( gtime < simdata_.t_end_- 1.05*dt_ ){
 
-            time_solver_.SolveOneStep(dg_solver_.GetNumSolution());
+        time_solver_.SolveOneStep(dg_solver_.GetNumSolution());
 
-            time_solver_.space_solver->UpdatePhyTime(dt_);
+        time_solver_.space_solver->UpdatePhyTime(dt_);
 
-            gtime=dg_solver_.GetPhyTime();
+        gtime=dg_solver_.GetPhyTime();
     }
+
+    // Last iteration:
+
+    time_solver_.SolveOneStep(dg_solver_.GetNumSolution());
+
+    time_solver_.space_solver->UpdatePhyTime(dg_solver_.GetLastTimeStep());
+
+    gtime=dg_solver_.GetPhyTime();
 
     return;
 }
@@ -97,7 +106,7 @@ void PostProcess(){
     dg_solver_.dump_errors(proj_sol_L2_error,aver_L2_error);
 
     printf("\nFinal Iteration number is: %d\n",time_solver_.GetIter());
-    printf("Final time is: %1.2f\n",dg_solver_.GetPhyTime());
+    printf("Final time is: %1.5f\n",dg_solver_.GetPhyTime());
     printf("proj_sol_L2_Error: %e  , Aver_L2_error: %e\n\n"
            ,proj_sol_L2_error,aver_L2_error);
 
