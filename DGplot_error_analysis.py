@@ -69,13 +69,13 @@ elif mode=='dt_const':
     fname_upw = dir1+errors+str("_dt")+dt_+"_Beta1.00"+'_'+str(T)+str("T.dat");   
     data_errors= loadtxt(fname_errors);
     data_upw = loadtxt(fname_upw);
-    L2_proj_upw = data_upw[:,2];
-    L2_aver_upw = data_upw[:,3];
+    L2_proj_upw = data_upw[0:5,2];
+    L2_aver_upw = data_upw[0:5,3];
 
-Nelem = data_errors[:,0]; 
+Nelem = data_errors[0:5,0]; 
 nDOF = Nelem * (int(DG)+1);
-L2_proj= data_errors[:,2]; 
-L2_aver= data_errors[:,3];
+L2_proj= data_errors[0:5,2]; 
+L2_aver= data_errors[0:5,3];
 
 
 # theoritcal curve:
@@ -129,7 +129,7 @@ if mode=='dt_const':
 
 	pyplot.title(title_a);
 	pyplot.xlabel('nDOFs');
-	pyplot.ylabel(r'log(L$_{2}$) error');
+	pyplot.ylabel(r'L$_{2}$ error');
 	
 	#pyplot.ylim(1.0e-2,6.5e-2)
 	from matplotlib import ticker 
@@ -155,7 +155,7 @@ elif mode=='CFL_const':
 
 	pyplot.title(title_a);
 	pyplot.xlabel('nDOFs');
-	pyplot.ylabel(r'log(L$_{2}$) error');
+	pyplot.ylabel(r'L$_{2}$ error');
 	
 	#pyplot.ylim(1.0e-2,6.5e-2)
 	from matplotlib import ticker 

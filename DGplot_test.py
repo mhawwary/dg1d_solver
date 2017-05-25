@@ -41,19 +41,27 @@ with open(args.python_input) as file:
             Beta=Decimal(row[1]); 
 
 Beta= Decimal(Beta.quantize(Decimal('.01')));
-CFL=Decimal(CFL.quantize(Decimal('.01')));
-T=Decimal(T.quantize(Decimal('.1')));
+CFL=Decimal(CFL.quantize(Decimal('.001')));
+T=Decimal(T.quantize(Decimal('.001')));
 
-fname_u_aver = dir1+aver+str("_N")+Nelem+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)+str("_")+str(T)+str("T.dat");
+fname_u_aver = dir1+aver+str("_N")+Nelem\
++str("_CFL")+str(CFL)+str("_Beta")\
++str(Beta)+str("_")+str(T)+str("T.dat");
 data_aver= loadtxt(fname_u_aver);
 
-fname_un_ex = dir1+nodal_exact+str("_N")+Nelem+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)+str("_")+str(T)+str("T.dat");
+fname_un_ex = dir1+nodal_exact+str("_N")+Nelem\
++str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
++str("_")+str(T)+str("T.dat");
 data_exact_nodal= loadtxt(fname_un_ex);
 
-fname_un_comp = dir1+nodal_comp+str("_N")+Nelem+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)+str("_")+str(T)+str("T.dat");
+fname_un_comp = dir1+nodal_comp+str("_N")+Nelem\
++str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
++str("_")+str(T)+str("T.dat");
 data_num_nodal= loadtxt(fname_un_comp);
 
-fname_un_disc = dir1+discont+str("_N")+Nelem+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)+str("_")+str(T)+str("T.dat");
+fname_un_disc = dir1+discont+str("_N")+Nelem\
++str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
++str("_")+str(T)+str("T.dat");
 data_disc= loadtxt(fname_un_disc);
 
 xc = data_aver[:,0];
@@ -85,10 +93,12 @@ pyplot.rcParams[u'lines.markersize'] = 8;
 
 nn = size(x_disc);
 
-if int(DG)<=1:
+if int(DG)==0:
+    Np=2;
+elif int(DG)==1:
     Np = 2;
 else:
-    Np=10;
+    Np=5;
 
 pyplot.figure();
 
@@ -123,16 +133,16 @@ pyplot.title(title_a);
 pyplot.xlabel('X');
 pyplot.ylabel('u(x)');
 
-pyplot.xlim(-1.0,1.0);
+pyplot.xlim(min(xn_exact),max(xn_exact));
 pyplot.ylim(min(ylim_0)*1.05,max(ylim_1)*1.05);
 
-xlabels=[-1.0,-0.5,0,0.5,1.0];
-xlocs=[-1.0,-0.5,0,0.5,1.0];
+xlabels=linspace(min(xn_exact),max(xn_exact),5);
+xlocs=xlabels;
 pyplot.xticks(xlocs, xlabels);
 
-ylabels=arange(0,1.2,0.2);
-ylocs=arange(0,1.2,0.2);
-pyplot.yticks(ylocs,ylabels);
+#ylabels=arange(0,1.2,0.2);
+#ylocs=arange(0,1.2,0.2);
+#pyplot.yticks(ylocs,ylabels);
 
 pyplot.show()
 
