@@ -102,7 +102,8 @@ protected:
                                , const double& upwind_Beta_);
    void Compute_flux_upw();
    void get_left_right_sol();
-   void Rusanov_flux();
+   double Rusanov_flux(const double& Ql, const double& Qr
+                     , const double& aa);
    void Roe_flux();
 
    double eval_init_sol(const double& xx);

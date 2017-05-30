@@ -357,15 +357,20 @@ double DGSolver::Compute_common_flux(const double &Ql, const double &Qr
     double aa=wave_speed;
     double BB = upwind_Beta_;
 
-    // f_upw = Rusanov(Ql,Qr,a_wave);
+    f_upw = Rusanov_flux(Ql,Qr,aa);   // upwinding flux
 
-    f_upw = 0.5 * ( aa*(Ql+Qr) - fabs(aa) * (Qr-Ql) );
+    //f_upw = 0.5 * ( aa*(Ql+Qr) - fabs(aa) * (Qr-Ql) );
 
-    f_cent = 0.5 * aa * (Ql+Qr) ;
+    f_cent = 0.5 * aa * (Ql+Qr) ;  // central flux
 
     f_common_ = (BB * f_upw) + ((1.0-BB) * f_cent );
 
     return f_common_;
+}
+
+double DGSolver::Rusanov_flux(const double &Ql, const double &Qr, const double &aa){
+
+    return ( 0.5 * ( aa*(Ql+Qr) - fabs(aa) * (Qr-Ql) ) );
 }
 
 void DGSolver::Compute_vertex_sol(){
