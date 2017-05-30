@@ -134,7 +134,7 @@ pyplot.legend(loc='upper left');
 CFL=Decimal(CFL.quantize(Decimal('.1')));
 title_a = str("DGp")+ DG + " RK"+ RK \
 +" for CFL="+ str(CFL)+ " and at t/T="+str(T);
-#pyplot.title(title_a);
+pyplot.title(title_a);
 
 pyplot.xlabel('X');
 pyplot.ylabel('u');

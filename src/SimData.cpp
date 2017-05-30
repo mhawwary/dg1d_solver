@@ -29,7 +29,15 @@ void SimData::Parse(const std::string &fname){
 
 
     poly_order_=gp_input("space_solver/polynomial_order",1);
-    upwind_param_=gp_input("space_solver/upwind_param",1.0);
+    //upwind_param_=gp_input("space_solver/upwind_param",1.0);
+
+    upwind_param_ = new double[poly_order_+1];
+
+    for(unsigned int i=0; i<poly_order_+1 ;i++){
+        upwind_param_[i] = gp_input("space_solver/upwind_param",1.0,i);
+
+        //printf("\ni: %d , beta[i]: %f ",i,upwind_param_[i]);
+    }
 
     calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1);
 
@@ -128,7 +136,7 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"Nelem:%d\n",Nelem_);
     fprintf(python_out,"dt:%1.3e\n",dt_);
     fprintf(python_out,"CFL:%1.3f\n",CFL_);
-    fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+    fprintf(python_out,"Beta:%1.2f\n",upwind_param_[poly_order_]);
     fprintf(python_out,"T:%1.3f\n",Nperiods);
     if(Sim_mode=="error_analysis_dt")
         fprintf(python_out,"mode:%s","dt_const");

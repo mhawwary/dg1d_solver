@@ -146,7 +146,7 @@ protected:
 
    double *Qv=nullptr;       // Nfaces long
 
-   double *flux_com=nullptr;  // common interface flux, Nfaces long
+   double **flux_com=nullptr;  // common interface flux, Nfaces long
 
    double phy_time=0.0;
    double time_step=1e-5;

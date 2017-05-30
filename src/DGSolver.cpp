@@ -31,7 +31,10 @@ void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
     Q_exact = new double[grid_->N_exact_ppts];
     Qv = new double[grid_->Nfaces];
 
-    flux_com = new double[grid_->Nfaces];
+    flux_com = new double*[grid_->Nfaces];
+
+    for(i=0; i<grid_->Nfaces; i++)
+        flux_com[i] = new double[Ndof];
 
     SetPhyTime(simdata_->t_init_);
 
@@ -56,7 +59,9 @@ void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
     cout << "\nNumber of Elements: "<< grid_->Nelem<<"  dx:  "<<grid_->dx<<endl;
     cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
     cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
-    cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
+    cout << "Upwind parameter  : ";
+    for(i=0; i<Ndof; i++) cout << simdata_->upwind_param_[i] <<" ";
+    cout << endl;
     cout <<"===============================================\n";
 
     return;
@@ -71,7 +76,7 @@ void DGSolver::Reset_solver(){
 
     emptyarray(grid_->Nelem,Qn);
     emptyarray(Q_exact);
-    emptyarray(flux_com);
+    emptyarray(grid_->Nfaces,flux_com);
     emptyarray(Qv);
     emptyarray(grid_->Nelem,Qex_proj);
 
@@ -268,7 +273,7 @@ double DGSolver::ExactSol_legendre_proj(const int &eID,
 
 void DGSolver::UpdateResid(double **Resid_, double **Qn_){
 
-    register int j;
+    register int j; int k=0;
 
     // Face loop to calculate the common interface fluxes:
     //----------------------------------------------------
@@ -281,27 +286,29 @@ void DGSolver::UpdateResid(double **Resid_, double **Qn_){
     Ql = evalSolution(&Qn_[grid_->Nelem-1][0], 1.0);
     Qr = evalSolution(&Qn_[j][0], -1.0);
 
-    flux_com[j] = Compute_common_flux(Ql,Qr,simdata_->a_wave_
-                                      , simdata_->upwind_param_);
+    for(k=0; k<Ndof; k++){
 
-    flux_com[grid_->Nfaces-1] = flux_com[j];
+        flux_com[j][k] = Compute_common_flux(Ql,Qr,simdata_->a_wave_
+                                             ,simdata_->upwind_param_[k]);
+        flux_com[grid_->Nfaces-1][k] = flux_com[j][k];
+    }
 
     for(j=1; j<grid_->Nfaces-1; j++){
 
         Ql = evalSolution(&Qn_[j-1][0], 1.0);
         Qr = evalSolution(&Qn_[j][0], -1.0);
 
-        flux_com[j] = Compute_common_flux(Ql,Qr,simdata_->a_wave_
-                                          , simdata_->upwind_param_);
+        for(k=0; k<Ndof; k++)
+            flux_com[j][k] = Compute_common_flux(Ql,Qr,simdata_->a_wave_
+                                          , simdata_->upwind_param_[k]);
     }
 
 
     // Element loop to calculate and update the residual:
     //----------------------------------------------------
 
-    for(j=0; j<grid_->Nelem; j++){
+    for(j=0; j<grid_->Nelem; j++)
          UpdateResidOneCell(j, &Qn_[j][0], &Resid_[j][0]);
-    }
 
     return;
 }
@@ -325,15 +332,14 @@ void DGSolver::UpdateResidOneCell(const int &cellid, double *q_, double *resid_)
 
     fact_ = -2.0/hjj;
 
-    flux_jm1 = flux_com[j];
-    flux_jp1 = flux_com[j+1];
-
     for(k=0; k<Ndof; k++){
 
         mkk = eval_basis_norm_squared(k);
         Mkk = 1./mkk;
         Lk_m1 = eval_basis_poly(-1,k);
         Lk_p1 = eval_basis_poly( 1,k);
+        flux_jm1 = flux_com[j][k];
+        flux_jp1 = flux_com[j+1][k];
         f_proj_k = eval_localflux_proj(q_,k);
 
         resid_[k] = fact_ * Mkk* ( flux_jp1 * Lk_p1 - flux_jm1 *Lk_m1 - f_proj_k )  ;
@@ -621,7 +627,7 @@ void DGSolver::print_cont_vertex_sol(){
 
     sprintf(fname,"%snodal/u_nodal_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
             ,simdata_->case_postproc_dir, simdata_->Nelem_
-            ,simdata_->CFL_,simdata_->upwind_param_
+            ,simdata_->CFL_,simdata_->upwind_param_[Ndof-1]
             ,simdata_->Nperiods);
 
     FILE* sol_out=fopen(fname,"w");
@@ -637,7 +643,7 @@ void DGSolver::print_cont_vertex_sol(){
 
     sprintf(fname,"%snodal/u_nodal_exact_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
             ,simdata_->case_postproc_dir,simdata_->Nelem_
-            ,simdata_->CFL_,simdata_->upwind_param_
+            ,simdata_->CFL_,simdata_->upwind_param_[Ndof-1]
             ,simdata_->Nperiods);
 
     FILE* sol_out1=fopen(fname,"w");
@@ -666,7 +672,7 @@ void DGSolver::print_average_sol(){
 
     sprintf(fname,"%saver/u_aver_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
             ,simdata_->case_postproc_dir,simdata_->Nelem_
-            ,simdata_->CFL_,simdata_->upwind_param_
+            ,simdata_->CFL_,simdata_->upwind_param_[Ndof-1]
             ,simdata_->Nperiods);
 
     FILE* sol_out=fopen(fname,"w");
@@ -691,7 +697,7 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
         sprintf(fname,"%serrors/errors_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
                 ,simdata_->CFL_
-                ,simdata_->upwind_param_
+                ,simdata_->upwind_param_[Ndof-1]
                 ,simdata_->Nperiods);
 
         FILE* solerror_out=fopen(fname,"at+");
@@ -706,7 +712,7 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
 
         sprintf(fname,"%serrors/errors_dt%1.3e_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
-                ,time_step,simdata_->upwind_param_
+                ,time_step,simdata_->upwind_param_[Ndof-1]
                 ,simdata_->Nperiods);
 
         FILE* solerror_out=fopen(fname,"at+");
@@ -724,7 +730,7 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
         sprintf(fname,"%serrors/errors_alldt_N%d_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
-                ,simdata_->upwind_param_
+                ,simdata_->upwind_param_[Ndof-1]
                 ,simdata_->Nperiods);
 
         solerror_out=fopen(fname,"at+");
@@ -739,7 +745,7 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
     }else{
         sprintf(fname,"%serrors/sol_errors_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
-                ,simdata_->CFL_,simdata_->upwind_param_
+                ,simdata_->CFL_,simdata_->upwind_param_[Ndof-1]
                 ,simdata_->Nperiods);
 
         FILE* solerror_out=fopen(fname,"w");
@@ -764,7 +770,7 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
         solerror_out=fopen(fname,"at+");
 
         fprintf(solerror_out, "%1.2f %2.10e %2.10e\n"
-                ,simdata_->upwind_param_, proj_sol_L2, aver_L2);
+                ,simdata_->upwind_param_[Ndof-1], proj_sol_L2, aver_L2);
 
         fclose(solerror_out);
 
@@ -790,7 +796,8 @@ void DGSolver::dump_discont_sol(){
     sprintf(fname,"%snodal/u_disc_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
             ,simdata_->case_postproc_dir
             ,simdata_->Nelem_,simdata_->CFL_
-            ,simdata_->upwind_param_,simdata_->Nperiods);
+            ,simdata_->upwind_param_[Ndof-1]
+            ,simdata_->Nperiods);
 
     FILE* sol_out=fopen(fname,"w");
 
@@ -816,7 +823,8 @@ void DGSolver::dump_discont_sol(){
     sprintf(fname,"%snodal/uex_disc_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
             ,simdata_->case_postproc_dir
             ,simdata_->Nelem_,simdata_->CFL_
-            ,simdata_->upwind_param_,simdata_->Nperiods);
+            ,simdata_->upwind_param_[Ndof-1]
+            ,simdata_->Nperiods);
 
     sol_out=fopen(fname,"w");
 

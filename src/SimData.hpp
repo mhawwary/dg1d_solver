@@ -40,7 +40,7 @@ struct SimData {
 
     int refine_level_=0; // 0: no refinement
 
-    double upwind_param_=1.0;
+    double* upwind_param_=nullptr;
 
     void Parse(const std::string &fname);
 
