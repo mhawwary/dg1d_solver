@@ -32,12 +32,13 @@ void SimData::Parse(const std::string &fname){
     //upwind_param_=gp_input("space_solver/upwind_param",1.0);
 
     upwind_param_ = new double[poly_order_+1];
+    jump_scaling_param_ = new double[poly_order_+1];
 
-    for(unsigned int i=0; i<poly_order_+1 ;i++){
+    for(unsigned int i=0; i<poly_order_+1 ;i++) {
         upwind_param_[i] = gp_input("space_solver/upwind_param",1.0,i);
-
-        //printf("\ni: %d , beta[i]: %f ",i,upwind_param_[i]);
+        jump_scaling_param_[i] = gp_input("space_solver/jump_scaling_param",1.0,i);
     }
+
 
     calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1);
 

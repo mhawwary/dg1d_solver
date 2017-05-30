@@ -100,7 +100,7 @@ protected:
    double Compute_common_flux(const double& ql, const double& qr,
                                const double& wave_speed
                                , const double& upwind_Beta_);
-   void Compute_flux_upw();
+   double Compute_flux(const double& xxi_, const int& cellid_);
    void get_left_right_sol();
    double Rusanov_flux(const double& Ql, const double& Qr
                      , const double& aa);

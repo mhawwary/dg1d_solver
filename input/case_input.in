@@ -21,12 +21,13 @@
 
 [space_solver]
   polynomial_order = 1
-  upwind_param = '1.0 0.7'  # 1: fully upwind, 0: fully central, (0,1) hybrid
- 
+  upwind_param = '0.8 0.8'  # 1: fully upwind, 0: fully central, (0,1) hybrid
+  jump_scaling_param = '1.00 0.8' 
+  
 [time_solver]
  calculate_dt_flag = 1  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
  
- CFL_no = 0.445
+ CFL_no = 1.25
 
  dt = 5e-4
  initial_time = 0.0
@@ -35,9 +36,9 @@
  
  no_of_periods = 2.0 #  period = (xf-x0) / wave_speed
  
- maximum_iteration = 3500;
+ maximum_iteration = 500000;
 
- end_of_simulation_flag = 2  
+ end_of_simulation_flag = 2   
 # 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged 
 
  [./explicit]

@@ -7,8 +7,8 @@ discont:nodal/u_disc
 DGp:1
 RK:2
 Nelem:10
-dt:4.450e-02
-CFL:0.445
-Beta:0.70
-T:155.750
+dt:1.250e-01
+CFL:1.250
+Beta:0.80
+T:62500.000
 mode:test

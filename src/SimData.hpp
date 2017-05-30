@@ -40,7 +40,9 @@ struct SimData {
 
     int refine_level_=0; // 0: no refinement
 
-    double* upwind_param_=nullptr;
+    double* upwind_param_=nullptr;  // upwinding parameter for the common flux
+
+    double* jump_scaling_param_=nullptr;
 
     void Parse(const std::string &fname);
 

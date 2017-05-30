@@ -315,7 +315,7 @@ void DGSolver::UpdateResid(double **Resid_, double **Qn_){
 
 void DGSolver::UpdateResidOneCell(const int &cellid, double *q_, double *resid_){
 
-    unsigned int j=cellid;
+    int j=cellid;
 
     int k=0;
 
@@ -324,29 +324,45 @@ void DGSolver::UpdateResidOneCell(const int &cellid, double *q_, double *resid_)
     double f_proj_k=0.0;
     double flux_jp1=0.0;  // f_j+1/2
     double flux_jm1=0.0;  // f_j-1/2
+    double local_flux_jp1=0.0;
+    double local_flux_jm1=0.0;
     double fact_=0.0;
     double hjj=0.0;
     double mkk=0.0;
+    double alpha_kk=0.0;   // jump scaling
 
     hjj = grid_->h_j[j];
 
     fact_ = -2.0/hjj;
 
+    local_flux_jm1 = Compute_flux(-1, j);
+    local_flux_jp1 = Compute_flux( 1, j);
+
     for(k=0; k<Ndof; k++){
 
         mkk = eval_basis_norm_squared(k);
         Mkk = 1./mkk;
-        Lk_m1 = eval_basis_poly(-1,k);
-        Lk_p1 = eval_basis_poly( 1,k);
+        Lk_m1 = eval_basis_poly(-1,k); // (-1)^(k)
+        Lk_p1 = eval_basis_poly( 1,k); // (1 )^(k)
         flux_jm1 = flux_com[j][k];
         flux_jp1 = flux_com[j+1][k];
         f_proj_k = eval_localflux_proj(q_,k);
+        alpha_kk = simdata_->jump_scaling_param_[k];
 
-        resid_[k] = fact_ * Mkk* ( flux_jp1 * Lk_p1 - flux_jm1 *Lk_m1 - f_proj_k )  ;
-
+        resid_[k] = fact_ * Mkk *
+                ( alpha_kk*(flux_jp1 * Lk_p1 - flux_jm1 *Lk_m1)
+                  +(1-alpha_kk) * (local_flux_jp1* Lk_p1-local_flux_jm1*Lk_m1)
+                  - f_proj_k )  ;
     }
 
     return;
+}
+
+double DGSolver::Compute_flux(const double &xxi_, const int &cellid_){
+
+    double Qs_ = evalSolution(&Qn[cellid_][0],xxi_);
+
+    return simdata_->a_wave_ * Qs_;
 }
 
 double DGSolver::Compute_common_flux(const double &Ql, const double &Qr
