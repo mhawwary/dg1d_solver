@@ -29,8 +29,10 @@ public:
 
    void Compute_vertex_sol();
    double ComputePolyError();
-   double Compute_projected_sol_error();
-   double ComputeAverageError();
+   double L1_error_projected_sol();
+   double L1_error_average_sol();
+   double L2_error_projected_sol();
+   double L2_error_average_sol();
    double ComputeDiscNodalError();
 
    void UpdatePhyTime(const double& dt_){
@@ -89,7 +91,8 @@ public:
 
    void print_cont_vertex_sol();
    void print_average_sol();
-   void dump_errors(double& proj_sol_L2, double &aver_L2);
+   void dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
+                       ,double& L2_proj_sol_, double &L2_aver_sol_);
    void dump_discont_sol();
 
 protected:

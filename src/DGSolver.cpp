@@ -583,7 +583,37 @@ double DGSolver::ComputePolyError(){
     return L2_error;
 }
 
-double DGSolver::Compute_projected_sol_error(){
+double DGSolver::L1_error_projected_sol(){
+
+    register int j; int i;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(5);
+
+    double L1_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        elem_error=0.0;
+        for(i=0; i<quad_.Nq; i++) {
+
+            q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
+
+            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+
+            elem_error += quad_.Gaus_wts[i] * fabs(q_ex - q_n);
+        }
+
+        II += (0.5 * grid_->h_j[j] * elem_error) ;
+    }
+
+    L1_error = II/(grid_->xf-grid_->x0);
+
+    return L1_error;
+}
+
+double DGSolver::L2_error_projected_sol(){
 
     register int j; int i;
 
@@ -623,7 +653,23 @@ double DGSolver::ComputeDiscNodalError(){
     return L2_error;
 }
 
-double DGSolver::ComputeAverageError(){
+double DGSolver::L1_error_average_sol(){
+
+    register int j;
+
+    double L1_error=0.0,error=0.0;
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        error += fabs(Qex_proj[j][0] - Qn[j][0]);
+    }
+
+    L1_error = error/grid_->Nelem;
+
+    return L1_error;
+}
+
+double DGSolver::L2_error_average_sol(){
 
     register int j;
 
@@ -709,7 +755,8 @@ void DGSolver::print_average_sol(){
     return;
 }
 
-void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
+void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
+                           ,double& L2_proj_sol_, double &L2_aver_sol_){
 
     char *fname=nullptr;
     fname = new char[200];
@@ -723,8 +770,10 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
 
         FILE* solerror_out=fopen(fname,"at+");
 
-        fprintf(solerror_out, "%d %2.10f %2.10e %2.10e\n"
-                ,grid_->Nelem, time_step, proj_sol_L2, aver_L2);
+        fprintf(solerror_out, "%d %2.10f %2.10e %2.10e %2.10e %2.10e\n"
+                ,grid_->Nelem, time_step
+                ,L1_proj_sol_, L1_aver_sol_
+                ,L2_proj_sol_, L2_aver_sol_);
 
         fclose(solerror_out);
         emptyarray(fname);
@@ -733,13 +782,16 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
 
         sprintf(fname,"%serrors/errors_dt%1.3e_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
-                ,time_step,simdata_->upwind_param_[Ndof-1]
+                ,time_step
+                ,simdata_->upwind_param_[Ndof-1]
                 ,simdata_->Nperiods);
 
         FILE* solerror_out=fopen(fname,"at+");
 
-        fprintf(solerror_out, "%d %2.10f %2.10e %2.10e\n"
-                ,grid_->Nelem, CFL, proj_sol_L2, aver_L2);
+        fprintf(solerror_out, "%d %2.10f %2.10e %2.10e %2.10e %2.10e\n"
+                ,grid_->Nelem, CFL
+                ,L1_proj_sol_, L1_aver_sol_
+                ,L2_proj_sol_, L2_aver_sol_ );
 
         fclose(solerror_out);
         emptyarray(fname);
@@ -756,8 +808,10 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
 
         solerror_out=fopen(fname,"at+");
 
-        fprintf(solerror_out, "%1.7e %2.10e %2.10e\n"
-                ,time_step, proj_sol_L2, aver_L2);
+        fprintf(solerror_out, "%1.7e %2.10e %2.10e %2.10e %2.10e\n"
+                ,time_step
+                ,L1_proj_sol_, L1_aver_sol_
+                ,L2_proj_sol_, L2_aver_sol_ );
 
          fclose(solerror_out);
 
@@ -766,13 +820,16 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
     }else{
         sprintf(fname,"%serrors/sol_errors_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
-                ,simdata_->CFL_,simdata_->upwind_param_[Ndof-1]
+                ,simdata_->CFL_
+                ,simdata_->upwind_param_[Ndof-1]
                 ,simdata_->Nperiods);
 
         FILE* solerror_out=fopen(fname,"w");
 
-        fprintf(solerror_out, "%d %2.10e %2.10e\n"
-                ,grid_->Nelem, proj_sol_L2, aver_L2);
+        fprintf(solerror_out, "%d %2.10e %2.10e %2.10e %2.10e\n"
+                ,grid_->Nelem
+                ,L1_proj_sol_, L1_aver_sol_
+                ,L2_proj_sol_, L2_aver_sol_ );
 
         fclose(solerror_out);
 
@@ -790,8 +847,10 @@ void DGSolver::dump_errors(double& proj_sol_L2, double &aver_L2){
 
         solerror_out=fopen(fname,"at+");
 
-        fprintf(solerror_out, "%1.2f %2.10e %2.10e\n"
-                ,simdata_->upwind_param_[Ndof-1], proj_sol_L2, aver_L2);
+        fprintf(solerror_out, "%1.2f %2.10e %2.10e %2.10e %2.10e\n"
+                ,simdata_->upwind_param_[Ndof-1]
+                ,L1_proj_sol_, L1_aver_sol_
+                ,L2_proj_sol_, L2_aver_sol_ );
 
         fclose(solerror_out);
 

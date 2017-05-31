@@ -69,13 +69,17 @@ elif mode=='dt_const':
     fname_upw = dir1+errors+str("_dt")+dt_+"_Beta1.00"+'_'+str(T)+str("T.dat");   
     data_errors= loadtxt(fname_errors);
     data_upw = loadtxt(fname_upw);
-    L2_proj_upw = data_upw[0:5,2];
-    L2_aver_upw = data_upw[0:5,3];
+    L1_proj_upw = data_upw[:,2];
+    L1_aver_upw = data_upw[:,3];
+    L2_proj_upw = data_upw[:,4];
+    L2_aver_upw = data_upw[:,5];
 
-Nelem = data_errors[0:5,0]; 
+Nelem = data_errors[:,0]; 
 nDOF = Nelem * (int(DG)+1);
-L2_proj= data_errors[0:5,2]; 
-L2_aver= data_errors[0:5,3];
+L1_proj= data_errors[:,2]; 
+L1_aver= data_errors[:,3];
+L2_proj= data_errors[:,4]; 
+L2_aver= data_errors[:,5];
 
 
 # theoritcal curve:
@@ -86,27 +90,37 @@ theoretical_curve = theoretical_curve / 10**shift;
 #===================================
 # Order Calculations:
 #===================================
-order_proj = zeros(size(L2_proj)-1);
-order_aver = zeros(size(L2_aver)-1);
+order_L1_proj = zeros(size(L1_proj)-1);
+order_L1_aver = zeros(size(L1_aver)-1);
+order_L2_proj = zeros(size(L2_proj)-1);
+order_L2_aver = zeros(size(L2_aver)-1);
 order_exact = zeros(size(theoretical_curve)-1);
 for i in range(1,size(L2_proj)):
-    order_proj[i-1] = log10(L2_proj[i-1]/L2_proj[i])/log10(2);
-    order_aver[i-1] = log10(L2_aver[i-1]/L2_aver[i])/log10(2);
+    order_L1_proj[i-1] = log10(L1_proj[i-1]/L1_proj[i])/log10(2);
+    order_L1_aver[i-1] = log10(L1_aver[i-1]/L1_aver[i])/log10(2);
+    order_L2_proj[i-1] = log10(L2_proj[i-1]/L2_proj[i])/log10(2);
+    order_L2_aver[i-1] = log10(L2_aver[i-1]/L2_aver[i])/log10(2);
     order_exact[i-1] = log10(theoretical_curve[i-1]/theoretical_curve[i])/log10(2);
 
 Nelem_ = zeros(size(Nelem)-1);
 for i in range(1,size(Nelem)):
 	Nelem_[i-1] = int(Nelem[i]);
 
-ab = numpy.transpose([Nelem_,order_proj,order_aver]);
-print('ab',ab);
+order_print = numpy.transpose([Nelem_,order_L1_proj,order_L1_aver,order_L2_proj,order_L2_aver]);
+order_L1_print = numpy.transpose([Nelem_,order_L1_proj,order_L1_aver]);
+order_L2_print = numpy.transpose([Nelem_,order_L2_proj,order_L2_aver]);
+print('L1_order',order_L1_print);
+print('L2_order',order_L2_print);
 
 if mode=='CFL_const':
     order_out_name = dir1+'OAA_DGp'+DG+'_RK'+RK+'_Beta'+str(Beta)+'_CFL'+str(CFL)+'.dat';
 elif mode=='dt_const':
     order_out_name = dir1+'OAA_DGp'+DG+'_RK'+RK+'_Beta'+str(Beta)+'_dt'+dt_+'.dat';
 
-savetxt(order_out_name, ab, fmt="%02d"+" %1.4f"+" %1.4f",header="Nelem, order_L2_proj, order_L2_aver",delimiter=' ');
+savetxt(order_out_name, order_print\
+, fmt="%02d"+" %1.4f"+" %1.4f"+" %1.4f"+" %1.4f"\
+,header="Nelem, order_L1_proj, order_L1_aver, order_L2_proj, order_L2_aver"\
+,delimiter=' ');
 
 #===================================
 #! Plotting The figure:
@@ -141,6 +155,8 @@ if mode=='dt_const':
 elif mode=='CFL_const':
 	fig, ax = pyplot.subplots(figsize=(15, 10.0)) ;
 
+	pyplot.plot(nDOF,L1_proj,'--sr',label=r'L$_{1}$ of projected polynomials'); 
+	pyplot.plot(nDOF,L1_aver,'--vb',label=r'L$_{1}$ of averages'); 
 	pyplot.plot(nDOF,L2_proj,'-or',label=r'L$_{2}$ of projected polynomials'); 
 	pyplot.plot(nDOF,L2_aver,'-^b',label=r'L$_{2}$ of averages'); 
 	pyplot.plot(nDOF,theoretical_curve,':k',linewidth=1.5);

@@ -86,7 +86,7 @@ void SimData::setup_output_directory(){
     char *current_working_dir=allchar.allocate(1500);
     getcwd(current_working_dir,1500);
 
-    chdir("./Results");
+    chdir("./Results_mDG_ver01");
 
     mkdir(case_title,0777);
 
@@ -96,7 +96,7 @@ void SimData::setup_output_directory(){
 
     case_postproc_dir = new char[200];
 
-    sprintf(case_postproc_dir,"./Results/%s/%s/",case_title,case_dir);
+    sprintf(case_postproc_dir,"./Results_mDG_ver01/%s/%s/",case_title,case_dir);
 
     chdir(case_dir);
 
