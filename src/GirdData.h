@@ -58,7 +58,7 @@ struct GridData {
             N_xi_disc_ppts = simdata_.Npplot;
         }
 
-        N_exact_ppts= 150;
+        N_exact_ppts= simdata_.N_exact_plot_pts;
 
         x_exact_ppts = new double[N_exact_ppts];
         xi_disc = new double[N_xi_disc_ppts];

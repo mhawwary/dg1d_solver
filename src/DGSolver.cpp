@@ -667,7 +667,7 @@ void DGSolver::print_cont_vertex_sol(){
 
     if(simdata_->Sim_mode=="error_analysis_dt"){
 
-        sprintf(fname,"%snodal/u_nodal_N%d_dt%1.3e_Beta%1.2f_%1.3fT.dat"
+        sprintf(fname,"%snodal/u_cont_N%d_dt%1.3e_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
                 ,time_step
@@ -684,7 +684,7 @@ void DGSolver::print_cont_vertex_sol(){
 
     } else{
 
-        sprintf(fname,"%snodal/u_nodal_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
+        sprintf(fname,"%snodal/u_cont_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
                 ,CFL
@@ -702,7 +702,7 @@ void DGSolver::print_cont_vertex_sol(){
 
     fname = new char[100];
 
-    sprintf(fname,"%snodal/u_exact_%1.3fT.dat"
+    sprintf(fname,"%snodal/u_cont_exact_%1.3fT.dat"
             ,simdata_->case_postproc_dir
             ,simdata_->Nperiods);
 
@@ -831,6 +831,27 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
          fclose(solerror_out);
 
          emptyarray(fname);
+
+         // Dumping all errors in one file as a function of dt:
+         //--------------------------------------------------------
+         fname = new char[100];
+
+         sprintf(fname,"%serrors/errors_dt%1.3e_Beta%1.2f_%1.3fT.dat"
+                 ,simdata_->case_postproc_dir
+                 ,time_step
+                 ,simdata_->upwind_param_
+                 ,simdata_->Nperiods);
+
+         solerror_out=fopen(fname,"at+");
+
+         fprintf(solerror_out, "%d %2.10e %2.10e %2.10e %2.10e\n"
+                 ,grid_->Nelem
+                 ,L1_proj_sol_, L1_aver_sol_
+                 ,L2_proj_sol_, L2_aver_sol_);
+
+          fclose(solerror_out);
+
+          emptyarray(fname);
 
     }else if( simdata_->Sim_mode=="test" || simdata_->Sim_mode=="normal" ){
         sprintf(fname,"%serrors/errors_N%d_CFL%1.3f_Beta%1.2f_%1.3fT.dat"

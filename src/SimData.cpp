@@ -10,6 +10,7 @@ void SimData::Parse(const std::string &fname){
     uniform_ = gp_input("Case/uniform_grid",1);
     refine_level_ = gp_input("Case/refinement_level",0);
     Npplot = gp_input("Case/Npoints_plot",2);
+    N_exact_plot_pts = gp_input("Case/N_exact_plot_pts",100);
 
     print_freq_=gp_input("Simulation/print_freq",0);
     restart_iter_ = gp_input("Simulation/restart_iter",0);
@@ -101,14 +102,12 @@ void SimData::dump_python_inputfile(){
     FILE* python_out = fopen(fname,"w");
 
     fprintf(python_out,"dir:%s\n",case_postproc_dir);
-    if(Sim_mode=="error_analysis_dt" ||
-            Sim_mode=="error_analysis_CFL")
-        fprintf(python_out,"errors:%s\n",(char*)"errors/errors");
-    else fprintf(python_out,"errors:%s\n",(char*)"errors/sol_errors");
+    fprintf(python_out,"errors:%s\n",(char*)"errors/errors");
     fprintf(python_out,"aver:%s\n",(char*)"aver/u_aver");
-    fprintf(python_out,"nodal_exact:%s\n",(char*)"nodal/u_nodal_exact");
-    fprintf(python_out,"nodal_num:%s\n",(char*)"nodal/u_nodal");
+    fprintf(python_out,"cont_exact:%s\n",(char*)"nodal/u_cont_exact");
+    fprintf(python_out,"cont_num:%s\n",(char*)"nodal/u_cont");
     fprintf(python_out,"discont:%s\n",(char*)"nodal/u_disc");
+    fprintf(python_out,"discont_exact:%s\n",(char*)"nodal/u_disc_exact");
     fprintf(python_out,"DGp:%d\n",poly_order_);
     fprintf(python_out,"RK:%d\n",RK_order_);
     fprintf(python_out,"Nelem:%d\n",Nelem_);
@@ -116,10 +115,13 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"CFL:%1.3f\n",CFL_);
     fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
     fprintf(python_out,"T:%1.3f\n",Nperiods);
+
     if(Sim_mode=="error_analysis_dt")
         fprintf(python_out,"mode:%s","dt_const");
     else if(Sim_mode=="error_analysis_CFL")
         fprintf(python_out,"mode:%s","CFL_const");
+    else if(Sim_mode=="error_analysis_Beta")
+        fprintf(python_out,"mode:%s","Beta_const");
     else
         fprintf(python_out,"mode:%s",Sim_mode.c_str());
 
