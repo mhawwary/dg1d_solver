@@ -84,7 +84,7 @@ L2_aver= data_errors[:,5];
 
 # theoritcal curve:
 theoretical_curve = exp(-(int(DG)+1) * log(nDOF))  ;
-shift =  -.92*log10(L2_proj[0]) + log10(theoretical_curve[0]);
+shift =  -.5*log10(L2_proj[0]) + log10(theoretical_curve[0]);
 theoretical_curve = theoretical_curve / 10**shift;
 
 #===================================
