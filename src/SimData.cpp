@@ -2,19 +2,13 @@
 
 void SimData::Parse(const std::string &fname){
 
-
     GetPot gp_input(fname.c_str());
 
     Nelem_ = gp_input("Case/num_elements",1);
-
     x0_ = gp_input("Case/x_begin",0.0);
-
     xf_ = gp_input("Case/x_end",1.0);
-
     uniform_ = gp_input("Case/uniform_grid",1);
-
     refine_level_ = gp_input("Case/refinement_level",0);
-
     Npplot = gp_input("Case/Npoints_plot",2);
 
     print_freq_=gp_input("Simulation/print_freq",0);
@@ -22,31 +16,21 @@ void SimData::Parse(const std::string &fname){
     restart_flag = gp_input("Simulation/restart_flag",0);
     Sim_mode = gp_input("Simulation/mode","normal");
 
-
     a_wave_ = gp_input("wave/wave_speed",1.0);
     wave_form_ = gp_input("wave/wave_form",0);
     Gaussian_exponent_ = gp_input("wave/Gaussian_exponent",-50.0);
-
 
     poly_order_=gp_input("space_solver/polynomial_order",1);
     upwind_param_=gp_input("space_solver/upwind_param",1.0);
 
     calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1);
-
     CFL_ = gp_input("time_solver/CFL_no",1.0);
-
     dt_ = gp_input("time_solver/dt",1e-9);
-
     t_init_ = gp_input("time_solver/initial_time",0.0);
-
     t_end_ = gp_input("time_solver/final_time",1.0);
-
     maxIter_ = gp_input("time_solver/maximum_iteration",1e9);
-
     end_of_sim_flag_ = gp_input("time_solver/end_of_simulation_flag",0);
-
     RK_order_=gp_input("time_solver/explicit/RK_order",1);
-
     Nperiods = gp_input("time_solver/no_of_periods",1.0);
 
 }

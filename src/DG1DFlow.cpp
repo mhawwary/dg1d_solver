@@ -94,22 +94,27 @@ void RunSim(){
 
 void PostProcess(){
 
-    double aver_L2_error=0.0,proj_sol_L2_error=0.0;
+    double L1_aversol_=0.0,L1_projsol_=0.0
+            ,L2_aversol_=0.0,L2_projsol_=0.0;
 
     dg_solver_.Compute_vertex_sol();
-    proj_sol_L2_error = dg_solver_.Compute_projected_sol_error();
-    aver_L2_error= dg_solver_.ComputeAverageError();
+    L1_projsol_ = dg_solver_.L1_error_projected_sol();
+    L2_projsol_ = dg_solver_.L2_error_projected_sol();
+    L1_aversol_ = dg_solver_.L1_error_average_sol();
+    L2_aversol_ = dg_solver_.L1_error_average_sol();
 
     dg_solver_.print_cont_vertex_sol();
     dg_solver_.print_average_sol();
     dg_solver_.dump_discont_sol();
-    dg_solver_.dump_errors(proj_sol_L2_error,aver_L2_error);
+    dg_solver_.dump_errors(L1_projsol_,L1_aversol_
+                           ,L2_projsol_,L2_aversol_);
 
     printf("\nFinal Iteration number is: %d\n",time_solver_.GetIter());
     printf("Final time is: %1.5f\n",dg_solver_.GetPhyTime());
-    printf("proj_sol_L2_Error: %e  , Aver_L2_error: %e\n\n"
-           ,proj_sol_L2_error,aver_L2_error);
-
+    printf("L1_error,  proj_sol: %e   ,   aver_sol: %e\n"
+           ,L1_projsol_, L1_aversol_);
+    printf("L2_error,  proj_sol: %e   ,   aver_sol: %e\n"
+           ,L2_projsol_, L2_aversol_);
 
     return;
 }
