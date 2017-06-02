@@ -54,7 +54,9 @@ void SimData::setup_output_directory(){
         sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
     else if(Sim_mode=="test")
         sprintf(case_dir,"DGp%d_RK%d_test",poly_order_,RK_order_);
-    else if(Sim_mode=="error_analysis_CFL" ||Sim_mode=="error_analysis_dt")
+    else if(Sim_mode=="error_analysis_CFL"
+            || Sim_mode=="error_analysis_dt"
+            || Sim_mode=="error_analysis_Beta")
         sprintf(case_dir,"DGp%d_RK%d_error_analysis",poly_order_,RK_order_);
     else FatalError_exit("Simulation mode is not defined");
 
