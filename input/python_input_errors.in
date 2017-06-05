@@ -1,7 +1,0 @@
-dir:./Results/DGp1_RK2/
-errors:errors/sol_errors
-DGp:1
-RK:2
-Nelem:10
-CFL:0.2
-T:2.0
