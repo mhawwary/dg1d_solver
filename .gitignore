@@ -11,7 +11,7 @@
 .fuse_hidden*
 *.cpp.autosave
 
-# Visualization Output Files
+# Visualization Input/Output Files
 post_process/
 *.vtu
 *.plt
@@ -24,6 +24,8 @@ post_process/
 *.ps
 *.pdf
 *.fig  # Matlab figure files
+*.in
+*.out
 
 # Binary / run directory
 bin/
