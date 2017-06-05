@@ -12,7 +12,8 @@
 *.cpp.autosave
 
 # Visualization Input/Output Files
-post_process/
+input/
+Results/
 *.vtu
 *.plt
 *.dat
