@@ -101,7 +101,7 @@ void PostProcess(){
     L1_projsol_ = dg_solver_.L1_error_projected_sol();
     L2_projsol_ = dg_solver_.L2_error_projected_sol();
     L1_aversol_ = dg_solver_.L1_error_average_sol();
-    L2_aversol_ = dg_solver_.L1_error_average_sol();
+    L2_aversol_ = dg_solver_.L2_error_average_sol();
 
     dg_solver_.print_cont_vertex_sol();
     dg_solver_.print_average_sol();

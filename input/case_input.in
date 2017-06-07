@@ -1,0 +1,47 @@
+[Case]
+ title = Gaussian   # sine wave
+ num_elements = 10
+ x_begin =  0.0
+ x_end   =  1.0
+ uniform_grid = 1
+ refinement_level = 0
+ Npoints_plot = 5  # no. of equally spaced points per element for plotting discontinuous sol
+ N_exact_plot_pts = 150
+
+[Simulation] 
+ print_freq = 1000
+ restart_flag = 0
+ restart_iter = 1e6
+ mode = error_analysis_CFL     # normal/test/error_analysis_dt/error_analysis_CFL
+
+
+[wave]
+ wave_speed = 1.0;
+ wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave
+ Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
+
+[space_solver]
+  polynomial_order = 2
+  upwind_param = '1.00 1.00 1.00'  # 1: fully upwind, 0: fully central, (0,1) hybrid
+  jump_scaling_param = '1.00 1.00 0.0'  
+  
+[time_solver]
+ calculate_dt_flag = 1  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
+ 
+ CFL_no = 0.5
+
+ dt = 5e-4
+ initial_time = 0.0
+
+ final_time = 4.0
+ 
+ no_of_periods = 1.0 #  period = (xf-x0) / wave_speed
+ 
+ maximum_iteration = 100000;
+
+ end_of_simulation_flag = 0
+# 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged 
+
+ [./explicit]
+
+  RK_order = 3
