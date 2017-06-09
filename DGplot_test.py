@@ -31,9 +31,9 @@ with open(args.python_input) as file:
             dir1 = str(row[1]);
         elif row[0] =='aver':   
             aver = str(row[1]);
-        elif row[0] == 'nodal_exact': 
+        elif row[0] == 'cont_exact':
             nodal_exact = str(row[1]);
-        elif row[0] == 'nodal_num': 
+        elif row[0] == 'cont_num':
             nodal_comp = str(row[1]);
         elif row[0] == 'discont': 
             discont = str(row[1]);
@@ -49,15 +49,13 @@ fname_u_aver = dir1+aver+str("_N")+Nelem\
 +str(Beta)+str("_")+str(T)+str("T.dat");
 data_aver= loadtxt(fname_u_aver);
 
-fname_un_ex = dir1+nodal_exact+str("_N")+Nelem\
-+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
-+str("_")+str(T)+str("T.dat");
-data_exact_nodal= loadtxt(fname_un_ex);
+fname_un_ex = dir1+nodal_exact+str("_")+str(T)+str("T.dat");
+data_exact_nodal= loadtxt(fname_un_ex);  # continuous exact nodal solution
 
 fname_un_comp = dir1+nodal_comp+str("_N")+Nelem\
 +str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
 +str("_")+str(T)+str("T.dat");
-data_num_nodal= loadtxt(fname_un_comp);
+data_num_nodal= loadtxt(fname_un_comp);   # continuous numerical nodal solution
 
 fname_un_disc = dir1+discont+str("_N")+Nelem\
 +str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
@@ -98,7 +96,7 @@ if int(DG)==0:
 elif int(DG)==1:
     Np = 2;
 else:
-    Np=5;
+    Np=10;
 
 pyplot.figure();
 
