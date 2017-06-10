@@ -1,0 +1,15 @@
+dir:./Results_mDG_ver01/Gaussian_wave/DGp1_RK2/
+errors:errors/errors
+aver:aver/u_aver
+cont_exact:nodal/u_cont_exact
+cont_num:nodal/u_cont
+discont:nodal/u_disc
+discont_exact:nodal/u_disc_exact
+DGp:1
+RK:2
+Nelem:20
+dt:3.330e-02:1.500e-02
+CFL:0.445:0.333
+Beta:0.70:1.00
+T:2.000
+mode:normal

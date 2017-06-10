@@ -1,0 +1,14 @@
+dir:./Results/sine_wave/DGp2_RK3_error_analysis/
+errors:errors/errors
+aver:aver/u_aver
+nodal_exact:nodal/u_exact
+nodal_num:nodal/u_nodal
+discont:nodal/u_disc
+DGp:2
+RK:3
+Nelem:20
+dt:1.000e-04
+CFL:0.002
+Beta:1.00
+T:2.000
+mode:dt_const
