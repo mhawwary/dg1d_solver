@@ -12,8 +12,6 @@
 *.cpp.autosave
 
 # Visualization Input/Output Files
-input/
-Results/
 *.vtu
 *.plt
 *.dat
@@ -25,8 +23,6 @@ Results/
 *.ps
 *.pdf
 *.fig  # Matlab figure files
-*.in
-*.out
 
 # Binary / run directory
 bin/
