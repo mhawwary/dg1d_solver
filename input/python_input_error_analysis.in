@@ -1,0 +1,12 @@
+dir:./Results_mDG_ver01/sine_wave/DGp1_RK2_error_analysis/
+errors:errors/errors
+DGp:1
+RK:2
+Nelem:10
+CFL:0.445
+CFL_upw:0.333
+T:2.000
+Beta:0.70
+dt:1.000e-04
+mode:CFL_const
+wave:sine

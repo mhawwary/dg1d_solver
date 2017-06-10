@@ -12,10 +12,6 @@
 *.cpp.autosave
 
 # Visualization Output Files
-input/
-Results/
-*.in
-*.out
 *.vtu
 *.plt
 *.dat
