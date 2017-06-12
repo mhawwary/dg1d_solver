@@ -34,6 +34,10 @@ public:
    double L1_error_average_sol();
    double L2_error_average_sol();
    double L2_error_nodal_disc_sol();
+   double L1_error_nodal_gausspts();
+   double L2_error_nodal_gausspts();
+   double L1_error_nodal_gausspts_proj();
+   double L2_error_nodal_gausspts_proj();
 
    void UpdatePhyTime(const double& dt_){
 
@@ -91,8 +95,9 @@ public:
 
    void print_cont_vertex_sol();
    void print_average_sol();
-   void dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
-                    ,double& L2_proj_sol_, double &L2_aver_sol_);
+   void dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
+                    ,double& L1_aver_sol_,double& L2_aver_sol_
+                    ,double& L1_nodal_gausspts, double& L2_nodal_gausspts);
    void dump_discont_sol();
 
 protected:
@@ -109,6 +114,7 @@ protected:
    void Roe_flux();
 
    double eval_init_sol(const double& xx);
+   double eval_exact_sol(double& xx);
    double eval_basis_poly(const double& xi_, const int& basis_k_);
    double eval_basis_norm_squared(const int& basis_k_);
    double evalSolution(const double* q_, const double& xi_pt);

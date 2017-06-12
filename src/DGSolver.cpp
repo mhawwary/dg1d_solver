@@ -401,6 +401,7 @@ void DGSolver::Compute_exact_vertex_sol(){
             Q_exact[j] = eval_init_sol(xx);
 
         }else if(simdata_->wave_form_==1){
+
             x0 = xx - wave_length_*floor(xx/wave_length_);
             x1 = xx + wave_length_*floor(xx/-wave_length_);
 
@@ -438,6 +439,28 @@ double DGSolver::eval_init_sol(const double& xx){
     }else if(simdata_->wave_form_==1){
 
         return exp(-simdata_->Gaussian_exponent_*pow(xx,2));
+    }else{
+        _notImplemented("Wave form is not implemented");
+    }
+}
+
+double DGSolver::eval_exact_sol(double &xx){
+
+    xx = xx - exact_sol_shift;
+
+    if(simdata_->wave_form_==0){
+
+        return eval_init_sol(xx);
+
+    }else if(simdata_->wave_form_==1){
+
+        double x0 = xx - wave_length_*floor(xx/wave_length_);
+        double x1 = xx + wave_length_*floor(xx/-wave_length_);
+
+        if(x0==0 && x1==0)
+            return 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
+        else
+            return (eval_init_sol(x0)+ eval_init_sol(x1));
     }else{
         _notImplemented("Wave form is not implemented");
     }
@@ -552,6 +575,118 @@ double DGSolver::ComputePolyError(){
     }
 
     L2_error = sqrt(II/(grid_->xf-grid_->x0));
+
+    return L2_error;
+}
+
+double DGSolver::L1_error_nodal_gausspts_proj(){
+
+    register int j; int i;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(Ndof);
+
+    double L1_error=0.0,II=0.0,q_ex,q_n;
+
+    II=0.0;
+
+    for(j=0; j<grid_->Nelem; j++){
+        for(i=0; i<quad_.Nq; i++) {
+
+            q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
+
+            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+
+            II += fabs(q_ex - q_n);
+        }
+    }
+
+    L1_error = II/(Ndof*grid_->Nelem);
+
+    return L1_error;
+}
+
+double DGSolver::L2_error_nodal_gausspts_proj(){
+
+    register int j; int i;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(Ndof);
+
+    double L2_error=0.0,II=0.0,q_ex,q_n;
+
+    II=0.0;
+
+    for(j=0; j<grid_->Nelem; j++){
+        for(i=0; i<quad_.Nq; i++) {
+
+            q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
+
+            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+
+            II += pow((q_ex - q_n),2);
+        }
+    }
+
+    L2_error = sqrt(II/(Ndof*grid_->Nelem));
+
+    return L2_error;
+}
+
+double DGSolver::L1_error_nodal_gausspts(){
+
+    register int j; int i;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(Ndof);
+
+    double L1_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
+
+    II=0.0;
+
+    for(j=0; j<grid_->Nelem; j++){
+        for(i=0; i<quad_.Nq; i++) {
+
+            xx =  0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
+            q_ex = eval_exact_sol(xx);
+            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+
+            II += fabs(q_ex - q_n);
+        }
+    }
+
+    L1_error = II/(Ndof*grid_->Nelem);
+
+    return L1_error;
+}
+
+double DGSolver::L2_error_nodal_gausspts(){
+
+    register int j; int i;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(Ndof);
+
+    double L2_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
+
+    II=0.0;
+
+    for(j=0; j<grid_->Nelem; j++){
+        for(i=0; i<quad_.Nq; i++) {
+
+            xx =  0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
+            q_ex = eval_exact_sol(xx);
+            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+
+            II += pow((q_ex - q_n),2);
+        }
+    }
+
+    L2_error = sqrt(II/(Ndof*grid_->Nelem));
 
     return L2_error;
 }
@@ -770,8 +905,9 @@ void DGSolver::print_average_sol(){
     return;
 }
 
-void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
-                           ,double& L2_proj_sol_, double &L2_aver_sol_){
+void DGSolver::dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
+                           ,double& L1_aver_sol_,double& L2_aver_sol_
+                           ,double& L1_nodal_gausspts, double& L2_nodal_gausspts){
 
     char *fname=nullptr;
     fname = new char[100];
@@ -785,10 +921,11 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
 
         FILE* solerror_out=fopen(fname,"at+");
 
-        fprintf(solerror_out, "%d %2.10e %2.10e %2.10e %2.10e\n"
+        fprintf(solerror_out, "%d %2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
                 ,grid_->Nelem
                 ,L1_proj_sol_, L1_aver_sol_
-                ,L2_proj_sol_, L2_aver_sol_);
+                ,L2_proj_sol_, L2_aver_sol_
+                ,L1_nodal_gausspts,L2_nodal_gausspts);
 
         fclose(solerror_out);
         emptyarray(fname);
@@ -804,9 +941,10 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
 
         FILE* solerror_out=fopen(fname,"w");
 
-        fprintf(solerror_out, "%2.10e %2.10e %2.10e %2.10e\n"
+        fprintf(solerror_out, "%2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
                 ,L1_proj_sol_, L1_aver_sol_
-                ,L2_proj_sol_, L2_aver_sol_);
+                ,L2_proj_sol_, L2_aver_sol_
+                ,L1_nodal_gausspts,L2_nodal_gausspts);
 
         fclose(solerror_out);
         emptyarray(fname);
@@ -823,10 +961,11 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
 
         solerror_out=fopen(fname,"at+");
 
-        fprintf(solerror_out, "%1.7e %2.10e %2.10e %2.10e %2.10e\n"
+        fprintf(solerror_out, "%1.7e %2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
                 ,time_step
                 ,L1_proj_sol_, L1_aver_sol_
-                ,L2_proj_sol_, L2_aver_sol_);
+                ,L2_proj_sol_, L2_aver_sol_
+                ,L1_nodal_gausspts,L2_nodal_gausspts);
 
          fclose(solerror_out);
 
@@ -844,10 +983,11 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
 
          solerror_out=fopen(fname,"at+");
 
-         fprintf(solerror_out, "%d %2.10e %2.10e %2.10e %2.10e\n"
+         fprintf(solerror_out, "%d %2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
                  ,grid_->Nelem
                  ,L1_proj_sol_, L1_aver_sol_
-                 ,L2_proj_sol_, L2_aver_sol_);
+                 ,L2_proj_sol_, L2_aver_sol_
+                 ,L1_nodal_gausspts,L2_nodal_gausspts);
 
           fclose(solerror_out);
 
@@ -863,9 +1003,10 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
 
         FILE* solerror_out=fopen(fname,"w");
 
-        fprintf(solerror_out, "%2.10e %2.10e %2.10e %2.10e\n"
+        fprintf(solerror_out, "%2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
                 ,L1_proj_sol_, L1_aver_sol_
-                ,L2_proj_sol_, L2_aver_sol_);
+                ,L2_proj_sol_, L2_aver_sol_
+                ,L1_nodal_gausspts,L2_nodal_gausspts);
 
         fclose(solerror_out);
 
@@ -882,9 +1023,10 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
 
         FILE* solerror_out=fopen(fname,"w");
 
-        fprintf(solerror_out, "%2.10e %2.10e %2.10e %2.10e\n"
+        fprintf(solerror_out, "%2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
                 ,L1_proj_sol_, L1_aver_sol_
-                ,L2_proj_sol_, L2_aver_sol_);
+                ,L2_proj_sol_, L2_aver_sol_
+                ,L1_nodal_gausspts,L2_nodal_gausspts);
 
         fclose(solerror_out);
 
@@ -902,10 +1044,11 @@ void DGSolver::dump_errors(double& L1_proj_sol_, double &L1_aver_sol_
 
         solerror_out=fopen(fname,"at+");
 
-        fprintf(solerror_out, "%1.2f %2.10e %2.10e %2.10e %2.10e\n"
+        fprintf(solerror_out, "%1.2f %2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
                 ,simdata_->upwind_param_
                 ,L1_proj_sol_, L1_aver_sol_
-                ,L2_proj_sol_, L2_aver_sol_);
+                ,L2_proj_sol_, L2_aver_sol_
+                ,L1_nodal_gausspts,L2_nodal_gausspts);
 
         fclose(solerror_out);
         emptyarray(fname);
