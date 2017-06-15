@@ -7,14 +7,14 @@ from decimal import Decimal
 import csv
 
 pyplot.rc('legend',**{'loc':'upper left'});
-pyplot.rcParams[u'legend.fontsize'] = 18
+pyplot.rcParams[u'legend.fontsize'] = 16
 pyplot.rcParams[u'legend.edgecolor']='white'
 pyplot.rcParams[u'legend.facecolor']='0.8'
 pyplot.rcParams[u'font.weight']='normal'
-pyplot.rcParams[u'xtick.labelsize']=16
-pyplot.rcParams[u'ytick.labelsize']=16
-pyplot.rcParams[u'axes.titlesize']=18
-pyplot.rcParams[u'axes.labelsize']=20
+pyplot.rcParams[u'xtick.labelsize']=15
+pyplot.rcParams[u'ytick.labelsize']=15
+pyplot.rcParams[u'axes.titlesize']=16
+pyplot.rcParams[u'axes.labelsize']=16
 pyplot.rcParams[u'axes.spines.right']='false';
 pyplot.rcParams[u'axes.spines.top']='false';
 pyplot.rcParams[u'lines.linewidth'] = 1.5;
@@ -94,15 +94,17 @@ L2_aver_upw = data_upw[:, 4];
 
 # theoritcal curve:
 theoretical_curve = exp(-(int(DG)+1) * log(nDOF))  ;
-shift =  -0.7*log10(L2_proj[0]) + log10(theoretical_curve[0]);
+shift = -0.8*log10(L2_proj[0]) + log10(theoretical_curve[0]);
 theoretical_curve = theoretical_curve / 10**shift;
 
 #===================================
 # Order Calculations:
 #===================================
 order_L1_proj = zeros(size(L1_proj)-1);
+order_L1_proj_upw = zeros(size(L1_proj_upw)-1);
 order_L1_aver = zeros(size(L1_aver)-1);
 order_L2_proj = zeros(size(L2_proj)-1);
+order_L2_proj_upw = zeros(size(L2_proj_upw)-1);
 order_L2_aver = zeros(size(L2_aver)-1);
 order_exact = zeros(size(theoretical_curve)-1);
 
@@ -114,12 +116,17 @@ for i in range(1,size(L2_proj)):
     order_exact[i-1] = \
                log10(theoretical_curve[i-1]/theoretical_curve[i])/log10(2);
 
+for i in range(1,size(L2_proj_upw)):
+    order_L1_proj_upw[i-1] = log10(L1_proj_upw[i-1]/L1_proj_upw[i])/log10(2);
+    order_L2_proj_upw[i-1] = log10(L2_proj_upw[i-1]/L2_proj_upw[i])/log10(2);
+
 Nelem_ = zeros(size(Nelem)-1);
 for i in range(1,size(Nelem)):
 	Nelem_[i-1] = int(Nelem[i]);
 
 order_print = numpy.transpose([Nelem_,order_L1_proj,order_L1_aver\
                                ,order_L2_proj,order_L2_aver]);
+order_print_upw = numpy.transpose([Nelem_,order_L1_proj_upw,order_L2_proj_upw]);
 
 order_L1_print = numpy.transpose([Nelem_,order_L1_proj,order_L1_aver]);
 order_L2_print = numpy.transpose([Nelem_,order_L2_proj,order_L2_aver]);
@@ -129,17 +136,29 @@ print('L2_order',order_L2_print);
 
 if mode=='CFL_const':
     order_out_name = dir1+'OAA_DGp'+DG+'_RK'+RK+'_Beta'\
-    +str(Beta)+'_CFL'+str(CFL)+'.dat';
+                     +str(Beta)+'_CFL'+str(CFL)+ str("_") \
+                     + str(int(T)) + 'T.dat';
+    order_out_name_upw = dir1 + 'OAA_DGp' + DG + '_RK' + RK \
+                         + '_Beta1.00'+ '_CFL' + str(CFL_upw) \
+                         + str("_") +str(int(T)) + 'T.dat';
 
 elif mode=='dt_const':
     order_out_name = dir1+'OAA_DGp'+DG+'_RK'+RK+'_Beta'\
-    +str(Beta)+'_dt'+dt_+'.dat';
+                     +str(Beta)+'_dt'+dt_+ str("_") \
+                     + str(int(T)) + 'T.dat';
+    order_out_name_upw = dir1 + 'OAA_DGp' + DG + '_RK' + RK \
+                         + '_Beta1.00' + '_dt' + dt_ \
+                         + str("_") +str(int(T)) + 'T.dat';
 
 savetxt(order_out_name, order_print\
 , fmt="%02d"+" %1.4f"+" %1.4f"+" %1.4f"+" %1.4f"\
 ,header="Nelem, order_L1_proj, order_L1_aver, order_L2_proj, order_L2_aver"\
 ,delimiter=' ');
 
+savetxt(order_out_name_upw, order_print_upw\
+, fmt="%02d"+" %1.4f"+" %1.4f"\
+,header="Nelem, order_L1_proj, order_L2_proj"\
+,delimiter=' ');
 
 #===================================
 #! Plotting The figure:
@@ -156,7 +175,7 @@ elif mode=='CFL_const':
 	title_a = str("DGp")+ DG + " RK"+ RK\
               + ' at t/T=' + str(Decimal(T.quantize(Decimal('.1'))));
 
-fig, ax = pyplot.subplots(figsize=(9.0, 7.5));
+fig, ax = pyplot.subplots(figsize=(8.0, 6.0));
 
 pyplot.plot(nDOF, L2_proj, '-or' \
             , label=r'hybrid, $\beta$=' + str(Beta)  + ', CFL='+str(CFL));
@@ -172,8 +191,8 @@ pyplot.yscale('log');
 pyplot.xscale('log');
 
 #pyplot.title(title_a)
-pyplot.xlabel('nDOFs')
-pyplot.ylabel(r'L$_{2}$ error of solution')
+pyplot.xlabel('nDOFs',labelpad=10)
+pyplot.ylabel(r'L$_{2}$ error of solution',labelpad=10)
 
 # pyplot.ylim(1.0e-2,6.5e-2)
 from matplotlib import ticker
@@ -183,6 +202,7 @@ ax.xaxis.set_major_locator(ticker.LogLocator(base=10.0, numticks=15))
 
 ax.grid(which='minor', linestyle=':');
 
+fig.tight_layout()
 pyplot.show()
 
 

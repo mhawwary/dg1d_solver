@@ -6,6 +6,20 @@ import argparse
 from decimal import Decimal
 import csv
 
+pyplot.rc('legend',**{'loc':'upper left'});
+pyplot.rcParams[u'legend.fontsize'] = 15
+pyplot.rcParams[u'legend.edgecolor']='white'
+pyplot.rcParams[u'font.weight']='normal'
+#pyplot.rcParams['font.serif']='false'
+pyplot.rcParams[u'xtick.labelsize']=14
+pyplot.rcParams[u'ytick.labelsize']=14
+pyplot.rcParams[u'axes.titlesize']=18
+pyplot.rcParams[u'axes.labelsize']=15
+pyplot.rcParams[u'axes.spines.right']='false';
+pyplot.rcParams[u'axes.spines.top']='false';
+pyplot.rcParams[u'lines.linewidth'] = 1.5;
+pyplot.rcParams[u'lines.markersize'] = 8;
+
 parser = argparse.ArgumentParser(description='python_DG_argument_parsing');
 
 parser.add_argument('-f', type=str, dest='python_input');
@@ -17,7 +31,9 @@ with open(args.python_input) as file:
     reader=csv.reader(file, delimiter=':');
 
     for row in reader:
-        if row[0]=='CFL':    
+        if row[0]=='mode':
+            mode=str(row[1]);
+        elif row[0]=='CFL':
             CFL=Decimal(row[1]);
         elif row[0]=='DGp':
             DG=str(row[1]);
@@ -38,56 +54,46 @@ with open(args.python_input) as file:
         elif row[0] == 'discont': 
             discont = str(row[1]);
         elif row[0] == 'Beta':
-            Beta=Decimal(row[1]); 
+            Beta=Decimal(row[1]);
+        elif row[0] == 'dt':
+            dt_=str(row[1]);
 
 Beta= Decimal(Beta.quantize(Decimal('.01')));
 CFL=Decimal(CFL.quantize(Decimal('.001')));
 T=Decimal(T.quantize(Decimal('.001')));
+dt = float(dt_);
 
-fname_u_aver = dir1+aver+str("_N")+Nelem\
-+str("_CFL")+str(CFL)+str("_Beta")\
-+str(Beta)+str("_")+str(T)+str("T.dat");
-data_aver= loadtxt(fname_u_aver);
 
-fname_un_ex = dir1+nodal_exact+str("_")+str(T)+str("T.dat");
-data_exact_nodal= loadtxt(fname_un_ex);  # continuous exact nodal solution
+fname = dir1+nodal_exact+str("_")+str(T)+str("T.dat");
+data  = loadtxt(fname);  # continuous exact nodal solution
+xn_exact = data[:,0];
+un_exact = data[:,1];
 
-fname_un_comp = dir1+nodal_comp+str("_N")+Nelem\
-+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
-+str("_")+str(T)+str("T.dat");
-data_num_nodal= loadtxt(fname_un_comp);   # continuous numerical nodal solution
+del fname,data
 
-fname_un_disc = dir1+discont+str("_N")+Nelem\
-+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
-+str("_")+str(T)+str("T.dat");
-data_disc= loadtxt(fname_un_disc);
+#fname = dir1+nodal_comp+str("_N")+Nelem\
+#+str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
+#+str("_")+str(T)+str("T.dat");
+#data = loadtxt(fname);   # continuous numerical nodal solution
+#xn_comp = data[:,0];
+#un_comp = data[:,1];
+#del fname,data
 
-xc = data_aver[:,0];
-u_aver_comp = data_aver[:,1];
-u_aver_exact = data_aver[:,2];
+if mode=='CFL_const' or mode=='normal' or mode=='test':
+    fname= dir1+discont+str("_N")+Nelem\
+           +str("_CFL")+str(CFL)+str("_Beta")+str(Beta)\
+           +str("_")+str(T)+str("T.dat")
+elif mode=='dt_const':
+    fname = dir1 + discont + str("_N") + Nelem \
+            + str("_dt") + dt_ + str("_Beta") + str(Beta) \
+            + str("_") + str(T) + str("T.dat")
 
-xn_exact = data_exact_nodal[:,0]; 
-un_exact= data_exact_nodal[:,1]; 
+data= loadtxt(fname)
 
-xn_comp = data_num_nodal[:,0];
-un_comp = data_num_nodal[:,1];
+x_disc = data[:,0]
+u_disc = data[:,1]
 
-x_disc = data_disc[:,0];
-u_disc = data_disc[:,1];
-
-pyplot.rc('legend',**{'loc':'upper left'});
-pyplot.rcParams[u'legend.fontsize'] = 15
-pyplot.rcParams[u'legend.edgecolor']='white'
-pyplot.rcParams[u'font.weight']='normal'
-#pyplot.rcParams['font.serif']='false'
-pyplot.rcParams[u'xtick.labelsize']=14
-pyplot.rcParams[u'ytick.labelsize']=14
-pyplot.rcParams[u'axes.titlesize']=18
-pyplot.rcParams[u'axes.labelsize']=15
-pyplot.rcParams[u'axes.spines.right']='false';
-pyplot.rcParams[u'axes.spines.top']='false';
-pyplot.rcParams[u'lines.linewidth'] = 1.5;
-pyplot.rcParams[u'lines.markersize'] = 8;
+del fname,data
 
 nn = size(x_disc);
 
@@ -128,8 +134,8 @@ title_a = str("DGp")+ DG + " RK"+ RK \
 + " and at t/T="+str(T);
 
 pyplot.title(title_a);
-pyplot.xlabel('X');
-pyplot.ylabel('u(x)');
+pyplot.xlabel('X',labelpad=10);
+pyplot.ylabel('u(x)',labelpad=10);
 
 pyplot.xlim(min(xn_exact),max(xn_exact));
 pyplot.ylim(min(ylim_0)*1.05,max(ylim_1)*1.05);
@@ -137,10 +143,6 @@ pyplot.ylim(min(ylim_0)*1.05,max(ylim_1)*1.05);
 xlabels=linspace(min(xn_exact),max(xn_exact),5);
 xlocs=xlabels;
 pyplot.xticks(xlocs, xlabels);
-
-#ylabels=arange(0,1.2,0.2);
-#ylocs=arange(0,1.2,0.2);
-#pyplot.yticks(ylocs,ylabels);
 
 pyplot.show()
 
