@@ -1,7 +1,7 @@
 [Case]
  title = Gaussian   # sine wave
- num_elements = 320
- x_begin =  0.0
+ num_elements = 1280
+ x_begin =  -1.0
  x_end   =  1.0
  uniform_grid = 1
  refinement_level = 0
@@ -12,36 +12,35 @@
  print_freq = 1000
  restart_flag = 0
  restart_iter = 1e6
- mode = error_analysis_CFL     # normal/test/error_analysis_dt/error_analysis_CFL
-
+ mode = error_analysis_dt   # normal/test/error_analysis_dt/error_analysis_CFL
 
 [wave]
  wave_speed = 1.0;
- wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave
+ wave_form = 1 ;      # 0: sine wave, 1: Gaussian wave
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
 
 [space_solver]
- polynomial_order = 3
- upwind_param = 0.20  # 1: fully upwind, 0: fully central, (0,1) hybrid
+ polynomial_order = 3 
+ upwind_param = 0.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
     
   
 [time_solver]
- calculate_dt_flag = 1  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
+ calculate_dt_flag = 0  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
  
- CFL_no = 0.222
+ CFL_no = 0.20
 
- dt = 5e-4
+ dt = 5e-5
  initial_time = 0.0
 
  final_time = 4.0
  
  no_of_periods = 2.0 #  period = (xf-x0) / wave_speed
  
- maximum_iteration = 10000000;
+ maximum_iteration = 1000000;
 
  end_of_simulation_flag = 0
 # 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged 
 
  [./explicit]
 
-  RK_order = 4
+  RK_order = 3

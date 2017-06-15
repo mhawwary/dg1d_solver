@@ -5,15 +5,17 @@ import argparse
 from decimal import Decimal
 import csv
 
+
 pyplot.rc('legend',**{'loc':'upper left'});
-pyplot.rcParams[u'legend.fontsize'] = 18
+pyplot.rcParams[u'legend.fontsize'] = 16
 pyplot.rcParams[u'legend.edgecolor']='white'
+pyplot.rcParams[u'legend.facecolor']='0.8'
 pyplot.rcParams[u'font.weight']='normal'
 #pyplot.rcParams['font.serif']='false'
-pyplot.rcParams[u'xtick.labelsize']=16
-pyplot.rcParams[u'ytick.labelsize']=16
-pyplot.rcParams[u'axes.titlesize']=18
-pyplot.rcParams[u'axes.labelsize']=20
+pyplot.rcParams[u'xtick.labelsize']=15
+pyplot.rcParams[u'ytick.labelsize']=15
+pyplot.rcParams[u'axes.titlesize']=16
+pyplot.rcParams[u'axes.labelsize']=16
 pyplot.rcParams[u'axes.spines.right']='false';
 pyplot.rcParams[u'axes.spines.top']='false';
 pyplot.rcParams[u'lines.linewidth'] = 1.5;
@@ -98,7 +100,7 @@ if int(DG)<=1:
 else:
     Np=10;
 
-fig, ax = pyplot.subplots(figsize=(9.0, 7.5)) ;
+fig, ax = pyplot.subplots(figsize=(10.5, 7.5)) ;
 pyplot.plot(xn_exact,un_exact,'--k',label='exact sol');
 
 ylim_0 = list();
@@ -138,8 +140,8 @@ pyplot.legend(loc='upper left');
 title_a = str("DGp")+ DG + " RK"+ RK +" and at t/T="+str(T);
 #pyplot.title(title_a);
 
-pyplot.xlabel('X');
-pyplot.ylabel('u');
+pyplot.xlabel('X',labelpad=10);
+pyplot.ylabel('u',labelpad=10);
 
 pyplot.xlim(-1.0,1.0);
 pyplot.ylim(min(ylim_0)*1.05,max(ylim_1)*1.05);
@@ -156,7 +158,7 @@ ylocs=arange(-0.2,1.2,0.2);
 pyplot.yticks(ylocs,ylabels);
 
 #pyplot.savefig('fig1.png',bbox='tight')
-
+fig.tight_layout()
 pyplot.show()
 
 
