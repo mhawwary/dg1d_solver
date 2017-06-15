@@ -971,7 +971,7 @@ void DGSolver::dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
 
          emptyarray(fname);
 
-         // Dumping all errors in one file as a function of dt:
+         // Dumping all errors in one file as a function of Nelem:
          //--------------------------------------------------------
          fname = new char[100];
 
