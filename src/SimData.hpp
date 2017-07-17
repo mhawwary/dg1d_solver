@@ -29,6 +29,7 @@ struct SimData {
     double a_wave_=2;    // wave speed
     int wave_form_ = 0;  // 0: sine wave, 1: Gaussian wave
     double Gaussian_exponent_ = -40; // u(x) = exp(-38.6 *x^2)
+    double wave_freq_= 2.0;
 
     int Nelem_ = 1;  // no. of elements in the grid
     int Npplot = 1;  // no. of equally spaced points per element for plotting

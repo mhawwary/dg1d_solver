@@ -1,7 +1,7 @@
 [Case]
  title = Gaussian   # sine wave
- num_elements = 1280
- x_begin =  -1.0
+ num_elements = 5
+ x_begin =  0.0
  x_end   =  1.0
  uniform_grid = 1
  refinement_level = 0
@@ -12,12 +12,13 @@
  print_freq = 1000
  restart_flag = 0
  restart_iter = 1e6
- mode = error_analysis_dt   # normal/test/error_analysis_dt/error_analysis_CFL
+ mode = test   # normal/test/error_analysis_dt/error_analysis_CFL
 
 [wave]
  wave_speed = 1.0;
- wave_form = 1 ;      # 0: sine wave, 1: Gaussian wave
+ wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
+ wave_frequency = 10.0  # wave_frequnecy x Pi
 
 [space_solver]
  polynomial_order = 3 
@@ -25,16 +26,16 @@
     
   
 [time_solver]
- calculate_dt_flag = 0  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
+ calculate_dt_flag = 1  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
  
- CFL_no = 0.20
+ CFL_no = 0.1
 
  dt = 5e-5
  initial_time = 0.0
 
  final_time = 4.0
  
- no_of_periods = 2.0 #  period = (xf-x0) / wave_speed
+ no_of_periods = 50000.0 #  period = (xf-x0) / wave_speed
  
  maximum_iteration = 1000000;
 

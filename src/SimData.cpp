@@ -20,6 +20,7 @@ void SimData::Parse(const std::string &fname){
     a_wave_ = gp_input("wave/wave_speed",1.0);
     wave_form_ = gp_input("wave/wave_form",0);
     Gaussian_exponent_ = gp_input("wave/Gaussian_exponent",-50.0);
+    wave_freq_ = gp_input("wave/wave_frequency",2.0);
 
     poly_order_=gp_input("space_solver/polynomial_order",1);
     upwind_param_=gp_input("space_solver/upwind_param",1.0);
