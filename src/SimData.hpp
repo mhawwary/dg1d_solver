@@ -7,6 +7,7 @@
 
 struct SimData {
 
+    std::string eqn_set;
     int poly_order_=0;    // FD Scheme order
     int RK_order_=0;        // Runge-Kutta type (0: euler FT, 2: SSPRK22, 3: SSPRK33)
     int print_freq_=10;

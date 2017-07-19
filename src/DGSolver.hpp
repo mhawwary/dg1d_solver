@@ -18,26 +18,26 @@ public:
     double T_period=1;
 
 //  Construction Functions :
-   DGSolver(void);
-   ~DGSolver(void);
+   DGSolver(){}
+   virtual ~DGSolver(){}
 
-   void setup_solver(GridData& meshdata_, SimData& simdata_);
+   virtual void setup_solver(GridData& meshdata_, SimData& simdata_)=0;
 
-   void InitSol();
-   void UpdateResid(double **Resid_, double **Qn_);
-   void UpdateSolution(double **Qn_);
+   virtual void InitSol()=0;
+   virtual void UpdateResid(double **Resid_, double **Qn_)=0;
+//   virtual void UpdateSolution(double **Qn_)=0;
 
-   void Compute_vertex_sol();
-   double ComputePolyError();
-   double L1_error_projected_sol();
-   double L2_error_projected_sol();
-   double L1_error_average_sol();
-   double L2_error_average_sol();
-   double L2_error_nodal_disc_sol();
-   double L1_error_nodal_gausspts();
-   double L2_error_nodal_gausspts();
-   double L1_error_nodal_gausspts_proj();
-   double L2_error_nodal_gausspts_proj();
+   virtual void Compute_vertex_sol()=0;
+   virtual double ComputePolyError()=0;
+   virtual double L1_error_projected_sol()=0;
+   virtual double L2_error_projected_sol()=0;
+   virtual double L1_error_average_sol()=0;
+   virtual double L2_error_average_sol()=0;
+   virtual double L2_error_nodal_disc_sol()=0;
+   virtual double L1_error_nodal_gausspts()=0;
+   virtual double L2_error_nodal_gausspts()=0;
+   virtual double L1_error_nodal_gausspts_proj()=0;
+   virtual double L2_error_nodal_gausspts_proj()=0;
 
    void UpdatePhyTime(const double& dt_){
 
@@ -93,50 +93,49 @@ public:
        return phy_time;
    }
 
-   void print_cont_vertex_sol();
-   void print_average_sol();
-   void dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
+   virtual void print_cont_vertex_sol()=0;
+   virtual void print_average_sol()=0;
+   virtual void dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
                     ,double& L1_aver_sol_,double& L2_aver_sol_
-                    ,double& L1_nodal_gausspts, double& L2_nodal_gausspts);
-   void dump_discont_sol();
+                    ,double& L1_nodal_gausspts, double& L2_nodal_gausspts)=0;
+   virtual void dump_discont_sol()=0;
 
 protected:
 
-   void UpdateResidOneCell(const int& cellid, double* q_
-                           , double* resid_);
+   virtual void UpdateResidOneCell(const int& cellid, double* q_
+                           , double* resid_)=0;
 
-   double Compute_common_flux(const double& ql, const double& qr,
-                               const double& wave_speed
-                               , const double& upwind_Beta_);
-   void Compute_flux_upw();
-   void get_left_right_sol();
-   void Rusanov_flux();
-   void Roe_flux();
+//   virtual double Compute_common_flux(const double& ql, const double& qr,
+//                               const double& wave_speed
+//                               , const double& upwind_Beta_)=0;
+//   virtual void Compute_flux_upw()=0;
+//   virtual void get_left_right_sol()=0;
+//   virtual void Rusanov_flux()=0;
+//   virtual void Roe_flux()=0;
 
-   double eval_init_sol(const double& xx);
-   double eval_exact_sol(double& xx);
-   double eval_basis_poly(const double& xi_, const int& basis_k_);
-   double eval_basis_norm_squared(const int& basis_k_);
-   double evalSolution(const double* q_, const double& xi_pt);
+   virtual double eval_init_sol(const double& xx)=0;
+   virtual double eval_exact_sol(double& xx)=0;
+   virtual double eval_basis_poly(const double& xi_, const int& basis_k_)=0;
+   virtual double eval_basis_norm_squared(const int& basis_k_)=0;
+   virtual double evalSolution(const double* q_, const double& xi_pt)=0;
 
-   double eval_localflux_proj(const double* q_
-                              , const int& basis_k_);
+   virtual double eval_localflux_proj(const double* q_
+                              , const int& basis_k_)=0;
 
-   double initSol_legendre_proj(const int& eID, const int &basis_id,
-                                const GaussQuad & quad_);
+   virtual double initSol_legendre_proj(const int& eID, const int &basis_id,
+                                const GaussQuad & quad_)=0;
 
-   double ExactSol_legendre_proj(const int &eID,
+   virtual double ExactSol_legendre_proj(const int &eID,
                                  const int &basis_k,
-                                  const GaussQuad &quad_);
+                                  const GaussQuad &quad_)=0;
 
-   void CalcTimeStep();
-   void CalcLocalTimeStep();
+   virtual void CalcTimeStep()=0;
+//   virtual void CalcLocalTimeStep()=0;
 
-   void Reset_solver();
-   void ComputeExactSolShift();
+   virtual void ComputeExactSolShift()=0;
 
-   void Compute_exact_vertex_sol();
-   void Compute_projected_exact_sol();
+   virtual void Compute_exact_vertex_sol()=0;
+   virtual void Compute_projected_exact_sol()=0;
 
 protected:
 

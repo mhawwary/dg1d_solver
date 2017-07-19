@@ -18,9 +18,10 @@
  wave_speed = 1.0;
  wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
- wave_frequency = 10.0  # wave_frequnecy x Pi
+ wave_frequency = 4.0  # wave_frequnecy x Pi
 
 [space_solver]
+ eqn_set = Advection  # Advection / Diffusion
  polynomial_order = 3 
  upwind_param = 0.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
     
@@ -28,14 +29,14 @@
 [time_solver]
  calculate_dt_flag = 1  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
  
- CFL_no = 0.1
+ CFL_no = 0.13
 
  dt = 5e-5
  initial_time = 0.0
 
  final_time = 4.0
  
- no_of_periods = 50000.0 #  period = (xf-x0) / wave_speed
+ no_of_periods = 1.0 #  period = (xf-x0) / wave_speed
  
  maximum_iteration = 1000000;
 

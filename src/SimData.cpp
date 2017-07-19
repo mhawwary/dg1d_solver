@@ -24,6 +24,7 @@ void SimData::Parse(const std::string &fname){
 
     poly_order_=gp_input("space_solver/polynomial_order",1);
     upwind_param_=gp_input("space_solver/upwind_param",1.0);
+    eqn_set = gp_input("space_solver/eqn_set","Advection");
 
     calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1);
     CFL_ = gp_input("time_solver/CFL_no",1.0);

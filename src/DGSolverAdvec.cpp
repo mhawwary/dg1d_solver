@@ -1,15 +1,14 @@
-#include "DGSolver.hpp"
+#include "DGSolverAdvec.hpp"
 
 // Constructor/Destructor/ Setup functions:
 //------------------------------------------------
-DGSolver::DGSolver(void){}
 
-DGSolver::~DGSolver(void){
+DGSolverAdvec::~DGSolverAdvec(void){
 
     Reset_solver();
 }
 
-void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
+void DGSolverAdvec::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     grid_ = &meshdata_;
     simdata_ = &osimdata_;
@@ -62,11 +61,8 @@ void DGSolver::setup_solver(GridData& meshdata_, SimData& osimdata_){
     return;
 }
 
-void DGSolver::Reset_solver(){
+void DGSolverAdvec::Reset_solver(){
 
-    //emptyarray(X);
-    //emptyarray(Xc);
-    //emptyarray(h_j);
     emptyarray(xi);
 
     emptyarray(grid_->Nelem,Qn);
@@ -85,7 +81,7 @@ void DGSolver::Reset_solver(){
 // Solver functions
 //-------------------------------------------
 
-void DGSolver::CalcTimeStep(){
+void DGSolverAdvec::CalcTimeStep(){
 
     T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
 
@@ -152,7 +148,7 @@ void DGSolver::CalcTimeStep(){
     return;
 }
 
-void DGSolver::InitSol(){
+void DGSolverAdvec::InitSol(){
 
     register int j;
 
@@ -173,7 +169,7 @@ void DGSolver::InitSol(){
     return;
 }
 
-double DGSolver::initSol_legendre_proj(const int &eID,
+double DGSolverAdvec::initSol_legendre_proj(const int &eID,
                                        const int &basis_k,
                                         const GaussQuad &quad_){
 
@@ -206,7 +202,7 @@ double DGSolver::initSol_legendre_proj(const int &eID,
     return II;
 }
 
-void DGSolver::ComputeExactSolShift(){
+void DGSolverAdvec::ComputeExactSolShift(){
 
     // Preparing shift information:
     //-------------------------------
@@ -219,7 +215,7 @@ void DGSolver::ComputeExactSolShift(){
     return;
 }
 
-double DGSolver::ExactSol_legendre_proj(const int &eID,
+double DGSolverAdvec::ExactSol_legendre_proj(const int &eID,
                                        const int &basis_k,
                                         const GaussQuad &quad_){
 
@@ -266,7 +262,7 @@ double DGSolver::ExactSol_legendre_proj(const int &eID,
     return II;
 }
 
-void DGSolver::UpdateResid(double **Resid_, double **Qn_){
+void DGSolverAdvec::UpdateResid(double **Resid_, double **Qn_){
 
     register int j;
 
@@ -306,7 +302,7 @@ void DGSolver::UpdateResid(double **Resid_, double **Qn_){
     return;
 }
 
-void DGSolver::UpdateResidOneCell(const int &cellid, double *q_, double *resid_){
+void DGSolverAdvec::UpdateResidOneCell(const int &cellid, double *q_, double *resid_){
 
     unsigned int j=cellid;
 
@@ -343,7 +339,7 @@ void DGSolver::UpdateResidOneCell(const int &cellid, double *q_, double *resid_)
     return;
 }
 
-double DGSolver::Compute_common_flux(const double &Ql, const double &Qr
+double DGSolverAdvec::Compute_common_flux(const double &Ql, const double &Qr
                                       , const double &wave_speed
                                       , const double &upwind_Beta_){
 
@@ -362,7 +358,7 @@ double DGSolver::Compute_common_flux(const double &Ql, const double &Qr
     return f_common_;
 }
 
-void DGSolver::Compute_vertex_sol(){
+void DGSolverAdvec::Compute_vertex_sol(){
 
     register int i;
 
@@ -386,7 +382,7 @@ void DGSolver::Compute_vertex_sol(){
     return;
 }
 
-void DGSolver::Compute_exact_vertex_sol(){
+void DGSolverAdvec::Compute_exact_vertex_sol(){
 
     register int j;
 
@@ -415,7 +411,7 @@ void DGSolver::Compute_exact_vertex_sol(){
     return;
 }
 
-void DGSolver::Compute_projected_exact_sol(){
+void DGSolverAdvec::Compute_projected_exact_sol(){
 
     register int j; int k=0;
 
@@ -430,7 +426,7 @@ void DGSolver::Compute_projected_exact_sol(){
     return;
 }
 
-double DGSolver::eval_init_sol(const double& xx){
+double DGSolverAdvec::eval_init_sol(const double& xx){
 
     if(simdata_->wave_form_==0){
 
@@ -444,7 +440,7 @@ double DGSolver::eval_init_sol(const double& xx){
     }
 }
 
-double DGSolver::eval_exact_sol(double &xx){
+double DGSolverAdvec::eval_exact_sol(double &xx){
 
     xx = xx - exact_sol_shift;
 
@@ -466,7 +462,7 @@ double DGSolver::eval_exact_sol(double &xx){
     }
 }
 
-double DGSolver::eval_basis_poly(const double& xi_, const int& basis_k_){
+double DGSolverAdvec::eval_basis_poly(const double& xi_, const int& basis_k_){
 
     if(basis_k_==0) {
         return 1.0;
@@ -492,14 +488,14 @@ double DGSolver::eval_basis_poly(const double& xi_, const int& basis_k_){
     }
 }
 
-double DGSolver::eval_basis_norm_squared(const int &basis_k_){
+double DGSolverAdvec::eval_basis_norm_squared(const int &basis_k_){
 
     // this is norm^2
 
     return 2./(2*basis_k_+1);
 }
 
-double DGSolver::evalSolution(const double* q_, const double& xi_pt_){
+double DGSolverAdvec::evalSolution(const double* q_, const double& xi_pt_){
 
     double xx=xi_pt_;
     double Q_=0.0;
@@ -514,7 +510,7 @@ double DGSolver::evalSolution(const double* q_, const double& xi_pt_){
     return Q_;
 }
 
-double DGSolver::eval_localflux_proj(const double *q_, const int &basis_k_){
+double DGSolverAdvec::eval_localflux_proj(const double *q_, const int &basis_k_){
 
     int k=basis_k_;
 
@@ -547,7 +543,7 @@ double DGSolver::eval_localflux_proj(const double *q_, const int &basis_k_){
 
 }
 
-double DGSolver::ComputePolyError(){
+double DGSolverAdvec::ComputePolyError(){
 
     register int j; int i;
 
@@ -579,7 +575,7 @@ double DGSolver::ComputePolyError(){
     return L2_error;
 }
 
-double DGSolver::L1_error_nodal_gausspts_proj(){
+double DGSolverAdvec::L1_error_nodal_gausspts_proj(){
 
     register int j; int i;
 
@@ -607,7 +603,7 @@ double DGSolver::L1_error_nodal_gausspts_proj(){
     return L1_error;
 }
 
-double DGSolver::L2_error_nodal_gausspts_proj(){
+double DGSolverAdvec::L2_error_nodal_gausspts_proj(){
 
     register int j; int i;
 
@@ -635,7 +631,7 @@ double DGSolver::L2_error_nodal_gausspts_proj(){
     return L2_error;
 }
 
-double DGSolver::L1_error_nodal_gausspts(){
+double DGSolverAdvec::L1_error_nodal_gausspts(){
 
     register int j; int i;
 
@@ -663,7 +659,7 @@ double DGSolver::L1_error_nodal_gausspts(){
     return L1_error;
 }
 
-double DGSolver::L2_error_nodal_gausspts(){
+double DGSolverAdvec::L2_error_nodal_gausspts(){
 
     register int j; int i;
 
@@ -691,7 +687,7 @@ double DGSolver::L2_error_nodal_gausspts(){
     return L2_error;
 }
 
-double DGSolver::L1_error_projected_sol(){
+double DGSolverAdvec::L1_error_projected_sol(){
 
     register int j; int i;
 
@@ -721,7 +717,7 @@ double DGSolver::L1_error_projected_sol(){
     return L1_error;
 }
 
-double DGSolver::L2_error_projected_sol(){
+double DGSolverAdvec::L2_error_projected_sol(){
 
     register int j; int i;
 
@@ -751,7 +747,7 @@ double DGSolver::L2_error_projected_sol(){
     return L2_error;
 }
 
-double DGSolver::L2_error_nodal_disc_sol(){
+double DGSolverAdvec::L2_error_nodal_disc_sol(){
 
     // We have two options: either use only
     // the interface nodes or also use the center node
@@ -761,7 +757,7 @@ double DGSolver::L2_error_nodal_disc_sol(){
     return L2_error;
 }
 
-double DGSolver::L1_error_average_sol(){
+double DGSolverAdvec::L1_error_average_sol(){
 
     register int j;
 
@@ -777,7 +773,7 @@ double DGSolver::L1_error_average_sol(){
     return L1_error;
 }
 
-double DGSolver::L2_error_average_sol(){
+double DGSolverAdvec::L2_error_average_sol(){
 
     register int j;
 
@@ -793,7 +789,7 @@ double DGSolver::L2_error_average_sol(){
     return L2_error;
 }
 
-void DGSolver::print_cont_vertex_sol(){
+void DGSolverAdvec::print_cont_vertex_sol(){
 
     register int j=0;
 
@@ -854,7 +850,7 @@ void DGSolver::print_cont_vertex_sol(){
     return;
 }
 
-void DGSolver::print_average_sol(){
+void DGSolverAdvec::print_average_sol(){
 
     register int j;
 
@@ -905,7 +901,7 @@ void DGSolver::print_average_sol(){
     return;
 }
 
-void DGSolver::dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
+void DGSolverAdvec::dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
                            ,double& L1_aver_sol_,double& L2_aver_sol_
                            ,double& L1_nodal_gausspts, double& L2_nodal_gausspts){
 
@@ -1057,7 +1053,7 @@ void DGSolver::dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
     return;
 }
 
-void DGSolver::dump_discont_sol(){
+void DGSolverAdvec::dump_discont_sol(){
 
     register int j; int k;
 
