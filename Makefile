@@ -100,10 +100,8 @@ clean_temp:
 	rm -f ./Results/*.*~ ./Results/*/*.*~ ./Results/*/*/*.*~ ./Results/*/*/*/*.*~ 
 	
 
-plot_test:
-	python DGplot_test.py -f ./input/python_input.in 
 plot:
-	python DGplot.py -f ./input/python_input.in 
+	python DGsolplot_reader.py -f ./input/python_input.in 
 
 plot_compare:
 	python DGplot_compare_Beta.py -f ./input/python_input_compare_Beta.in 

@@ -25,6 +25,12 @@ void SimData::Parse(const std::string &fname){
     poly_order_=gp_input("space_solver/polynomial_order",1);
     upwind_param_=gp_input("space_solver/upwind_param",1.0);
     eqn_set = gp_input("space_solver/eqn_set","Advection");
+    thermal_diffus
+            = gp_input("space_solver/heat_eqn/thermal_diffusivity",1.0);
+    penalty_param_
+            = gp_input("space_solver/heat_eqn/penalty_param",1.0);
+    diffus_scheme_type_ =
+            gp_input("space_solver/heat_eqn/diffus_scheme_type","SIP");
 
     calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1);
     CFL_ = gp_input("time_solver/CFL_no",1.0);
@@ -66,7 +72,19 @@ void SimData::setup_output_directory(){
     char *current_working_dir=allchar.allocate(1500);
     getcwd(current_working_dir,1500);
 
-    chdir("./Results");
+    char *main_dir=nullptr; main_dir = new char[25];
+
+    if(eqn_set=="Advection"){
+        sprintf(main_dir,"./Results");
+    }else if (eqn_set=="Diffusion"){
+        sprintf(main_dir ,"./Results_diffus");
+    }else{
+        FatalError_exit("Equation set when specifying output directory");
+    }
+
+    mkdir(main_dir,0777);
+
+    chdir(main_dir);
 
     mkdir(case_title,0777);
 
@@ -76,7 +94,8 @@ void SimData::setup_output_directory(){
 
     case_postproc_dir = new char[200];
 
-    sprintf(case_postproc_dir,"./Results/%s/%s/",case_title,case_dir);
+//    sprintf(case_postproc_dir,"./Results/%s/%s/",case_title,case_dir);
+    sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title,case_dir);
 
     chdir(case_dir);
 
@@ -90,6 +109,8 @@ void SimData::setup_output_directory(){
     cout<<"--> Post processing directory: "<<case_postproc_dir<<endl;
 
     emptyarray(case_dir);
+    emptyarray(main_dir);
+    emptyarray(case_title);
 
     return;
 }
@@ -115,7 +136,18 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"Nelem:%d\n",Nelem_);
     fprintf(python_out,"dt:%1.3e\n",dt_);
     fprintf(python_out,"CFL:%1.3f\n",CFL_);
-    fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+
+    if(eqn_set=="Advection"){
+        fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+        fprintf(python_out,"Eqn_set:%s\n",(char*)"Advection");
+    }else if(eqn_set=="Diffusion"){
+        fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
+        fprintf(python_out,"Eqn_set:%s\n",(char*)"Diffusion");
+        fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
+    }else{
+        FatalError_exit("Eqn_set not defined in python_dump");
+    }
+
     fprintf(python_out,"T:%1.3f\n",Nperiods);
 
     if(Sim_mode=="error_analysis_dt")
@@ -124,6 +156,8 @@ void SimData::dump_python_inputfile(){
         fprintf(python_out,"mode:%s","CFL_const");
     else if(Sim_mode=="error_analysis_Beta")
         fprintf(python_out,"mode:%s","Beta_const");
+    else if(Sim_mode=="error_analysis_Epsilon")
+        fprintf(python_out,"mode:%s","Epsilon_const");
     else
         fprintf(python_out,"mode:%s",Sim_mode.c_str());
 

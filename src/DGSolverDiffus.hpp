@@ -1,5 +1,5 @@
-#ifndef DGSOLVERADVEC_H
-#define DGSOLVERADVEC_H
+#ifndef DGSOLVERDIFFUS_H
+#define DGSOLVERDIFFUS_H
 
 
 #include "DGSolver.hpp"
@@ -7,13 +7,13 @@
 //struct SimData;
 //struct GridData;
 
-class DGSolverAdvec:public DGSolver{
+class DGSolverDiffus:public DGSolver{
 
 public:
 
 //  Construction Functions :
-   DGSolverAdvec(void){}
-   virtual ~DGSolverAdvec(void);
+   DGSolverDiffus(void){}
+   virtual ~DGSolverDiffus(void);
 
    virtual void setup_solver(GridData& meshdata_, SimData& simdata_);
 
@@ -70,13 +70,25 @@ public:
    virtual void Compute_projected_exact_sol();
 
 protected:
-   double Compute_common_flux(const double& ql, const double& qr,
-                               const double& wave_speed
-                               , const double& upwind_Beta_);
-   double eval_localflux_proj(const double* q_
+
+   double eval_basis_poly_derivative(const double& xi_pt, const int& basis_k_);
+
+   double eval_local_du(const int eID, const double* q_, const double& xi_pt);
+
+   double Compute_common_du_flux(const double& dul, const double& dur);
+
+   double eval_local_du_fluxproj(const int eID, const double* q_
                                  , const int& basis_k_);
+
+   double Compute_common_sol_jump(const double& ul_, const double& ur_);
+
    void Reset_solver();
 
+protected:
+
+   double *u_sol_jump=nullptr;
+   double r_lift=1.0;
+   double e_penalty=1.0;
 
 };
 

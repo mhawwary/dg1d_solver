@@ -119,8 +119,8 @@ protected:
    virtual double eval_basis_norm_squared(const int& basis_k_)=0;
    virtual double evalSolution(const double* q_, const double& xi_pt)=0;
 
-   virtual double eval_localflux_proj(const double* q_
-                              , const int& basis_k_)=0;
+//   virtual double eval_localflux_proj(const double* q_
+//                              , const int& basis_k_)=0;
 
    virtual double initSol_legendre_proj(const int& eID, const int &basis_id,
                                 const GaussQuad & quad_)=0;

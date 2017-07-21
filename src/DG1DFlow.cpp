@@ -56,7 +56,9 @@ void InitSim(const int& argc,char** argv){
     if(simdata_.eqn_set=="Advection")
         dg_solver_ = new DGSolverAdvec;
     else if(simdata_.eqn_set=="Diffusion")
-        dg_solver_ = new DGSolverAdvec;
+        dg_solver_ = new DGSolverDiffus;
+    else
+        _notImplemented("Equation set");
 
     time_solver_ = new ExplicitTimeSolver;
 
@@ -140,8 +142,8 @@ void logo(){
 
     cout<<"_________________________________________________________________________________________"<<endl;
     cout<<"                                                                                         "<<endl;
-    cout<<"                 "<<"  Welcome to the Discontinuous Galerkin solver  "<<"                "<<endl;
-    cout<<"                  "<<"   for 1D wave and scalar conservation laws    "<<"                "<<endl;
+    cout<<"                 "<<"  Welcome to the Discontinuous Galerkin solver   "<<"               "<<endl;
+    cout<<"                       "<<"  for 1D scalar conservation laws   "<<"                      "<<endl;
     cout<<"                                                                                         "<<endl;
     cout<<"       Author:               Mohammad Alhawwary, PhD. Student                            "<<endl;
     cout<<"  Affiliation:   Aerospace Engineering Department, University of Kansas, USA             "<< endl;

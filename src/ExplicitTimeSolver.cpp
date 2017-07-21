@@ -12,7 +12,8 @@ ExplicitTimeSolver::~ExplicitTimeSolver(){
  return;
 }
 
-void ExplicitTimeSolver::setupTimeSolver(DGSolver *dg_solver_, SimData *osimdata_){
+void ExplicitTimeSolver::setupTimeSolver(DGSolver *dg_solver_
+                                         , SimData *osimdata_){
 
     space_solver = dg_solver_;
 
