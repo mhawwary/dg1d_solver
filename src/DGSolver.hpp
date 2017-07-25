@@ -164,6 +164,8 @@ protected:
    double exact_sol_shift=0.;
    double wave_length_=0.;
 
+   int Nquad_=5; // Gauss Quadrature rules
+
 };
 
 #endif

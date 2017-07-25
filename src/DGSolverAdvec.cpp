@@ -15,6 +15,8 @@ void DGSolverAdvec::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     Ndof= simdata_->poly_order_+1;
 
+    Nquad_ = 5;
+
     Qn    =  new double* [grid_->Nelem];
 
     Qex_proj = new double*[grid_->Nelem];
@@ -156,7 +158,7 @@ void DGSolverAdvec::InitSol(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(5);
+    quad_.setup_quadrature(Nquad_);
 
     for(j=0; j<grid_->Nelem; j++){
 
@@ -417,7 +419,7 @@ void DGSolverAdvec::Compute_projected_exact_sol(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(5);
+    quad_.setup_quadrature(Nquad_);
 
     for(j=0; j<grid_->Nelem; j++)
         for(k=0; k<Ndof; k++)
@@ -479,6 +481,9 @@ double DGSolverAdvec::eval_basis_poly(const double& xi_, const int& basis_k_){
     }else if(basis_k_==4) {
         return  (35 * pow(xi_,4) - 30 * xi_*xi_ + 3 ) /8. ;
 
+    }else if(basis_k_==5) {
+        return  (63.0 * pow(xi_,5) - 70.0 * pow(xi_,3) + 15.0 * xi_ ) /8. ;
+
     }else {
         char *ss=nullptr; ss= new char[100];
         sprintf(ss,"polynomial order of: %d",basis_k_);
@@ -519,16 +524,19 @@ double DGSolverAdvec::eval_localflux_proj(const double *q_, const int &basis_k_)
         return 0.0;
 
     case 1:
-        return ( 2.0 * simdata_->a_wave_ * q_[k-1] );
+        return ( 2.0 * simdata_->a_wave_ * q_[0] );
 
     case 2:
-        return ( 2.0 * simdata_->a_wave_ * q_[k-1] );
+        return ( 2.0 * simdata_->a_wave_ * q_[1] );
 
     case 3:
-        return ( 2.0 * simdata_->a_wave_ * ( q_[k-3] + q_[k-1]) );
+        return ( 2.0 * simdata_->a_wave_ * ( q_[0] + q_[2] ) );
 
     case 4:
-        return ( 2.0 * simdata_->a_wave_ * ( q_[k-3] + q_[k-1]) );
+        return ( 2.0 * simdata_->a_wave_ * ( q_[1] + q_[3] ) );
+
+    case 5:
+        return ( 2.0 * simdata_->a_wave_ * ( q_[0] + q_[2] + q_[4] ) );
 
     default:
         char *ss=nullptr; ss= new char[100];
@@ -539,8 +547,6 @@ double DGSolverAdvec::eval_localflux_proj(const double *q_, const int &basis_k_)
 
         return 1000.0;
     }
-
-
 }
 
 double DGSolverAdvec::ComputePolyError(){
@@ -549,7 +555,7 @@ double DGSolverAdvec::ComputePolyError(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(5);
+    quad_.setup_quadrature(Nquad_);
 
     double xx=0.0,L2_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
@@ -581,7 +587,7 @@ double DGSolverAdvec::L1_error_nodal_gausspts_proj(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L1_error=0.0,II=0.0,q_ex,q_n;
 
@@ -609,7 +615,7 @@ double DGSolverAdvec::L2_error_nodal_gausspts_proj(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L2_error=0.0,II=0.0,q_ex,q_n;
 
@@ -637,7 +643,7 @@ double DGSolverAdvec::L1_error_nodal_gausspts(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L1_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
 
@@ -665,7 +671,7 @@ double DGSolverAdvec::L2_error_nodal_gausspts(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L2_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
 
@@ -693,7 +699,7 @@ double DGSolverAdvec::L1_error_projected_sol(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(5);
+    quad_.setup_quadrature(Nquad_);
 
     double L1_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
@@ -723,7 +729,7 @@ double DGSolverAdvec::L2_error_projected_sol(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(5);
+    quad_.setup_quadrature(Nquad_);
 
     double L2_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
@@ -859,7 +865,7 @@ void DGSolverAdvec::print_average_sol(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(5);
+    quad_.setup_quadrature(Nquad_);
 
     if(simdata_->Sim_mode=="error_analysis_dt"){
 
@@ -1061,7 +1067,7 @@ void DGSolverAdvec::dump_discont_sol(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(5);
+    quad_.setup_quadrature(Nquad_);
 
     char *fname=nullptr;
     fname = new char[100];

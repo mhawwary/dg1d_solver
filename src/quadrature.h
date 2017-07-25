@@ -91,7 +91,8 @@ protected:
 
         }else{
 
-            cout<< "\n Gauss Quadrature with order of:  "<<Nq<<"  is not implemented \n";
+            cout<< "\n Gauss Quadrature with order of:  "
+                <<Nq<<"  is not implemented in the quadrature rule file\n";
         }
 
         return;
