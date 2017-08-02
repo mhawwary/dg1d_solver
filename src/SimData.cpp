@@ -78,6 +78,8 @@ void SimData::setup_output_directory(){
         sprintf(main_dir,"./Results");
     }else if (eqn_set=="Diffusion"){
         sprintf(main_dir ,"./Results_diffus");
+    }else if (eqn_set=="Advection_Diffusion"){
+        sprintf(main_dir ,"./Results_AdvecDiffus");
     }else{
         FatalError_exit("Equation set when specifying output directory");
     }
@@ -135,7 +137,11 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"RK:%d\n",RK_order_);
     fprintf(python_out,"Nelem:%d\n",Nelem_);
     fprintf(python_out,"dt:%1.3e\n",dt_);
-    fprintf(python_out,"CFL:%1.3f\n",CFL_);
+
+    if(eqn_set=="Advection" || eqn_set=="Diffusion" )
+        fprintf(python_out,"CFL:%1.3f\n",CFL_);
+    else if(eqn_set=="Advection_Diffusion")
+        fprintf(python_out,"CFL:%1.3e\n",CFL_);
 
     if(eqn_set=="Advection"){
         fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
@@ -143,6 +149,11 @@ void SimData::dump_python_inputfile(){
     }else if(eqn_set=="Diffusion"){
         fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
         fprintf(python_out,"Eqn_set:%s\n",(char*)"Diffusion");
+        fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
+    }else if(eqn_set=="Advection_Diffusion"){
+        fprintf(python_out,"Eqn_set:%s\n",(char*)"Advection_Diffusion");
+        fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+        fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
         fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
     }else{
         FatalError_exit("Eqn_set not defined in python_dump");

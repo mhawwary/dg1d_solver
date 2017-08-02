@@ -4,6 +4,7 @@
 #include "DGSolver.hpp"
 #include "DGSolverAdvec.hpp"
 #include "DGSolverDiffus.hpp"
+#include "DGSolverAdvecDiffus.hpp"
 #include "ExplicitTimeSolver.hpp"
 
 
@@ -57,6 +58,8 @@ void InitSim(const int& argc,char** argv){
         dg_solver_ = new DGSolverAdvec;
     else if(simdata_.eqn_set=="Diffusion")
         dg_solver_ = new DGSolverDiffus;
+    else if(simdata_.eqn_set=="Advection_Diffusion")
+        dg_solver_ = new DGSolverAdvecDiffus;
     else
         _notImplemented("Equation set");
 
@@ -114,6 +117,7 @@ void PostProcess(){
             , L1_nodal_gausspts, L2_nodal_gausspts;
 
     dg_solver_->Compute_vertex_sol();
+
     L1_projsol_ = dg_solver_->L1_error_projected_sol();
     L2_projsol_ = dg_solver_->L2_error_projected_sol();
     L1_aversol_ = dg_solver_->L1_error_average_sol();
