@@ -18,11 +18,15 @@ struct GridData {
 
     double *x_exact_ppts=nullptr;
     double *xi_disc=nullptr;
-    int N_exact_ppts=100;
-    int N_xi_disc_ppts=1;
+    double *X_dump=nullptr; // Equally Spaced mesh nodes for post processing
+    int *x_dump_to_elem=nullptr;
 
     int Nelem=1;
     int Nfaces=2;
+
+    int N_exact_ppts=100;
+    int N_xi_disc_ppts=1;
+    int N_equal_spaced=2*Nelem;
 
     int uniform=1;  // 0: for nonuniform mesh elements
 
@@ -43,6 +47,10 @@ struct GridData {
         Nfaces = Nelem+1;
 
         X = new double[Nfaces];
+
+        N_equal_spaced = simdata_.N_equally_spaced_;
+        X_dump = new double[N_equal_spaced+1];
+        x_dump_to_elem = new int[N_equal_spaced+1];
 
         if(uniform==1) dx = (xf-x0)/Nelem;
 
@@ -97,6 +105,29 @@ struct GridData {
                 xi_disc[i] = dxi_ * (i) + -1.0 ;
         }
 
+        // Globally Equally spaced points for plottings:
+
+        double dx_eq_ = (xf-x0)/(N_equal_spaced);
+        int eID_=0;
+
+        for(i=0; i<N_equal_spaced+1; i++){
+            X_dump[i] = dx_eq_ *(i) + x0;
+
+            if(X_dump[i]>X[eID_+1]){
+                eID_++;
+                x_dump_to_elem[i] = eID_;
+
+            }else if(X_dump[i]==X[eID_+1]){
+                eID_++;
+                x_dump_to_elem[i] = -100;
+
+            }else{
+                x_dump_to_elem[i] = eID_;
+            }
+        }
+
+        x_dump_to_elem[N_equal_spaced]=Nelem-1;
+
         // New sampling for plotting a smooth exact solution
 
         double dxx_ = (xf - x0) / (N_exact_ppts-1);
@@ -112,6 +143,8 @@ struct GridData {
     void Reset_(){
 
         emptyarray(X);
+        emptyarray(X_dump);
+        emptyarray(x_dump_to_elem);
         emptyarray(h_j);
         emptyarray(Xc);
         emptyarray(x_exact_ppts);

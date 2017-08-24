@@ -28,6 +28,7 @@ public:
 //   virtual void UpdateSolution(double **Qn_)=0;
 
    virtual void Compute_vertex_sol()=0;
+   virtual void Compute_cont_sol()=0;
    virtual double ComputePolyError()=0;
    virtual double L1_error_projected_sol()=0;
    virtual double L2_error_projected_sol()=0;
@@ -99,6 +100,7 @@ public:
                     ,double& L1_aver_sol_,double& L2_aver_sol_
                     ,double& L1_nodal_gausspts, double& L2_nodal_gausspts)=0;
    virtual void dump_discont_sol()=0;
+   virtual void dump_timeaccurate_sol()=0;
 
 protected:
 

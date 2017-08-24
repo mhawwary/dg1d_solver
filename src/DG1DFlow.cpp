@@ -50,7 +50,6 @@ void InitSim(const int& argc,char** argv){
     }
 
     meshdata_.set_grid_param(simdata_);
-
     meshdata_.generate_grid();
 
     // Allocating Solvers:
@@ -84,6 +83,8 @@ void RunSim(){
 
     time_solver_->ComputeInitialResid(dg_solver_->GetNumSolution());
 
+    dg_solver_->dump_timeaccurate_sol();
+
     time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
 
     time_solver_->space_solver->UpdatePhyTime(dt_);
@@ -97,6 +98,11 @@ void RunSim(){
         time_solver_->space_solver->UpdatePhyTime(dt_);
 
         gtime=dg_solver_->GetPhyTime();
+
+        if(time_solver_->GetIter()%100==0){
+            //printf("\nIter No: %d, printing time data",time_solver_->GetIter());
+            dg_solver_->dump_timeaccurate_sol();
+        }
     }
 
     // Last iteration:
@@ -106,6 +112,8 @@ void RunSim(){
     time_solver_->space_solver->UpdatePhyTime(dg_solver_->GetLastTimeStep());
 
     gtime=dg_solver_->GetPhyTime();
+
+    dg_solver_->dump_timeaccurate_sol();
 
     return;
 }

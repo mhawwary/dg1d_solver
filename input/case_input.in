@@ -1,12 +1,13 @@
 [Case]
  title = Gaussian   # sine wave
- num_elements = 50
+ num_elements = 100
  x_begin =  0.0
  x_end   =  6.283185307
  uniform_grid = 1
  refinement_level = 0
  Npoints_plot = 10  # no. of equally spaced points per element for plotting discontinuous sol
  N_exact_plot_pts = 150
+ N_equally_spaced_pts = 200  # no. of equally spaced points (globally over the entire domain) for plotting discontinuous sol
 
 [Simulation] 
  print_freq = 1000
@@ -16,7 +17,7 @@
 
 [wave]
  wave_speed = 1.0;
- wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave, 2: InViscid Burgers
+ wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave, 2: InViscid Burgers 3: Decaying Turbulence
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
  wave_frequency = 2.0  # wave_frequnecy x Pi 
 
@@ -35,10 +36,10 @@
  
  CFL_no = 0.05
 
- dt = 5e-5
+ dt = 1e-4
  initial_time = 0.0
 
- final_time = 2.5
+ final_time = 1.0
  
  no_of_periods = 1.0  #  period = (xf-x0) / wave_speed
  

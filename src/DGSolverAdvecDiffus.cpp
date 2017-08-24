@@ -549,6 +549,14 @@ void DGSolverAdvecDiffus::Compute_vertex_sol(){
     return;
 }
 
+void DGSolverAdvecDiffus::Compute_cont_sol(){
+
+
+
+
+    return;
+}
+
 void DGSolverAdvecDiffus::Compute_exact_vertex_sol(){
 
     register int j;
@@ -1407,7 +1415,91 @@ void DGSolverAdvecDiffus::dump_discont_sol(){
     return;
 }
 
+void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
 
+    register int j; int k; int eID_=0;
+
+    double xx=0.0,xxi_=0.0,qq=0.0;
+
+    GaussQuad quad_;
+
+    quad_.setup_quadrature(5);
+
+    char *fname=nullptr;
+    fname = new char[200];
+
+    // Dump time accurate continuous equally spaced solution data:
+    sprintf(fname,"%stime_data/u_cont_N%d_CFL%1.3e_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
+            ,simdata_->case_postproc_dir
+            ,grid_->Nelem
+            ,CFL
+            ,simdata_->upwind_param_
+            ,e_penalty
+            ,phy_time);
+
+    FILE* sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->N_equal_spaced+1; j++){
+
+        qq=0.0;
+
+        eID_ = grid_->x_dump_to_elem[j];
+
+        if(eID_>=0){
+            xxi_ = 2.0 * (grid_->X_dump[j] - grid_->Xc[eID_])
+                    / grid_->h_j[eID_];
+            qq = evalSolution(&Qn[eID_][0],xxi_);
+        }else{
+            eID_=grid_->x_dump_to_elem[j-1];
+            xxi_ = 2 * (grid_->X_dump[j] - grid_->Xc[eID_])
+                    / grid_->h_j[eID_];
+            qq = evalSolution(&Qn[eID_][0],xxi_);
+
+            eID_=grid_->x_dump_to_elem[j+1];
+            xxi_ = 2 * (grid_->X_dump[j] - grid_->Xc[eID_])
+                    / grid_->h_j[eID_];
+            qq += evalSolution(&Qn[eID_][0],xxi_);
+            qq = 0.5*qq;
+        }
+
+        fprintf(sol_out,"%2.10e %2.10e\n",grid_->X_dump[j],qq);
+    }
+
+    fclose(sol_out);
+    emptyarray(fname);
+
+    // Dump time accurate Discontinuous data:
+    fname = new char[200];
+    sprintf(fname,"%stime_data/u_disc_N%d_CFL%1.3e_Beta%1.2f_Eps%1.3f_%1.3ft.dat"
+            ,simdata_->case_postproc_dir
+            ,grid_->Nelem
+            ,CFL
+            ,simdata_->upwind_param_
+            ,e_penalty
+            ,phy_time);
+
+    sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->Nelem; j++){
+
+        for(k=0; k<grid_->N_xi_disc_ppts; k++) {
+
+            qq = evalSolution(&Qn[j][0],grid_->xi_disc[k]);
+
+            xx = ( 0.5 * grid_->h_j[j] * grid_->xi_disc[k])
+                    + grid_->Xc[j];
+
+            fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+        }
+    }
+
+    fclose(sol_out);
+    emptyarray(fname);
+
+
+
+    return;
+}
 
 
 

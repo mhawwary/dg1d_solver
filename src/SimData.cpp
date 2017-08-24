@@ -11,6 +11,7 @@ void SimData::Parse(const std::string &fname){
     refine_level_ = gp_input("Case/refinement_level",0);
     Npplot = gp_input("Case/Npoints_plot",2);
     N_exact_plot_pts = gp_input("Case/N_exact_plot_pts",100);
+    N_equally_spaced_ = gp_input("Case/N_equally_spaced_pts",100);
 
     print_freq_=gp_input("Simulation/print_freq",0);
     restart_iter_ = gp_input("Simulation/restart_iter",0);
@@ -58,6 +59,9 @@ void SimData::setup_output_directory(){
 
     if(wave_form_==0) sprintf(case_title,"sine_wave");
     else if(wave_form_==1) sprintf(case_title,"Gaussian_wave");
+    else if(wave_form_==2) sprintf(case_title,"InViscid_Burgers");
+    else if(wave_form_==3) sprintf(case_title,"Decaying_Burgers_turb");
+    else FatalError_exit("Wrong Wave form and not implemented");
 
     if(Sim_mode=="normal")
         sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
@@ -103,6 +107,7 @@ void SimData::setup_output_directory(){
 
     mkdir("./aver",0777);
     mkdir("./nodal",0777);
+    mkdir("./time_data",0777);
     mkdir("./errors",0777);
 
     chdir(current_working_dir);
@@ -131,6 +136,8 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"aver:%s\n",(char*)"aver/u_aver");
     fprintf(python_out,"cont_exact:%s\n",(char*)"nodal/u_cont_exact");
     fprintf(python_out,"cont_num:%s\n",(char*)"nodal/u_cont");
+    fprintf(python_out,"cont_unsteady_num:%s\n",(char*)"time_data/u_cont");
+    fprintf(python_out,"disc_unsteady_num:%s\n",(char*)"time_data/u_disc");
     fprintf(python_out,"discont:%s\n",(char*)"nodal/u_disc");
     fprintf(python_out,"discont_exact:%s\n",(char*)"nodal/u_disc_exact");
     fprintf(python_out,"DGp:%d\n",poly_order_);
@@ -158,6 +165,11 @@ void SimData::dump_python_inputfile(){
     }else{
         FatalError_exit("Eqn_set not defined in python_dump");
     }
+
+    if(wave_form_==0) fprintf(python_out,"wave_form:%s\n",(char*)"sine_wave");
+    else if(wave_form_==1) fprintf(python_out,"wave_form:%s\n",(char*)"Gaussian_wave");
+    else if(wave_form_==2) fprintf(python_out,"wave_form:%s\n",(char*)"InViscid_Burgers");
+    else if(wave_form_==3) fprintf(python_out,"wave_form:%s\n",(char*)"Decaying_Burgers_turb");
 
     fprintf(python_out,"T:%1.3f\n",Nperiods);
 

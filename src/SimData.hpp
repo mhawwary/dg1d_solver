@@ -38,6 +38,7 @@ struct SimData {
     int Nelem_ = 1;  // no. of elements in the grid
     int Npplot = 1;  // no. of equally spaced points per element for plotting
     int N_exact_plot_pts=100;
+    int N_equally_spaced_ = 100; // no. of global equally spaced points for plotting
 
     double x0_=0.0;
     double xf_=1.0;
