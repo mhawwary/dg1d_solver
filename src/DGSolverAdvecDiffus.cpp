@@ -84,6 +84,7 @@ void DGSolverAdvecDiffus::Reset_solver(){
     emptyarray(grid_->Nelem,Qex_proj);
 
     grid_->Reset_();
+    simdata_->Reset();
 
 
     return;
@@ -209,7 +210,11 @@ double DGSolverAdvecDiffus::initSol_legendre_proj(const int &eID,
     for (i=0; i<quad_.Nq; i++){
 
         xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
-        Qinit_= eval_init_sol(xx);
+        if(simdata_->wave_form_==3){ // Decaying Burger's Turbulence, Energy model of OmerSan2016
+            Qinit_ = eval_init_u_decay_burger_turb(xx);
+        }else{
+            Qinit_= eval_init_sol(xx);
+        }
 
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
 
@@ -330,6 +335,7 @@ void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
     // Element loop to calculate and update the residual:
     //----------------------------------------------------
 
+    //#pragma omp parallel for
     for(j=0; j<grid_->Nelem; j++){
          UpdateResidOneCell(j, &Qn_[j][0], &Resid_[j][0]);
     }
@@ -606,17 +612,34 @@ double DGSolverAdvecDiffus::eval_init_sol(const double& xx){
     double L = fabs(wave_length_);
 
     if(simdata_->wave_form_==0){
-
         return sin( simdata_->wave_freq_*PI*xx / L);
-
-        //return ( -2. * tanh(9*xx) );
-
     }else if(simdata_->wave_form_==1){
-
         return exp(-simdata_->Gaussian_exponent_*pow(xx,2));
     }else{
         _notImplemented("Wave form is not implemented");
     }
+}
+
+double DGSolverAdvecDiffus::eval_init_u_decay_burger_turb(const double& xx_){
+
+    register int i;
+    double u_=0.;
+
+    double dk_,k_max_, E_, k_, epsi_;
+
+    k_max_ = simdata_->max_wave_no_;
+    dk_ = 1.0;
+    int n_pts_=k_max_/dk_;
+
+    for(i=0; i<n_pts_; i++){
+        k_ = simdata_->k_wave_no_[i];
+        epsi_= simdata_->epsi_phase_[i];
+        E_= simdata_->energy_spect_[i];
+
+        u_ += sqrt(2.*E_ ) * cos (k_ * xx_ + 2.*PI*epsi_) ;
+    }
+
+    return u_;
 }
 
 double DGSolverAdvecDiffus::eval_exact_sol(double &xx){
@@ -637,7 +660,9 @@ double DGSolverAdvecDiffus::eval_exact_sol(double &xx){
         else
             return (eval_init_sol(x0)+ eval_init_sol(x1));
     }else{
-        _notImplemented("Wave form is not implemented");
+        //_notImplemented("Wave form is not implemented");
+
+        return 0;
     }
 }
 
@@ -843,7 +868,7 @@ double DGSolverAdvecDiffus::L1_error_nodal_gausspts_proj(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L1_error=0.0,II=0.0,q_ex,q_n;
 
@@ -871,7 +896,7 @@ double DGSolverAdvecDiffus::L2_error_nodal_gausspts_proj(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L2_error=0.0,II=0.0,q_ex,q_n;
 
@@ -899,7 +924,7 @@ double DGSolverAdvecDiffus::L1_error_nodal_gausspts(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L1_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
 
@@ -927,7 +952,7 @@ double DGSolverAdvecDiffus::L2_error_nodal_gausspts(){
 
     GaussQuad quad_;
 
-    quad_.setup_quadrature(Ndof);
+    quad_.setup_quadrature(Nquad_);
 
     double L2_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
 
@@ -1426,7 +1451,7 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
     quad_.setup_quadrature(5);
 
     char *fname=nullptr;
-    fname = new char[200];
+    fname = new char[250];
 
     // Dump time accurate continuous equally spaced solution data:
     sprintf(fname,"%stime_data/u_cont_N%d_CFL%1.3e_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
@@ -1469,7 +1494,7 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
     emptyarray(fname);
 
     // Dump time accurate Discontinuous data:
-    fname = new char[200];
+    fname = new char[250];
     sprintf(fname,"%stime_data/u_disc_N%d_CFL%1.3e_Beta%1.2f_Eps%1.3f_%1.3ft.dat"
             ,simdata_->case_postproc_dir
             ,grid_->Nelem
@@ -1478,7 +1503,7 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
             ,e_penalty
             ,phy_time);
 
-    sol_out=fopen(fname,"w");
+    FILE* sol_out1=fopen(fname,"w");
 
     for(j=0; j<grid_->Nelem; j++){
 
@@ -1493,7 +1518,7 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
         }
     }
 
-    fclose(sol_out);
+    fclose(sol_out1);
     emptyarray(fname);
 
 

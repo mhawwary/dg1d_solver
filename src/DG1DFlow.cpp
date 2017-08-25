@@ -91,6 +91,10 @@ void RunSim(){
 
     gtime=dg_solver_->GetPhyTime();
 
+    int n_iter_print = (int) ceil( 0.01 / dt_) ;
+
+    printf("\nNIter to print unsteady data: %d",n_iter_print);
+
     while ( gtime < simdata_.t_end_- 1.05*dt_ ){
 
         time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
@@ -99,21 +103,24 @@ void RunSim(){
 
         gtime=dg_solver_->GetPhyTime();
 
-        if(time_solver_->GetIter()%100==0){
-            //printf("\nIter No: %d, printing time data",time_solver_->GetIter());
+        if(time_solver_->GetIter()%n_iter_print==0){
+            printf("\nIter No:%d, time: %f",time_solver_->GetIter(),gtime);
             dg_solver_->dump_timeaccurate_sol();
         }
     }
 
-    // Last iteration:
+    if(dg_solver_->GetLastTimeStep()>=1e-10){
 
-    time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
+        // Last iteration:
 
-    time_solver_->space_solver->UpdatePhyTime(dg_solver_->GetLastTimeStep());
+        time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
 
-    gtime=dg_solver_->GetPhyTime();
+        time_solver_->space_solver->UpdatePhyTime(dg_solver_->GetLastTimeStep());
 
-    dg_solver_->dump_timeaccurate_sol();
+        gtime=dg_solver_->GetPhyTime();
+
+        dg_solver_->dump_timeaccurate_sol();
+    }
 
     return;
 }

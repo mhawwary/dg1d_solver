@@ -96,6 +96,8 @@ protected:
 
    double eval_burgers_inviscidFlux(const double& xi_pt, const double *q_);
 
+   double eval_init_u_decay_burger_turb(const double& xx_);
+
    void Reset_solver();
 
 protected:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <random>
 #include <fstream>
 #include <cmath>
 #include <new>
@@ -22,6 +23,10 @@
 #include<cstring>
 
 #include <stdio.h>
+
+#include <time.h>
+
+#include <omp.h>
 
 #include"../include/error.h"
 

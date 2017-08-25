@@ -43,6 +43,34 @@ void SimData::Parse(const std::string &fname){
     RK_order_=gp_input("time_solver/explicit/RK_order",1);
     Nperiods = gp_input("time_solver/no_of_periods",1.0);
 
+    if(wave_form_==3){  // Burger's Turbulence
+        turb_prob_type_
+                = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_Adams");
+        max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024);
+        max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10);
+
+        int n_pts_=max_wave_no_;
+        double A_=0.;
+
+        k_wave_no_ = new int[n_pts_];
+        epsi_phase_ = new double[n_pts_];
+        energy_spect_ = new double[n_pts_];
+
+        srand(time(NULL));
+        //    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+        //    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+        //    std::uniform_real_distribution<> dis(0, 1);
+
+        for(register int i=0; i<n_pts_; i++){
+            //epsi = dis(gen);
+            epsi_phase_[i] = 1.*((double) rand()/(RAND_MAX)) ;
+            k_wave_no_[i] = i+1;
+
+            A_ = 2. * pow(max_energy_wave_no_,-5) / (3. * sqrt(PI) ) ;
+            energy_spect_[i] = A_ * pow(k_wave_no_[i],4)
+                    * exp(-pow((k_wave_no_[i]/max_energy_wave_no_),2)) ;
+        }
+    }
 }
 
 void SimData::setup_output_directory(){
@@ -144,6 +172,7 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"RK:%d\n",RK_order_);
     fprintf(python_out,"Nelem:%d\n",Nelem_);
     fprintf(python_out,"dt:%1.3e\n",dt_);
+    fprintf(python_out,"t_end:%1.3e\n",t_end_);
 
     if(eqn_set=="Advection" || eqn_set=="Diffusion" )
         fprintf(python_out,"CFL:%1.3f\n",CFL_);
@@ -190,3 +219,11 @@ void SimData::dump_python_inputfile(){
     return;
 }
 
+void SimData::Reset(){
+
+    emptypointer(k_wave_no_);
+    emptypointer(epsi_phase_);
+    emptypointer(energy_spect_);
+
+    return;
+}

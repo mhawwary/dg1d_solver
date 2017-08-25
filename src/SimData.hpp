@@ -3,6 +3,7 @@
 
 #include"../include/getpot.h"
 #include"general_tools.h"
+#include"global_var.h"
 
 
 struct SimData {
@@ -49,10 +50,21 @@ struct SimData {
 
     double upwind_param_=1.0;
 
+    // Burger's Tubulence Parameters:
+    std::string turb_prob_type_;
+    int max_wave_no_ = 1024;
+    int max_energy_wave_no_ = 10;
+    int* k_wave_no_ =nullptr;
+    double* epsi_phase_=nullptr;
+    double* energy_spect_=nullptr;
+
+
     void Parse(const std::string &fname);
 
     void setup_output_directory();
     void dump_python_inputfile();
+
+    void Reset();
 };
 
 
