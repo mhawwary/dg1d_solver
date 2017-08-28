@@ -274,7 +274,8 @@ double DGSolverAdvecDiffus::ExactSol_legendre_proj(const int &eID,
 
     for (i=0; i<quad_.Nq; i++){
 
-        xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j] - exact_sol_shift;
+        xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
+                + grid_->Xc[j] - exact_sol_shift;
 
         if(simdata_->wave_form_==0){
 
@@ -1359,23 +1360,77 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
 
     register int j; int k; int eID_=0;
 
-    double xx=0.0,xxi_=0.0,qq=0.0;
+    double xx=0.0,qq=0.0;
 
     char *fname=nullptr;
     fname = new char[250];
 
     // Dump time accurate continuous equally spaced solution data:
-    sprintf(fname,"%stime_data/u_cont_N%d_CFL%1.3e_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
+    sprintf(fname,"%stime_data/u_cont_N%d_dt%1.3e_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
             ,simdata_->case_postproc_dir
             ,grid_->Nelem
-            ,CFL
+            ,time_step
             ,simdata_->upwind_param_
             ,e_penalty
             ,phy_time);
 
     FILE* sol_out=fopen(fname,"w");
 
-    for(j=0; j<grid_->N_equal_spaced+1; j++){
+    // Dump continuous data on uniform points:
+    //-------------------------------------------
+    int count_=0; //continuous points counter
+
+    qq=0.0; double qq_end_=0.0;
+    // For element zero:
+    k = simdata_->N_uniform_pts_per_elem_-1;
+    j= grid_->Nelem-1;
+    qq = evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+
+    k=0; j=0;
+    xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+            + grid_->Xc[j];
+    qq += evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+
+    qq = qq/2.; qq_end_=qq;
+    fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+    count_++;
+
+    for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
+        xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+                + grid_->Xc[j];
+        qq = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+        fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+        count_++;
+    }
+
+    qq=0.0;
+    for(j=1; j<grid_->Nelem; j++){
+
+        k=0;
+        xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+                + grid_->Xc[j];
+        qq = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+
+        k = simdata_->N_uniform_pts_per_elem_-1;
+        qq += evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+
+        qq = qq/2.;
+        fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+        count_++;
+        qq=0.0;
+
+        for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
+            xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+                    + grid_->Xc[j];
+            qq = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+            fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+            count_++;
+        }
+    }
+
+    fprintf(sol_out,"%2.10e %2.10e\n",grid_->xf,qq_end_);
+
+    /*for(j=0; j<grid_->N_equal_spaced+1; j++){
 
         qq=0.0;
 
@@ -1414,7 +1469,7 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
         }
 
         fprintf(sol_out,"%2.10e %2.10e\n",grid_->X_dump[j],qq);
-    }
+    }*/
 
     fclose(sol_out);
     emptyarray(fname);
@@ -1440,7 +1495,7 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
             xx = ( 0.5 * grid_->h_j[j] * grid_->xi_disc[k])
                     + grid_->Xc[j];
 
-            fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+            fprintf(sol_out1,"%2.10e %2.10e\n",xx,qq);
         }
     }
 

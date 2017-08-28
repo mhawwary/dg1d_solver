@@ -94,7 +94,7 @@ void RunSim(){
 
     gtime=dg_solver_->GetPhyTime();
 
-    int n_iter_print = (int) ceil( 0.01 / dt_) ;
+    int n_iter_print = (int) round( 0.05 / dt_) ;
 
     printf("\nNIter to print unsteady data: %d",n_iter_print);
 

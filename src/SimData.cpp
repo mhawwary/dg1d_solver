@@ -11,7 +11,7 @@ void SimData::Parse(const std::string &fname){
     refine_level_ = gp_input("Case/refinement_level",0);
     Npplot = gp_input("Case/Npoints_plot",2);
     N_exact_plot_pts = gp_input("Case/N_exact_plot_pts",100);
-    N_equally_spaced_ = gp_input("Case/N_equally_spaced_pts",100);
+    N_uniform_pts_per_elem_ = gp_input("Case/N_uniform_pts_per_elem",2);
 
     print_freq_=gp_input("Simulation/print_freq",0);
     restart_iter_ = gp_input("Simulation/restart_iter",0);
