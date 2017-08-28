@@ -47,6 +47,9 @@ void InitSim(const int& argc,char** argv){
 
         simdata_.Parse(argv[argc-1]);
         simdata_.setup_output_directory();
+
+        if(simdata_.wave_form_==3) //Burgers Turbulence
+            simdata_.prepare_dump_burgers_turb_param();
     }
 
     meshdata_.set_grid_param(simdata_);
@@ -109,18 +112,18 @@ void RunSim(){
         }
     }
 
-    if(dg_solver_->GetLastTimeStep()>=1e-10){
+    // Last iteration:
 
-        // Last iteration:
+    time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
 
-        time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
-
+    if(dg_solver_->GetLastTimeStep()>=1e-10)
         time_solver_->space_solver->UpdatePhyTime(dg_solver_->GetLastTimeStep());
+    else
+        time_solver_->space_solver->UpdatePhyTime(dt_);
 
-        gtime=dg_solver_->GetPhyTime();
+    gtime=dg_solver_->GetPhyTime();
 
-        dg_solver_->dump_timeaccurate_sol();
-    }
+    dg_solver_->dump_timeaccurate_sol();
 
     return;
 }

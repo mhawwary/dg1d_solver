@@ -144,8 +144,6 @@ protected:
    GridData *grid_=nullptr;
    SimData *simdata_=nullptr;
 
-   double *xi=nullptr;
-
    int Ndof = 1;
 
    double **Qn=nullptr;      // Nelem * Ndof long
@@ -167,6 +165,8 @@ protected:
    double wave_length_=0.;
 
    int Nquad_=5; // Gauss Quadrature rules
+
+   GaussQuad quad_;
 
 };
 

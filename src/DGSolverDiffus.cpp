@@ -71,8 +71,6 @@ void DGSolverDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
 void DGSolverDiffus::Reset_solver(){
 
-    emptyarray(xi);
-
     emptyarray(grid_->Nelem,Qn);
     emptyarray(Q_exact);
     emptyarray(flux_com);

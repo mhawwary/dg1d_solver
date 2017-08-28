@@ -15,6 +15,13 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     Ndof = simdata_->poly_order_+1;
 
+    if(simdata_->wave_form_==3 || simdata_->wave_form_==2)  // burgers
+        Nquad_ = (int) round((pow(Ndof-1,2)+1)/2);
+    else if(simdata_->wave_form_==0 || simdata_->wave_form_==1)  // wave/heat equation
+        Nquad_ = (int) round(Ndof/2) ;
+
+    quad_.setup_quadrature(Nquad_);
+
     Qn    =  new double* [grid_->Nelem];
 
     Qex_proj = new double*[grid_->Nelem];
@@ -66,14 +73,13 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
     cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
     cout << "Penalty parameter : "<< e_penalty << endl;
+    cout << "Gauss Quad order  : "<< Nquad_ << endl;
     cout <<"===============================================\n";
 
     return;
 }
 
 void DGSolverAdvecDiffus::Reset_solver(){
-
-    emptyarray(xi);
 
     emptyarray(grid_->Nelem,Qn);
     emptyarray(Q_exact);
@@ -86,6 +92,7 @@ void DGSolverAdvecDiffus::Reset_solver(){
     grid_->Reset_();
     simdata_->Reset();
 
+    quad_.Reset_quad();
 
     return;
 }
@@ -104,7 +111,7 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
     radius_advec_ =  simdata_->a_wave_ / dx  ;
     radius_diffus_ = simdata_->thermal_diffus / dx2 ;
 
-    if(simdata_->calc_dt_flag==1){
+    if(simdata_->calc_dt_flag==1){   // use CFL as input
 
         CFL = simdata_->CFL_;
 
@@ -112,7 +119,7 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
         last_time_step = time_step;
         simdata_->dt_ = time_step;
 
-    }else if(simdata_->calc_dt_flag==0){
+    }else if(simdata_->calc_dt_flag==0){   // use dt as input
 
         time_step = simdata_->dt_;
         last_time_step = time_step;
@@ -128,7 +135,7 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
     // Determining end of simulation parameters:
     //----------------------------------------------------
 
-    if(simdata_->end_of_sim_flag_==0){
+    if(simdata_->end_of_sim_flag_==0){  // use Nperiods as stopping criteria
 
         simdata_->t_end_ = simdata_->Nperiods * T_period;
 
@@ -143,7 +150,7 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
             last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
         }
 
-    }else if(simdata_->end_of_sim_flag_==1){
+    }else if(simdata_->end_of_sim_flag_==1){ // use final time as stopping criteria
 
         simdata_->Nperiods = simdata_->t_end_/T_period;
         simdata_->maxIter_ = (int) ceil(simdata_->t_end_/time_step);
@@ -157,7 +164,12 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
             last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
         }
 
-    }else if(simdata_->end_of_sim_flag_==2){
+        if(last_time_step<=1e-10){
+            last_time_step=time_step;
+            simdata_->maxIter_--;
+        }
+
+    }else if(simdata_->end_of_sim_flag_==2){  // use Max Iter as stopping criteria
 
         simdata_->t_end_ = simdata_->maxIter_ * time_step;
         simdata_->Nperiods = simdata_->t_end_/T_period;
@@ -174,10 +186,6 @@ void DGSolverAdvecDiffus::InitSol(){
     register int j;
 
     int k=0;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
 
     for(j=0; j<grid_->Nelem; j++){
 
@@ -331,14 +339,18 @@ void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
                                           , simdata_->upwind_param_);
     }
 
-
     // Element loop to calculate and update the residual:
     //----------------------------------------------------
+    //clock_t t_start=clock();
 
-    //#pragma omp parallel for
     for(j=0; j<grid_->Nelem; j++){
-         UpdateResidOneCell(j, &Qn_[j][0], &Resid_[j][0]);
-    }
+        UpdateResidOneCell(j, &Qn_[j][0], &Resid_[j][0]);
+     }
+
+    /*clock_t t_end=clock();
+    double t_elapsed = 1000.0 * ( t_end - t_start) / CLOCKS_PER_SEC;
+    printf("\nElapsed Time_elem_loop: %f", t_elapsed );
+    cin.get();*/
 
     return;
 }
@@ -473,10 +485,6 @@ double DGSolverAdvecDiffus::eval_localInviscidFlux_proj(const double *q_, const 
 
     int k=basis_k_;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     int i;
 
     double II=0.0, dL_k=0.0;
@@ -596,10 +604,6 @@ void DGSolverAdvecDiffus::Compute_projected_exact_sol(){
 
     register int j; int k=0;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     for(j=0; j<grid_->Nelem; j++)
         for(k=0; k<Ndof; k++)
             Qex_proj[j][k] = ExactSol_legendre_proj(j,k,quad_);
@@ -696,32 +700,6 @@ double DGSolverAdvecDiffus::eval_basis_poly(const double& xi_, const int& basis_
         break;
     }
 
-//    if(basis_k_==0) {
-//        return 1.0;
-
-//    }else if(basis_k_==1) {
-//        return xi_;
-
-//    }else if(basis_k_==2) {
-//        return 0.5 * (3.0 * xi_*xi_ -1.0);
-
-//    }else if(basis_k_==3) {
-//        return 0.5 * (5.0 * pow(xi_,3) - 3.0 * xi_);
-
-//    }else if(basis_k_==4) {
-//        return  (35 * pow(xi_,4) - 30 * xi_*xi_ + 3 ) /8. ;
-
-//    }else if(basis_k_==5) {
-//        return  (63.0 * pow(xi_,5) - 70.0 * pow(xi_,3) + 15.0 * xi_ ) /8. ;
-
-//    }else {
-//        char *ss=nullptr; ss= new char[100];
-//        sprintf(ss,"polynomial order of: %d",basis_k_);
-//        _notImplemented(ss);
-
-//        return 0.0;
-//    }
-
     return Lk_;
 }
 
@@ -750,32 +728,6 @@ double DGSolverAdvecDiffus::eval_basis_poly_derivative(const double& xi_
         _notImplemented(ss);
         break;
     }
-
-//    if(basis_k_==0) {
-//        return 0.0;
-
-//    }else if(basis_k_==1) {
-//        return 1.0;
-
-//    }else if(basis_k_==2) {
-//        return (3.0 * xi_);
-
-//    }else if(basis_k_==3) {
-//        return ( 0.5 * (15.0 * pow(xi_,2) - 3.0 ) );
-
-//    }else if(basis_k_==4) {
-//        return ( 0.5 * (35.0 * pow(xi_,3) - 15.0 * xi_ ) ) ;
-
-//    }else if(basis_k_==5) {
-//        return  (315.0 * pow(xi_,4) - 210.0 * pow(xi_,2) + 15.0  ) / 8. ;
-
-//    }else {
-//        char *ss=nullptr; ss= new char[100];
-//        sprintf(ss,"polynomial order of: %d",basis_k_);
-//        _notImplemented(ss);
-
-//        return 1000.0;
-//    }
 
     return dLk_;
 }
@@ -807,10 +759,6 @@ double DGSolverAdvecDiffus::eval_local_du_fluxproj(const int eID, const double *
 
     int k=basis_k_;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     int i;
 
     double II=0.0, dL_k=0.0;
@@ -833,10 +781,6 @@ double DGSolverAdvecDiffus::eval_local_du_fluxproj(const int eID, const double *
 double DGSolverAdvecDiffus::ComputePolyError(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
 
     double xx=0.0,L2_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
@@ -866,10 +810,6 @@ double DGSolverAdvecDiffus::L1_error_nodal_gausspts_proj(){
 
     register int j; int i;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Nquad_);
-
     double L1_error=0.0,II=0.0,q_ex,q_n;
 
     II=0.0;
@@ -893,10 +833,6 @@ double DGSolverAdvecDiffus::L1_error_nodal_gausspts_proj(){
 double DGSolverAdvecDiffus::L2_error_nodal_gausspts_proj(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Nquad_);
 
     double L2_error=0.0,II=0.0,q_ex,q_n;
 
@@ -922,10 +858,6 @@ double DGSolverAdvecDiffus::L1_error_nodal_gausspts(){
 
     register int j; int i;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Nquad_);
-
     double L1_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
 
     II=0.0;
@@ -950,10 +882,6 @@ double DGSolverAdvecDiffus::L2_error_nodal_gausspts(){
 
     register int j; int i;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Nquad_);
-
     double L2_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
 
     II=0.0;
@@ -970,17 +898,12 @@ double DGSolverAdvecDiffus::L2_error_nodal_gausspts(){
     }
 
     L2_error = sqrt(II/(Ndof*grid_->Nelem));
-
     return L2_error;
 }
 
 double DGSolverAdvecDiffus::L1_error_projected_sol(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
 
     double L1_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
@@ -1007,10 +930,6 @@ double DGSolverAdvecDiffus::L1_error_projected_sol(){
 double DGSolverAdvecDiffus::L2_error_projected_sol(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
 
     double L2_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
@@ -1145,10 +1064,6 @@ void DGSolverAdvecDiffus::print_average_sol(){
     char *fname=nullptr;
     fname = new char[150];
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     if(simdata_->Sim_mode=="error_analysis_dt"){
 
         sprintf(fname,"%saver/u_aver_N%d_dt%1.3e_Eps%1.2f_%1.3fT.dat"
@@ -1186,6 +1101,7 @@ void DGSolverAdvecDiffus::print_average_sol(){
          fclose(sol_out);
          emptyarray(fname);
     }
+
 
     return;
 }
@@ -1349,10 +1265,6 @@ void DGSolverAdvecDiffus::dump_discont_sol(){
 
     double xx=0.0,qq=0.0;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     char *fname=nullptr;
     fname = new char[150];
 
@@ -1446,10 +1358,6 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
 
     double xx=0.0,xxi_=0.0,qq=0.0;
 
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     char *fname=nullptr;
     fname = new char[250];
 
@@ -1520,8 +1428,6 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
 
     fclose(sol_out1);
     emptyarray(fname);
-
-
 
     return;
 }

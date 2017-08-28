@@ -65,8 +65,6 @@ void DGSolverAdvec::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
 void DGSolverAdvec::Reset_solver(){
 
-    emptyarray(xi);
-
     emptyarray(grid_->Nelem,Qn);
     emptyarray(Q_exact);
     emptyarray(flux_com);

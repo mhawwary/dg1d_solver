@@ -94,7 +94,8 @@ void ExplicitTimeSolver::SolveOneStep(double **qn_){
 
     IterNo++;
 
-    if(IterNo==simdata->maxIter_-1) dt_ = space_solver->GetLastTimeStep();
+    if(IterNo==simdata->maxIter_-1)
+        dt_ = space_solver->GetLastTimeStep();
 
     return;
 }
@@ -176,7 +177,6 @@ void ExplicitTimeSolver::SSPRK33(double **q_){
     int k;
 
     CopyOldSol(q_temp,q_);  // Copying level n solution and saving it
-
 
     // Step1:
     //-----------

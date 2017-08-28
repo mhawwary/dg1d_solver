@@ -48,29 +48,63 @@ void SimData::Parse(const std::string &fname){
                 = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_Adams");
         max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024);
         max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10);
-
-        int n_pts_=max_wave_no_;
-        double A_=0.;
-
-        k_wave_no_ = new int[n_pts_];
-        epsi_phase_ = new double[n_pts_];
-        energy_spect_ = new double[n_pts_];
-
-        srand(time(NULL));
-        //    std::random_device rd;  //Will be used to obtain a seed for the random number engine
-        //    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-        //    std::uniform_real_distribution<> dis(0, 1);
-
-        for(register int i=0; i<n_pts_; i++){
-            //epsi = dis(gen);
-            epsi_phase_[i] = 1.*((double) rand()/(RAND_MAX)) ;
-            k_wave_no_[i] = i+1;
-
-            A_ = 2. * pow(max_energy_wave_no_,-5) / (3. * sqrt(PI) ) ;
-            energy_spect_[i] = A_ * pow(k_wave_no_[i],4)
-                    * exp(-pow((k_wave_no_[i]/max_energy_wave_no_),2)) ;
-        }
     }
+}
+
+void SimData::prepare_dump_burgers_turb_param(){
+
+    register int i;
+    int n_pts_=max_wave_no_;
+    double A_=0.;
+
+    k_wave_no_ = new int[n_pts_];
+    epsi_phase_ = new double[n_pts_];
+    energy_spect_ = new double[n_pts_];
+
+    // Preparing Random number seeds:
+    //-----------------------------------
+    srand(time(NULL));
+    //std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    //std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    //std::uniform_real_distribution<> dis(0, 1);
+
+    // Preparing Dump Spectrum Data:
+    //----------------------------------
+    char *fname=nullptr;
+    fname = new char[150];
+    sprintf(fname,"%sspectrum_data_N%d.dat",case_postproc_dir,n_pts_);
+    FILE* spect_out_ = fopen(fname,"w");
+
+    for(i=0; i<n_pts_; i++){
+        //epsi_phase_[i] = dis(gen);
+        epsi_phase_[i] = 1.*((double) rand()/(RAND_MAX)) ;
+        k_wave_no_[i] = i+1;
+
+        A_ = 2. * pow(max_energy_wave_no_,-5) / (3. * sqrt(PI) ) ;
+        energy_spect_[i] = A_ * pow(k_wave_no_[i],4)
+                * exp(-pow((k_wave_no_[i]/max_energy_wave_no_),2)) ;
+
+        fprintf(spect_out_,"%d %2.10e %2.10e\n",k_wave_no_[i]
+                , epsi_phase_[i], energy_spect_[i]);
+    }
+
+    fclose(spect_out_);
+    emptyarray(fname);
+
+    // Dumping Binary data:
+    fname=new char[150];
+    sprintf(fname,"%sspectrum_binarydata_N%d",case_postproc_dir,n_pts_);
+    FILE*  b_spect_out_=fopen(fname,"wb");
+
+    fwrite(&max_wave_no_,sizeof(int),1,b_spect_out_);
+    fwrite(k_wave_no_,sizeof(int),n_pts_,b_spect_out_);
+    fwrite(epsi_phase_,sizeof(double),n_pts_,b_spect_out_);
+    fwrite(energy_spect_,sizeof(double),n_pts_,b_spect_out_);
+
+    fclose(b_spect_out_);
+    emptyarray(fname);
+
+    return;
 }
 
 void SimData::setup_output_directory(){
@@ -221,9 +255,9 @@ void SimData::dump_python_inputfile(){
 
 void SimData::Reset(){
 
-    emptypointer(k_wave_no_);
-    emptypointer(epsi_phase_);
-    emptypointer(energy_spect_);
+    emptyarray(k_wave_no_);
+    emptyarray(epsi_phase_);
+    emptyarray(energy_spect_);
 
     return;
 }

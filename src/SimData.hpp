@@ -64,6 +64,8 @@ struct SimData {
     void setup_output_directory();
     void dump_python_inputfile();
 
+    void prepare_dump_burgers_turb_param();
+
     void Reset();
 };
 
