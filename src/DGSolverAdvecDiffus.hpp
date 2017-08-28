@@ -106,6 +106,8 @@ protected:
    double r_lift=1.0;
    double e_penalty=1.0;
    double *viscflux_com=nullptr;
+   GaussQuad quad_burg_;
+   int Nquad_burg_=1;
 
 };
 

@@ -15,12 +15,16 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     Ndof = simdata_->poly_order_+1;
 
-    if(simdata_->wave_form_==3 || simdata_->wave_form_==2)  // burgers
-        Nquad_ = (int) round((pow(Ndof-1,2)+1)/2);
-    else if(simdata_->wave_form_==0 || simdata_->wave_form_==1)  // wave/heat equation
-        Nquad_ = (int) round(Ndof/2) ;
+//    if(simdata_->wave_form_==3 || simdata_->wave_form_==2)  // burgers
+//        Nquad_ = (int) round((pow(Ndof-1,2)+1)/2);
+//    else if(simdata_->wave_form_==0 || simdata_->wave_form_==1)  // wave/heat equation
+//        Nquad_ = (int) round(Ndof/2) ;
+
+    Nquad_ = (int) round(Ndof/2)+1 ;
+    Nquad_burg_ = (int) round((pow(Ndof-1,2)+1)/2);
 
     quad_.setup_quadrature(Nquad_);
+    quad_burg_.setup_quadrature(Nquad_burg_);
 
     Qn    =  new double* [grid_->Nelem];
 
@@ -73,7 +77,8 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
     cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
     cout << "Penalty parameter : "<< e_penalty << endl;
-    cout << "Gauss Quad order  : "<< Nquad_ << endl;
+    cout << "Poly GaussQuad order  : "<< Nquad_ << endl;
+    cout << "Flux GaussQuad order  : "<< Nquad_burg_ << endl;
     cout <<"===============================================\n";
 
     return;
@@ -93,6 +98,7 @@ void DGSolverAdvecDiffus::Reset_solver(){
     simdata_->Reset();
 
     quad_.Reset_quad();
+    quad_burg_.Reset_quad();
 
     return;
 }
@@ -466,7 +472,6 @@ double DGSolverAdvecDiffus::Rusanov(const double &Ql, const double &Qr){
     return  ( 0.5 * (Fl+Fr) - 0.5 * Lambda_max * (Qr-Ql) );
 }
 
-
 double DGSolverAdvecDiffus::eval_burgers_inviscidFlux(const double& xi_pt_, const double *q_){
 
     int k;
@@ -480,7 +485,6 @@ double DGSolverAdvecDiffus::eval_burgers_inviscidFlux(const double& xi_pt_, cons
     return ( 0.5 * pow(Q_,2) );
 }
 
-
 double DGSolverAdvecDiffus::eval_localInviscidFlux_proj(const double *q_, const int &basis_k_){
 
     int k=basis_k_;
@@ -493,18 +497,17 @@ double DGSolverAdvecDiffus::eval_localInviscidFlux_proj(const double *q_, const 
 
     II=0.0;
 
-    for (i=0; i<quad_.Nq; i++){
+    for (i=0; i<quad_burg_.Nq; i++){
 
-        dL_k = eval_basis_poly_derivative(quad_.Gaus_pts[i],k);
+        dL_k = eval_basis_poly_derivative(quad_burg_.Gaus_pts[i],k);
 
-        burger_flux_ = eval_burgers_inviscidFlux(quad_.Gaus_pts[i],q_);
+        burger_flux_ = eval_burgers_inviscidFlux(quad_burg_.Gaus_pts[i],q_);
 
-        II += quad_.Gaus_wts[i] * burger_flux_ * dL_k;
+        II += quad_burg_.Gaus_wts[i] * burger_flux_ * dL_k;
     }
 
     return II;
 }
-
 
 double DGSolverAdvecDiffus::eval_local_du(const int eID,
                                         const double *q_
