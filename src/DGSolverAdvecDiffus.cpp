@@ -1378,18 +1378,33 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
 
         eID_ = grid_->x_dump_to_elem[j];
 
-        if(eID_>=0){
+        if(j==0 || j==grid_->N_equal_spaced){
+            int jj=0;
+            eID_ = 0;
+            xxi_ = 2. * (grid_->X_dump[jj] - grid_->Xc[eID_])
+                    / grid_->h_j[eID_];
+            qq = evalSolution(&Qn[eID_][0],xxi_);
+
+            jj= grid_->N_equal_spaced;
+            eID_ = grid_->Nelem-1;
+            xxi_ = 2. * (grid_->X_dump[jj] - grid_->Xc[eID_])
+                    / grid_->h_j[eID_];
+            qq += evalSolution(&Qn[eID_][0],xxi_);
+            qq = 0.5*qq;
+
+        }else if(eID_>=0){
             xxi_ = 2.0 * (grid_->X_dump[j] - grid_->Xc[eID_])
                     / grid_->h_j[eID_];
             qq = evalSolution(&Qn[eID_][0],xxi_);
+
         }else{
             eID_=grid_->x_dump_to_elem[j-1];
-            xxi_ = 2 * (grid_->X_dump[j] - grid_->Xc[eID_])
+            xxi_ = 2. * (grid_->X_dump[j] - grid_->Xc[eID_])
                     / grid_->h_j[eID_];
             qq = evalSolution(&Qn[eID_][0],xxi_);
 
             eID_=grid_->x_dump_to_elem[j+1];
-            xxi_ = 2 * (grid_->X_dump[j] - grid_->Xc[eID_])
+            xxi_ = 2. * (grid_->X_dump[j] - grid_->Xc[eID_])
                     / grid_->h_j[eID_];
             qq += evalSolution(&Qn[eID_][0],xxi_);
             qq = 0.5*qq;

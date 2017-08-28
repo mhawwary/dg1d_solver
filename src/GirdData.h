@@ -127,6 +127,7 @@ struct GridData {
         }
 
         x_dump_to_elem[N_equal_spaced]=Nelem-1;
+        //X_dump[N_equal_spaced]=X[Nelem];
 
         // New sampling for plotting a smooth exact solution
 
