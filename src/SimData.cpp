@@ -17,6 +17,7 @@ void SimData::Parse(const std::string &fname){
     restart_iter_ = gp_input("Simulation/restart_iter",0);
     restart_flag = gp_input("Simulation/restart_flag",0);
     Sim_mode = gp_input("Simulation/mode","normal");
+    case_no_ = gp_input("Simulation/case_no","00");
 
     a_wave_ = gp_input("wave/wave_speed",1.0);
     wave_form_ = gp_input("wave/wave_form",0);
@@ -53,56 +54,77 @@ void SimData::Parse(const std::string &fname){
 
 void SimData::prepare_dump_burgers_turb_param(){
 
-    register int i;
-    int n_pts_=max_wave_no_;
-    double A_=0.;
+    if(restart_flag==0){
+        register int i;
+        int n_pts_=max_wave_no_;
+        double A_=0.;
 
-    k_wave_no_ = new int[n_pts_];
-    epsi_phase_ = new double[n_pts_];
-    energy_spect_ = new double[n_pts_];
+        k_wave_no_ = new int[n_pts_];
+        epsi_phase_ = new double[n_pts_];
+        energy_spect_ = new double[n_pts_];
 
-    // Preparing Random number seeds:
-    //-----------------------------------
-    srand(time(NULL));
-    //std::random_device rd;  //Will be used to obtain a seed for the random number engine
-    //std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-    //std::uniform_real_distribution<> dis(0, 1);
+        // Preparing Random number seeds:
+        //-----------------------------------
+        srand(time(NULL));
+        //std::random_device rd;  //Will be used to obtain a seed for the random number engine
+        //std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+        //std::uniform_real_distribution<> dis(0, 1);
 
-    // Preparing Dump Spectrum Data:
-    //----------------------------------
-    char *fname=nullptr;
-    fname = new char[150];
-    sprintf(fname,"%sspectrum_data_N%d.dat",case_postproc_dir,n_pts_);
-    FILE* spect_out_ = fopen(fname,"w");
+        // Preparing Dump Spectrum Data:
+        //----------------------------------
+        char *fname=nullptr;
+        fname = new char[150];
+        sprintf(fname,"%sspectrum_data_N%d.dat",case_postproc_dir,n_pts_);
+        FILE* spect_out_ = fopen(fname,"w");
 
-    for(i=0; i<n_pts_; i++){
-        //epsi_phase_[i] = dis(gen);
-        epsi_phase_[i] = 1.*((double) rand()/(RAND_MAX)) ;
-        k_wave_no_[i] = i+1;
+        for(i=0; i<n_pts_; i++){
+            //epsi_phase_[i] = dis(gen);
+            epsi_phase_[i] = 1.*((double) rand()/(RAND_MAX)) ;
+            k_wave_no_[i] = i+1;
 
-        A_ = 2. * pow(max_energy_wave_no_,-5) / (3. * sqrt(PI) ) ;
-        energy_spect_[i] = A_ * pow(k_wave_no_[i],4)
-                * exp(-pow((k_wave_no_[i]/max_energy_wave_no_),2)) ;
+            A_ = 2. * pow(max_energy_wave_no_,-5) / (3. * sqrt(PI) ) ;
+            energy_spect_[i] = A_ * pow(k_wave_no_[i],4)
+                    * exp(-pow((k_wave_no_[i]/max_energy_wave_no_),2)) ;
 
-        fprintf(spect_out_,"%d %2.10e %2.10e\n",k_wave_no_[i]
-                , epsi_phase_[i], energy_spect_[i]);
+            fprintf(spect_out_,"%d %2.10e %2.10e\n",k_wave_no_[i]
+                    , epsi_phase_[i], energy_spect_[i]);
+        }
+
+        fclose(spect_out_);
+        emptyarray(fname);
+
+        // Dumping Binary data:
+        fname=new char[150];
+        sprintf(fname,"%sspectrum_binarydata_N%d",case_postproc_dir,n_pts_);
+        FILE*  b_spect_out_=fopen(fname,"wb");
+
+        fwrite(&max_wave_no_,sizeof(int),1,b_spect_out_);
+        fwrite(k_wave_no_,sizeof(int),n_pts_,b_spect_out_);
+        fwrite(epsi_phase_,sizeof(double),n_pts_,b_spect_out_);
+        fwrite(energy_spect_,sizeof(double),n_pts_,b_spect_out_);
+
+        fclose(b_spect_out_);
+        emptyarray(fname);
+
+    }else if(restart_flag==2){
+        // Reading Binary data:
+        char *fname=nullptr;
+        fname=new char[150];
+        sprintf(fname,"%sspectrum_binarydata_N%d",case_postproc_dir,max_wave_no_);
+        FILE*  b_spect_in_=fopen(fname,"rb");
+
+        k_wave_no_ = new int[max_wave_no_];
+        epsi_phase_ = new double[max_wave_no_];
+        energy_spect_ = new double[max_wave_no_];
+
+        fread(&max_wave_no_,sizeof(int),1,b_spect_in_);
+        fread(k_wave_no_,sizeof(int),max_wave_no_,b_spect_in_);
+        fread(epsi_phase_,sizeof(double),max_wave_no_,b_spect_in_);
+        fread(energy_spect_,sizeof(double),max_wave_no_,b_spect_in_);
+
+        fclose(b_spect_in_);
+        emptyarray(fname);
     }
-
-    fclose(spect_out_);
-    emptyarray(fname);
-
-    // Dumping Binary data:
-    fname=new char[150];
-    sprintf(fname,"%sspectrum_binarydata_N%d",case_postproc_dir,n_pts_);
-    FILE*  b_spect_out_=fopen(fname,"wb");
-
-    fwrite(&max_wave_no_,sizeof(int),1,b_spect_out_);
-    fwrite(k_wave_no_,sizeof(int),n_pts_,b_spect_out_);
-    fwrite(epsi_phase_,sizeof(double),n_pts_,b_spect_out_);
-    fwrite(energy_spect_,sizeof(double),n_pts_,b_spect_out_);
-
-    fclose(b_spect_out_);
-    emptyarray(fname);
 
     return;
 }
@@ -160,12 +182,22 @@ void SimData::setup_output_directory(){
 
     mkdir(case_dir,0777);
 
-    case_postproc_dir = new char[200];
+    case_postproc_dir = new char[350];
 
-//    sprintf(case_postproc_dir,"./Results/%s/%s/",case_title,case_dir);
-    sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title,case_dir);
-
-    chdir(case_dir);
+    if(wave_form_==3){  // burgers decay turb
+        chdir(case_dir);
+        char *case_no_t = nullptr;
+        case_no_t = new char[100];
+        sprintf(case_no_t,"case%s",case_no_.c_str());
+        mkdir(case_no_t,0777);
+        chdir(case_no_t);
+        sprintf(case_no_t,"%s/case%s",case_dir,case_no_.c_str());
+        sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title,case_no_t);
+        emptyarray(case_no_t);
+    }else{
+        sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title,case_dir);
+        chdir(case_dir);
+    }
 
     mkdir("./aver",0777);
     mkdir("./nodal",0777);

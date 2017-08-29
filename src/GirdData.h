@@ -51,7 +51,7 @@ struct GridData {
         X = new double[Nfaces];
 
         n_uniform_pts_per_elem = simdata_.N_uniform_pts_per_elem_;
-        N_uniform_pts = (n_uniform_pts_per_elem-1) * Nelem ;
+        N_uniform_pts = (n_uniform_pts_per_elem-1) * Nelem +1 ;
         X_dump = new double[N_uniform_pts];
         xi_uniform = new double[n_uniform_pts_per_elem];
 

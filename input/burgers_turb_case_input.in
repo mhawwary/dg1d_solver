@@ -1,19 +1,20 @@
 [Case]
  title = Gaussian   # sine wave
- num_elements = 1024
+ num_elements = 8192
  x_begin =  0.0
  x_end   =  6.283185307
  uniform_grid = 1
  refinement_level = 0
- Npoints_plot = 5  # no. of equally spaced points per element for plotting discontinuous sol
+ Npoints_plot = 5             # no. of unifromly spaced pts per element for plotting discont sol
+ N_uniform_pts_per_elem = 4   # no. of unifromly spaced pts per element for plotting cont sol
  N_exact_plot_pts = 512
- N_uniform_pts_per_elem = 4   # no. of equally spaced points (globally over the entire domain) for plotting discontinuous sol
 
 [Simulation] 
  print_freq = 1000  # for unsteady data
- restart_flag = 0
+ restart_flag = 2   # 0: no restart, 1: restart from restart file, 2: for decay turb, use input spectrum and phase angle
  restart_iter = 1e6
  mode = normal   # normal/test/error_analysis_dt/error_analysis_CFL
+ case_no = 02  # case number for burgers decaying turb
 
 [wave]
  wave_speed = 1.0;
@@ -41,11 +42,11 @@
  
  CFL_no = 0.30
 
- dt = 1.0e-4
+ dt = 1.0e-5
 
  initial_time = 0.0
 
- final_time = 0.20
+ final_time = 0.10
  
  no_of_periods = 1.0  #  period = (xf-x0) / wave_speed
  

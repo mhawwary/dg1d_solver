@@ -29,6 +29,7 @@ struct SimData {
     int restart_iter_=0;
     int end_of_sim_flag_=0;  // 1: use max_iteration as a stopping criteria if not converged or diverged
     std::string Sim_mode;
+    std::string case_no_;  // case no for burgers decay turb
 
     double a_wave_=2;    // wave speed
     int wave_form_ = 0;  // 0: sine wave, 1: Gaussian wave

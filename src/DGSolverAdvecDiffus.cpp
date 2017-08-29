@@ -190,16 +190,11 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
 void DGSolverAdvecDiffus::InitSol(){
 
     register int j;
-
     int k=0;
 
-    for(j=0; j<grid_->Nelem; j++){
-
-        for(k=0; k<Ndof; k++){
-
+    for(j=0; j<grid_->Nelem; j++)
+        for(k=0; k<Ndof; k++)
             Qn[j][k] = initSol_legendre_proj(j,k,quad_);
-        }
-    }
 
     return;
 }
@@ -219,22 +214,17 @@ double DGSolverAdvecDiffus::initSol_legendre_proj(const int &eID,
     double Lk_=1.0;
     double Lk_norm=1.0;  // norm^2
 
-    II=0.0;
-
     for (i=0; i<quad_.Nq; i++){
 
         xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
-        if(simdata_->wave_form_==3){ // Decaying Burger's Turbulence, Energy model of OmerSan2016
+        if(simdata_->wave_form_==3) // Decaying Burger's Turbulence, Energy model of OmerSan2016
             Qinit_ = eval_init_u_decay_burger_turb(xx);
-        }else{
+        else
             Qinit_= eval_init_sol(xx);
-        }
 
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
-
         II += quad_.Gaus_wts[i] * Qinit_ * Lk_ ;
     }
-
     Lk_norm = eval_basis_norm_squared(k);
     II = II / Lk_norm ;
 
@@ -246,7 +236,6 @@ void DGSolverAdvecDiffus::ComputeExactSolShift(){
     // Preparing shift information:
     //-------------------------------
     double a=0.;
-
     wave_length_ = grid_->xf - grid_->x0 ;
     a = simdata_->a_wave_;
     exact_sol_shift = (a * simdata_->t_end_ );
@@ -270,29 +259,21 @@ double DGSolverAdvecDiffus::ExactSol_legendre_proj(const int &eID,
     double Lk_=1.0;
     double Lk_norm=1.0;  // norm^2
 
-    II=0.0;
-
     for (i=0; i<quad_.Nq; i++){
 
         xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
                 + grid_->Xc[j] - exact_sol_shift;
 
         if(simdata_->wave_form_==0){
-
             Qinit_ = eval_init_sol(xx);
-
         }else if(simdata_->wave_form_==1){  // Gaussian wave
 
             x0 = xx - wave_length_*floor(xx/wave_length_);
             x1 = xx + wave_length_*floor(xx/-wave_length_);
-
             Qinit_= eval_init_sol(x0)+eval_init_sol(x1);
-
             if(x0==0 && x1==0) Qinit_ = 0.5*Qinit_;
         }
-
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
-
         II += quad_.Gaus_wts[i] * Qinit_ * Lk_ ;
     }
 
@@ -311,33 +292,26 @@ void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
     double dQl=0.0,dQr=0.0, Ql=0.0, Qr=0.0;
 
     // fixme: Left and right boundary fluxes :
-
     j=0.0;
-
     Ql = evalSolution(&Qn_[grid_->Nelem-1][0], 1.0);
     Qr = evalSolution(&Qn_[j][0], -1.0);
     dQl = eval_local_du(grid_->Nelem-1, &Qn_[grid_->Nelem-1][0], 1.0);
     dQr = eval_local_du(j, &Qn_[j][0], -1.0);
-
     // Viscous Common Flux:
     viscflux_com[j] = Compute_common_du_flux(dQl,dQr);
     u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
-
     viscflux_com[grid_->Nfaces-1] = viscflux_com[j];
     u_sol_jump[grid_->Nfaces-1] = u_sol_jump[j];
-
     // Inviscid Common Flux:
     flux_com[j] = Compute_common_flux(Ql,Qr,simdata_->a_wave_
                                       , simdata_->upwind_param_);
     flux_com[grid_->Nfaces-1] = flux_com[j];
 
     for(j=1; j<grid_->Nfaces-1; j++){
-
         Ql = evalSolution(&Qn_[j-1][0], 1.0);
         Qr = evalSolution(&Qn_[j][0], -1.0);
         dQl = eval_local_du(j-1, &Qn_[j-1][0], 1.0);
         dQr = eval_local_du(j, &Qn_[j][0], -1.0);
-
         // Viscous Common Flux:
         viscflux_com[j] = Compute_common_du_flux(dQl,dQr);
         u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
@@ -345,19 +319,10 @@ void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
         flux_com[j] = Compute_common_flux(Ql,Qr,simdata_->a_wave_
                                           , simdata_->upwind_param_);
     }
-
     // Element loop to calculate and update the residual:
     //----------------------------------------------------
-    //clock_t t_start=clock();
-
-    for(j=0; j<grid_->Nelem; j++){
+    for(j=0; j<grid_->Nelem; j++)
         UpdateResidOneCell(j, &Qn_[j][0], &Resid_[j][0]);
-     }
-
-    /*clock_t t_end=clock();
-    double t_elapsed = 1000.0 * ( t_end - t_start) / CLOCKS_PER_SEC;
-    printf("\nElapsed Time_elem_loop: %f", t_elapsed );
-    cin.get();*/
 
     return;
 }
@@ -366,29 +331,23 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
 
     // General parameters:
     double inviscid_resid=0.0, viscous_resid=0.0;
-
     unsigned int j=cellid;
-
     int k=0;
-
     double Mkk=0.0,mkk=0.0;
     double hjj=0.0;
     double fact_=0.0;
     double Lk_p1=0.0, Lk_m1=0.0;
     double dLk_p1=0.0, dLk_m1=0.0;
-
     hjj = grid_->h_j[j];
     fact_ = 2.0/hjj;
 
     // Preparing parameters for the Viscous Residual
     double term1=0.0,term2=0.0,term3=0.0,term4=0.0;
-
     double du_proj_k=0.0;
     double du_flux_jp1=0.0;  // f_j+1/2
     double du_flux_jm1=0.0;  // f_j-1/2
     double u_sol_jp1 = 0.0;
     double u_sol_jm1 = 0.0;
-
     u_sol_jm1 = u_sol_jump[j];
     u_sol_jp1 = u_sol_jump[j+1];
     du_flux_jm1 = viscflux_com[j];
@@ -398,12 +357,10 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
     double f_proj_k=0.0;
     double flux_jp1=0.0;  // f_j+1/2
     double flux_jm1=0.0;  // f_j-1/2
-
     flux_jm1 = flux_com[j];
     flux_jp1 = flux_com[j+1];
 
     for(k=0; k<Ndof; k++){
-
         mkk = eval_basis_norm_squared(k);
         Mkk = 1.0/mkk;
         Lk_m1 = eval_basis_poly(-1.0,k);
@@ -413,21 +370,17 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
 
         // Viscous Residual Computing:
         du_proj_k = eval_local_du_fluxproj(j,q_,k);
-
         term1 = du_flux_jp1 * Lk_p1 - du_flux_jm1 *Lk_m1;
         term2 =  e_penalty * r_lift
                 * ( u_sol_jp1 * Lk_p1 - u_sol_jm1 * Lk_m1) / hjj;
         term3 = - du_proj_k ;
         term4 = - 0.5 * fact_ * ( u_sol_jp1 * dLk_p1 + u_sol_jm1 * dLk_m1 );
-
         viscous_resid =  simdata_->thermal_diffus
                           * ( term1 + term2 + term3 + term4 ) ;
 
         // Inviscid Residual Computing:
         f_proj_k = eval_localInviscidFlux_proj(q_,k);
-
         inviscid_resid =  - ( flux_jp1 * Lk_p1 - flux_jm1 *Lk_m1) + f_proj_k ;
-
         resid_[k] = fact_ * Mkk * ( viscous_resid + inviscid_resid ) ;
     }
 
@@ -450,7 +403,6 @@ double DGSolverAdvecDiffus::Compute_common_flux(const double &Ql, const double &
 
     Fl = 0.5 *  pow(Ql,2);
     Fr = 0.5 *  pow(Qr,2);
-
     f_cent = 0.5 * (Fl+Fr) ;
 
     f_common_ = (BB * f_upw) + ((1.0-BB) * f_cent );
@@ -469,14 +421,12 @@ double DGSolverAdvecDiffus::Rusanov(const double &Ql, const double &Qr){
     Fr = 0.5 *  pow(Qr,2);
     Lambda_max = 0.5 * fabs(Ql+Qr);
 
-
     return  ( 0.5 * (Fl+Fr) - 0.5 * Lambda_max * (Qr-Ql) );
 }
 
 double DGSolverAdvecDiffus::eval_burgers_inviscidFlux(const double& xi_pt_, const double *q_){
 
     int k;
-
     double xx=xi_pt_;
     double Q_;
 
@@ -489,21 +439,15 @@ double DGSolverAdvecDiffus::eval_burgers_inviscidFlux(const double& xi_pt_, cons
 double DGSolverAdvecDiffus::eval_localInviscidFlux_proj(const double *q_, const int &basis_k_){
 
     int k=basis_k_;
-
     int i;
 
     double II=0.0, dL_k=0.0;
     double burger_flux_=0.0;
-
-
     II=0.0;
 
     for (i=0; i<quad_burg_.Nq; i++){
-
         dL_k = eval_basis_poly_derivative(quad_burg_.Gaus_pts[i],k);
-
         burger_flux_ = eval_burgers_inviscidFlux(quad_burg_.Gaus_pts[i],q_);
-
         II += quad_burg_.Gaus_wts[i] * burger_flux_ * dL_k;
     }
 
@@ -513,7 +457,6 @@ double DGSolverAdvecDiffus::eval_localInviscidFlux_proj(const double *q_, const 
 double DGSolverAdvecDiffus::eval_local_du(const int eID,
                                         const double *q_
                                         , const double& xi_pt){
-
     double fact_ = 2.0/grid_->h_j[eID];
     double II=0.0;
     int k;
@@ -534,9 +477,7 @@ double DGSolverAdvecDiffus::Compute_common_du_flux(const double& dul_
 
     if(simdata_->diffus_scheme_type_=="BR2"
             || simdata_->diffus_scheme_type_=="SIP"){
-
         return ( 0.5 * ( dul_ + dur_) );
-
     }else{
         _notImplemented("diffusion Scheme type");
         return 0.0;
@@ -546,14 +487,11 @@ double DGSolverAdvecDiffus::Compute_common_du_flux(const double& dul_
 void DGSolverAdvecDiffus::Compute_vertex_sol(){
 
     register int i;
-
     double Ql=0.0, Qr=0.0;
 
-    // left boundary value:
     i=0;
     Ql = evalSolution(&Qn[grid_->Nelem-1][0],1.0);
     Qr = evalSolution(&Qn[i][0],-1.0);
-
     Qv[i] = 0.5 * ( Ql + Qr);
     Qv[grid_->Nfaces-1] = Qv[i];
 
@@ -569,16 +507,12 @@ void DGSolverAdvecDiffus::Compute_vertex_sol(){
 
 void DGSolverAdvecDiffus::Compute_cont_sol(){
 
-
-
-
     return;
 }
 
 void DGSolverAdvecDiffus::Compute_exact_vertex_sol(){
 
     register int j;
-
     double xx=0.0;
     double x0,x1;
 
@@ -588,12 +522,9 @@ void DGSolverAdvecDiffus::Compute_exact_vertex_sol(){
 
         if(simdata_->wave_form_==0){
             Q_exact[j] = eval_init_sol(xx);
-
         }else if(simdata_->wave_form_==1){
-
             x0 = xx - wave_length_*floor(xx/wave_length_);
             x1 = xx + wave_length_*floor(xx/-wave_length_);
-
             if(x0==0 && x1==0)
                 Q_exact[j] = 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
             else
@@ -607,11 +538,9 @@ void DGSolverAdvecDiffus::Compute_exact_vertex_sol(){
 void DGSolverAdvecDiffus::Compute_projected_exact_sol(){
 
     register int j; int k=0;
-
     for(j=0; j<grid_->Nelem; j++)
         for(k=0; k<Ndof; k++)
             Qex_proj[j][k] = ExactSol_legendre_proj(j,k,quad_);
-
     return;
 }
 
@@ -632,9 +561,7 @@ double DGSolverAdvecDiffus::eval_init_u_decay_burger_turb(const double& xx_){
 
     register int i;
     double u_=0.;
-
     double dk_,k_max_, E_, k_, epsi_;
-
     k_max_ = simdata_->max_wave_no_;
     dk_ = 1.0;
     int n_pts_=k_max_/dk_;
@@ -643,7 +570,6 @@ double DGSolverAdvecDiffus::eval_init_u_decay_burger_turb(const double& xx_){
         k_ = simdata_->k_wave_no_[i];
         epsi_= simdata_->epsi_phase_[i];
         E_= simdata_->energy_spect_[i];
-
         u_ += sqrt(2.*E_ ) * cos (k_ * xx_ + 2.*PI*epsi_) ;
     }
 
@@ -653,23 +579,17 @@ double DGSolverAdvecDiffus::eval_init_u_decay_burger_turb(const double& xx_){
 double DGSolverAdvecDiffus::eval_exact_sol(double &xx){
 
     xx = xx - exact_sol_shift;
-
     if(simdata_->wave_form_==0){
-
         return eval_init_sol(xx);
-
     }else if(simdata_->wave_form_==1){
-
         double x0 = xx - wave_length_*floor(xx/wave_length_);
         double x1 = xx + wave_length_*floor(xx/-wave_length_);
-
         if(x0==0 && x1==0)
             return 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
         else
             return (eval_init_sol(x0)+ eval_init_sol(x1));
     }else{
-        //_notImplemented("Wave form is not implemented");
-
+        _notImplemented("Wave form is not implemented");
         return 0;
     }
 }
@@ -681,22 +601,16 @@ double DGSolverAdvecDiffus::eval_basis_poly(const double& xi_, const int& basis_
     switch (basis_k_) {
     case 0:
         Lk_ = 1.0;  break;
-
     case 1:
         Lk_ = xi_;  break;
-
     case 2:
         Lk_ = 0.5 * (3.0 * xi_*xi_ -1.0);  break;
-
     case 3:
         Lk_ = 0.5 * (5.0 * pow(xi_,3) - 3.0 * xi_);  break;
-
     case 4:
         Lk_ = (35. * pow(xi_,4) - 30. * xi_*xi_ + 3. ) /8. ;  break;
-
     case 5:
         Lk_ = (63.0 * pow(xi_,5) - 70.0 * pow(xi_,3) + 15.0 * xi_ ) /8. ;  break;
-
     default:
         char *ss=nullptr; ss= new char[100];
         sprintf(ss,"polynomial order of: %d",basis_k_);
@@ -709,23 +623,15 @@ double DGSolverAdvecDiffus::eval_basis_poly(const double& xi_, const int& basis_
 
 double DGSolverAdvecDiffus::eval_basis_poly_derivative(const double& xi_
                                                   , const int& basis_k_){
-
     double dLk_=1000.0;
 
     switch (basis_k_) {
-
     case 0: dLk_= 0.0;  break;
-
     case 1: dLk_= 1.0;  break;
-
     case 2: dLk_= 3.0 * xi_;  break;
-
     case 3: dLk_= 0.5 * (15.0 * pow(xi_,2) - 3.0);  break;
-
     case 4: dLk_= 0.5 * (35.0 * pow(xi_,3) - 15.0 * xi_ );  break;
-
     case 5: dLk_= ( 315.0 * pow(xi_,4) - 210.0 * pow(xi_,2) + 15.0 ) / 8. ;  break;
-
     default:
         char *ss=nullptr; ss= new char[100];
         sprintf(ss,"polynomial order of: %d",basis_k_);
@@ -737,9 +643,7 @@ double DGSolverAdvecDiffus::eval_basis_poly_derivative(const double& xi_
 }
 
 double DGSolverAdvecDiffus::eval_basis_norm_squared(const int &basis_k_){
-
     // this is norm^2
-
     return 2./(2*basis_k_+1);
 }
 
@@ -747,35 +651,23 @@ double DGSolverAdvecDiffus::evalSolution(const double* q_, const double& xi_pt_)
 
     double xx=xi_pt_;
     double Q_=0.0;
-
     int k;
-
-    for(k=0; k<Ndof; k++){
-
+    for(k=0; k<Ndof; k++)
         Q_ += q_[k] * eval_basis_poly(xx,k);
-    }
 
     return Q_;
 }
 
 double DGSolverAdvecDiffus::eval_local_du_fluxproj(const int eID, const double *q_
                                            , const int &basis_k_){
-
     int k=basis_k_;
-
     int i;
-
     double II=0.0, dL_k=0.0;
     double du_flux_=0.0;
 
-    II=0.0;
-
     for (i=0; i<quad_.Nq; i++){
-
         dL_k = eval_basis_poly_derivative(quad_.Gaus_pts[i],k);
-
         du_flux_ = eval_local_du(eID, q_, quad_.Gaus_pts[i]);
-
         II += quad_.Gaus_wts[i] * du_flux_ * dL_k;
     }
 
@@ -785,26 +677,19 @@ double DGSolverAdvecDiffus::eval_local_du_fluxproj(const int eID, const double *
 double DGSolverAdvecDiffus::ComputePolyError(){
 
     register int j; int i;
-
     double xx=0.0,L2_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
     for(j=0; j<grid_->Nelem; j++){
-
         elem_error=0.0;
         for(i=0; i<quad_.Nq; i++) {
-
             xx= 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
                     + grid_->Xc[j] - exact_sol_shift;
-
             q_ex = eval_init_sol(xx);
-
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             elem_error += quad_.Gaus_wts[i] * pow((q_ex - q_n),2);
         }
         II += (0.5 * grid_->h_j[j] * elem_error) ;
     }
-
     L2_error = sqrt(II/(grid_->xf-grid_->x0));
 
     return L2_error;
