@@ -184,7 +184,6 @@ void ExplicitTimeSolver::SSPRK33(double **q_){
         for(k=0; k<Ndof; k++)
             q_[j][k] = q_temp[j][k] + dt_ * resid[j][k];
 
-
     space_solver->UpdateResid(resid,q_);
 
     // Step2:

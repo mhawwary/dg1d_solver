@@ -139,7 +139,7 @@ void SimData::setup_output_directory(){
 
     char *case_dir=nullptr,*case_title=nullptr;
     case_dir=new char[70];
-    case_title=new char[20];
+    case_title=new char[30];
 
     if(wave_form_==0) sprintf(case_title,"sine_wave");
     else if(wave_form_==1) sprintf(case_title,"Gaussian_wave");

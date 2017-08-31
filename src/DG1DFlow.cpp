@@ -29,11 +29,18 @@ int main(int argc, char** argv){
 
     logo();
 
+    clock_t t_start=clock();
+
     InitSim(argc, argv);
 
     RunSim();
 
     PostProcess();
+
+    clock_t t_end=clock();
+
+    cout << "Elapsed Time: " << 1.0*(t_end-t_start)/CLOCKS_PER_SEC
+         << " seconds\n" <<endl;
 
     emptypointer(dg_solver_);
     emptypointer(time_solver_);

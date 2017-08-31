@@ -10,27 +10,66 @@ DGSolverAdvecDiffus::~DGSolverAdvecDiffus(void){
 
 void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
+    register int i;
+
     grid_ = &meshdata_;
     simdata_ = &osimdata_;
 
     Ndof = simdata_->poly_order_+1;
 
-//    if(simdata_->wave_form_==3 || simdata_->wave_form_==2)  // burgers
-//        Nquad_ = (int) round((pow(Ndof-1,2)+1)/2);
-//    else if(simdata_->wave_form_==0 || simdata_->wave_form_==1)  // wave/heat equation
-//        Nquad_ = (int) round(Ndof/2) ;
+//    Nquad_ = (int) round(Ndof/2)+1 ;
+//    Nquad_invFlux_ = (int) round((2*(Ndof-1)+1)/2)+2;
 
-    Nquad_ = (int) round(Ndof/2)+1 ;
-    Nquad_burg_ = (int) round((pow(Ndof-1,2)+1)/2);
+    switch (Ndof) {
+    case 1:  // p0
+        Nquad_ = 1;
+        Nquad_invFlux_= 1; // it is not applicable
+        Nquad_viscFlux_=1; // it is not applicable
+        break;
+    case 2: // p1
+        Nquad_ = 2;
+        Nquad_invFlux_= 2;
+        Nquad_viscFlux_=1;
+        break;
+    case 3:  // p2
+        Nquad_ = 3;
+        Nquad_invFlux_= 3;
+        Nquad_viscFlux_=2;
+        break;
+    case 4:  // p3
+        Nquad_ = 4;
+        Nquad_invFlux_= 5;
+        Nquad_viscFlux_=3;
+        break;
+    case 5:  // p4
+        Nquad_ = 5;
+        Nquad_invFlux_= 6;
+        Nquad_viscFlux_=4;
+        break;
+    case 6:  // p5
+        Nquad_ = 6;
+        Nquad_invFlux_= 8;
+        Nquad_viscFlux_=5;
+        break;
+    default:
+        break;
+    }
 
     quad_.setup_quadrature(Nquad_);
-    quad_burg_.setup_quadrature(Nquad_burg_);
+    quad_invF_.setup_quadrature(Nquad_invFlux_);
+    quad_viscF_.setup_quadrature(Nquad_viscFlux_);
+
+    Lk = new double*[Ndof]; // Lk[k, xi]
+    dLk = new double*[Ndof]; // dLk[k, xi]
+    Lk_norm_squar = new double[Ndof];
+
+    for(i=0; i<Ndof; i++){
+        Lk[i] = new double[2];
+        dLk[i] = new double[2];
+    }
 
     Qn    =  new double* [grid_->Nelem];
-
     Qex_proj = new double*[grid_->Nelem];
-
-    register int i;
 
     for(i=0; i<grid_->Nelem; i++){
         Qn[i]       = new double[Ndof];
@@ -55,10 +94,10 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     SetPhyTime(simdata_->t_init_);
 
     CalcTimeStep();
-
     ComputeExactSolShift();
     Compute_projected_exact_sol();
     Compute_exact_vertex_sol();
+    setup_basis_interpolation_matrices();
 
     // Screen Output of input and simulation parameters:
     cout <<"\n===============================================\n";
@@ -78,8 +117,23 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
     cout << "Penalty parameter : "<< e_penalty << endl;
     cout << "Poly GaussQuad order  : "<< Nquad_ << endl;
-    cout << "Flux GaussQuad order  : "<< Nquad_burg_ << endl;
+    cout << "Flux GaussQuad order  : "<< Nquad_invFlux_ << endl;
     cout <<"===============================================\n";
+
+    return;
+}
+
+void DGSolverAdvecDiffus::setup_basis_interpolation_matrices(){
+
+    int k;
+
+    for(k=0; k<Ndof; k++){
+        Lk[k][0] = eval_basis_poly(-1,k);
+        Lk[k][1] = eval_basis_poly(1,k);
+        dLk[k][0] = eval_basis_poly_derivative(-1,k);
+        dLk[k][1] = eval_basis_poly_derivative(1,k);
+        Lk_norm_squar[k] = eval_basis_norm_squared(k);
+    }
 
     return;
 }
@@ -93,12 +147,16 @@ void DGSolverAdvecDiffus::Reset_solver(){
     emptyarray(u_sol_jump);
     emptyarray(Qv);
     emptyarray(grid_->Nelem,Qex_proj);
+    emptyarray(Ndof,Lk);
+    emptyarray(Ndof,dLk);
+    emptyarray(Lk_norm_squar);
 
     grid_->Reset_();
     simdata_->Reset();
 
     quad_.Reset_quad();
-    quad_burg_.Reset_quad();
+    quad_invF_.Reset_quad();
+    quad_viscF_.Reset_quad();
 
     return;
 }
@@ -212,7 +270,6 @@ double DGSolverAdvecDiffus::initSol_legendre_proj(const int &eID,
     double II=0.0;
     double Qinit_=0.0;
     double Lk_=1.0;
-    double Lk_norm=1.0;  // norm^2
 
     for (i=0; i<quad_.Nq; i++){
 
@@ -225,8 +282,7 @@ double DGSolverAdvecDiffus::initSol_legendre_proj(const int &eID,
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
         II += quad_.Gaus_wts[i] * Qinit_ * Lk_ ;
     }
-    Lk_norm = eval_basis_norm_squared(k);
-    II = II / Lk_norm ;
+    II = II / Lk_norm_squar[k] ;
 
     return II;
 }
@@ -257,7 +313,6 @@ double DGSolverAdvecDiffus::ExactSol_legendre_proj(const int &eID,
     double II=0.0;
     double Qinit_=0.0;
     double Lk_=1.0;
-    double Lk_norm=1.0;  // norm^2
 
     for (i=0; i<quad_.Nq; i++){
 
@@ -272,13 +327,14 @@ double DGSolverAdvecDiffus::ExactSol_legendre_proj(const int &eID,
             x1 = xx + wave_length_*floor(xx/-wave_length_);
             Qinit_= eval_init_sol(x0)+eval_init_sol(x1);
             if(x0==0 && x1==0) Qinit_ = 0.5*Qinit_;
+        }else if(simdata_->wave_form_==3){
+            Qinit_=0.0;
         }
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
         II += quad_.Gaus_wts[i] * Qinit_ * Lk_ ;
     }
 
-    Lk_norm = eval_basis_norm_squared(k);
-    II = II / Lk_norm ;
+    II = II / Lk_norm_squar[k] ;
 
     return II;
 }
@@ -286,17 +342,16 @@ double DGSolverAdvecDiffus::ExactSol_legendre_proj(const int &eID,
 void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
 
     register int j;
+    double dQl=0.0,dQr=0.0, Ql=0.0, Qr=0.0;
 
     // Face loop to calculate the common interface fluxes:
     //----------------------------------------------------
-    double dQl=0.0,dQr=0.0, Ql=0.0, Qr=0.0;
-
     // fixme: Left and right boundary fluxes :
     j=0.0;
-    Ql = evalSolution(&Qn_[grid_->Nelem-1][0], 1.0);
-    Qr = evalSolution(&Qn_[j][0], -1.0);
-    dQl = eval_local_du(grid_->Nelem-1, &Qn_[grid_->Nelem-1][0], 1.0);
-    dQr = eval_local_du(j, &Qn_[j][0], -1.0);
+    Ql = evalSolution(&Qn_[grid_->Nelem-1][0], 1);
+    Qr = evalSolution(&Qn_[j][0], 0);
+    dQl = eval_local_du_fast(grid_->Nelem-1, &Qn_[grid_->Nelem-1][0], 1);
+    dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
     // Viscous Common Flux:
     viscflux_com[j] = Compute_common_du_flux(dQl,dQr);
     u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
@@ -307,11 +362,12 @@ void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
                                       , simdata_->upwind_param_);
     flux_com[grid_->Nfaces-1] = flux_com[j];
 
+    // Interior Faces
     for(j=1; j<grid_->Nfaces-1; j++){
-        Ql = evalSolution(&Qn_[j-1][0], 1.0);
-        Qr = evalSolution(&Qn_[j][0], -1.0);
-        dQl = eval_local_du(j-1, &Qn_[j-1][0], 1.0);
-        dQr = eval_local_du(j, &Qn_[j][0], -1.0);
+        Ql = evalSolution(&Qn_[j-1][0], 1);
+        Qr = evalSolution(&Qn_[j][0], 0);
+        dQl = eval_local_du_fast(j-1, &Qn_[j-1][0], 1);
+        dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
         // Viscous Common Flux:
         viscflux_com[j] = Compute_common_du_flux(dQl,dQr);
         u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
@@ -333,7 +389,7 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
     double inviscid_resid=0.0, viscous_resid=0.0;
     unsigned int j=cellid;
     int k=0;
-    double Mkk=0.0,mkk=0.0;
+    double Mkk=0.0;
     double hjj=0.0;
     double fact_=0.0;
     double Lk_p1=0.0, Lk_m1=0.0;
@@ -361,15 +417,13 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
     flux_jp1 = flux_com[j+1];
 
     for(k=0; k<Ndof; k++){
-        mkk = eval_basis_norm_squared(k);
-        Mkk = 1.0/mkk;
-        Lk_m1 = eval_basis_poly(-1.0,k);
-        Lk_p1 = eval_basis_poly( 1.0,k);
-        dLk_m1 = eval_basis_poly_derivative(-1.0,k);
-        dLk_p1 = eval_basis_poly_derivative(1.0,k);
-
+        Mkk = 1.0/Lk_norm_squar[k];
+        Lk_m1 = Lk[k][0];
+        Lk_p1 = Lk[k][1];
+        dLk_m1 = dLk[k][0];
+        dLk_p1 = dLk[k][1];
         // Viscous Residual Computing:
-        du_proj_k = eval_local_du_fluxproj(j,q_,k);
+        du_proj_k = eval_local_du_fluxproj_exact(j,q_,k);
         term1 = du_flux_jp1 * Lk_p1 - du_flux_jm1 *Lk_m1;
         term2 =  e_penalty * r_lift
                 * ( u_sol_jp1 * Lk_p1 - u_sol_jm1 * Lk_m1) / hjj;
@@ -377,9 +431,8 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
         term4 = - 0.5 * fact_ * ( u_sol_jp1 * dLk_p1 + u_sol_jm1 * dLk_m1 );
         viscous_resid =  simdata_->thermal_diffus
                           * ( term1 + term2 + term3 + term4 ) ;
-
         // Inviscid Residual Computing:
-        f_proj_k = eval_localInviscidFlux_proj(q_,k);
+        f_proj_k = eval_localInviscidFlux_proj_exact(q_,k);
         inviscid_resid =  - ( flux_jp1 * Lk_p1 - flux_jm1 *Lk_m1) + f_proj_k ;
         resid_[k] = fact_ * Mkk * ( viscous_resid + inviscid_resid ) ;
     }
@@ -445,10 +498,190 @@ double DGSolverAdvecDiffus::eval_localInviscidFlux_proj(const double *q_, const 
     double burger_flux_=0.0;
     II=0.0;
 
-    for (i=0; i<quad_burg_.Nq; i++){
-        dL_k = eval_basis_poly_derivative(quad_burg_.Gaus_pts[i],k);
-        burger_flux_ = eval_burgers_inviscidFlux(quad_burg_.Gaus_pts[i],q_);
-        II += quad_burg_.Gaus_wts[i] * burger_flux_ * dL_k;
+    for (i=0; i<quad_invF_.Nq; i++){
+        dL_k = eval_basis_poly_derivative(quad_invF_.Gaus_pts[i],k);
+        burger_flux_ = eval_burgers_inviscidFlux(quad_invF_.Gaus_pts[i],q_);
+        II += quad_invF_.Gaus_wts[i] * burger_flux_ * dL_k;
+    }
+
+    return II;
+}
+
+double DGSolverAdvecDiffus::eval_localInviscidFlux_proj_exact(const double *q_, const int &basis_k_){
+
+    int i;
+    double II=0.0;
+
+    switch (Ndof){
+    case 1:   // p0 polynomial
+        switch (basis_k_) {
+        case 0:
+            II=0.0;
+            break;
+        default:
+            FatalError_exit("k basis exceeds Ndof");
+            break;
+        }
+        break;
+
+    case 2:   // p1 polynomial
+        switch (basis_k_) {
+        case 0:
+            II=0.0;
+            break;
+        case 1:
+            for(i=0; i<Ndof; i++)
+                II+= pow(q_[i],2)*Lk_norm_squar[i];
+            II = 0.5*II;
+            break;
+        default:
+            FatalError_exit("k basis exceeds Ndof");
+            break;
+        }
+        break;
+
+    case 3:   // p2 polynomial
+        switch (basis_k_) {
+        case 0:
+            II=0.0;
+            break;
+        case 1:
+            for(i=0; i<Ndof; i++)
+                II+= pow(q_[i],2)*Lk_norm_squar[i];
+            II = 0.5*II;
+            break;
+        case 2:
+            for(i=0; i<Ndof-1; i++){
+                II+= q_[i]*q_[i+1]*Lk_norm_squar[i]*Lk_norm_squar[i+1]*(i+1);
+            }
+            II = (3./2.) * II;
+            break;
+        default:
+            FatalError_exit("k basis exceeds Ndof");
+            break;
+        }
+        break;
+
+    case 4:      // p3 polynomial
+        switch (basis_k_) {
+        case 0:
+            II=0.0;
+            break;
+        case 1:
+            for(i=0; i<Ndof; i++)
+                II+= pow(q_[i],2)*Lk_norm_squar[i];
+            II = 0.5*II;
+            break;
+        case 2:
+            for(i=0; i<Ndof-1; i++){
+                II+= q_[i]*q_[i+1]*Lk_norm_squar[i]*Lk_norm_squar[i+1]*(i+1);
+            }
+            II = (3./2.) * II;
+            break;
+        case 3:
+            II = pow(q_[0],2)+pow(q_[1],2)
+                    +(17./35.)*pow(q_[2],2)
+                    +(pow(q_[3],2)/3.)
+                    +2.*q_[0]*q_[2]
+                    +(6./7.)*q_[1]*q_[3];
+            break;
+        default:
+            FatalError_exit("k basis exceeds Ndof");
+            break;
+        }
+        break;
+
+    case 5:  // p4 polynomial
+        switch (basis_k_) {
+        case 0:
+            II=0.0;
+            break;
+        case 1:
+            for(i=0; i<Ndof; i++)
+                II+= pow(q_[i],2)*Lk_norm_squar[i];
+            II = 0.5*II;
+            break;
+        case 2:
+            for(i=0; i<Ndof-1; i++){
+                II+= q_[i]*q_[i+1]*Lk_norm_squar[i]*Lk_norm_squar[i+1]*(i+1);
+            }
+            II = (3./2.) * II;
+            break;
+        case 3:
+            II = pow(q_[0],2)+pow(q_[1],2)
+                    +(17./35.)*pow(q_[2],2)
+                    +(pow(q_[3],2)/3.)
+                    +(59./231.)*pow(q_[4],2)
+                    +2.*q_[0]*q_[2]
+                    +(6./7.)*q_[1]*q_[3]
+                    +(4./7.)*q_[2]*q_[4];
+            break;
+        case 4:
+            II = 2.*(q_[0]*q_[1] + q_[1]*q_[2] + q_[0]*q_[3])
+                    +(22./21.)*q_[2]*q_[3]
+                    +(8./9.)*q_[1]*q_[4]
+                    +(172./231.)*q_[3]*q_[4];
+            break;
+        default:
+            FatalError_exit("k basis exceeds Ndof");
+            break;
+        }
+        break;
+
+    case 6: // p5 polynomial
+        switch (basis_k_) {
+        case 0:
+            II=0.0;
+            break;
+        case 1:
+            for(i=0; i<Ndof; i++)
+                II+= pow(q_[i],2)*Lk_norm_squar[i];
+            II = 0.5*II;
+            break;
+        case 2:
+            for(i=0; i<Ndof-1; i++){
+                II+= q_[i]*q_[i+1]*Lk_norm_squar[i]*Lk_norm_squar[i+1]*(i+1);
+            }
+            II = (3./2.) * II;
+            break;
+        case 3:
+            II = pow(q_[0],2)+pow(q_[1],2)
+                    +(17./35.)*pow(q_[2],2)
+                    +(pow(q_[3],2)/3.)
+                    +(59./231.)*pow(q_[4],2)
+                    +(89./429.) * pow(q_[5],2)
+                    +2.*q_[0]*q_[2]
+                    +(6./7.)*q_[1]*q_[3]
+                    +(4./7.)*q_[2]*q_[4]
+                    +(100./231.)*q_[3]*q_[5];
+            break;
+        case 4:
+            II = 2.*(q_[0]*q_[1] + q_[1]*q_[2] + q_[0]*q_[3])
+                    +(22./21.)*q_[2]*q_[3]
+                    +(8./9.)*q_[1]*q_[4]
+                    +(172./231.)*q_[3]*q_[4]
+                    +(20./33.)*q_[2]*q_[5]
+                    +(250./429.)*q_[4]*q_[5];
+            break;
+        case 5:
+            II = pow(q_[0],2)+pow(q_[1],2)+pow(q_[2],2)
+                    +(131./231.)*pow(q_[3],2)
+                    +(179./429.)*pow(q_[4],2)
+                    +(1./3.)*pow(q_[5],2)
+                    +2.*(q_[0]*q_[2]+q_[1]*q_[3]+q_[0]*q_[4])
+                    +(12./11.)*q_[2]*q_[4]
+                    +(10./11.)*q_[1]*q_[5]
+                    +(340./429.)*q_[3]*q_[5];
+            break;
+        default:
+            FatalError_exit("k basis exceeds Ndof");
+            break;
+        }
+        break;
+
+    default:
+        FatalError_exit("Polynomial order is not implemented here");
+        break;
     }
 
     return II;
@@ -463,6 +696,19 @@ double DGSolverAdvecDiffus::eval_local_du(const int eID,
 
     for(k=0; k<Ndof; k++)
         II += q_[k] * eval_basis_poly_derivative(xi_pt, k);
+
+    return (fact_*II);
+}
+
+double DGSolverAdvecDiffus::eval_local_du_fast(const int eID,
+                                        const double *q_
+                                        , const int& i_pos_){
+    double fact_ = 2.0/grid_->h_j[eID];
+    double II=0.0;
+    int k;
+
+    for(k=0; k<Ndof; k++)
+        II += q_[k] * dLk[k][i_pos_];
 
     return (fact_*II);
 }
@@ -588,9 +834,11 @@ double DGSolverAdvecDiffus::eval_exact_sol(double &xx){
             return 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
         else
             return (eval_init_sol(x0)+ eval_init_sol(x1));
+    }else if(simdata_->wave_form_==3){
+        return 0.0;
     }else{
         _notImplemented("Wave form is not implemented");
-        return 0;
+        return 0.0;
     }
 }
 
@@ -612,9 +860,7 @@ double DGSolverAdvecDiffus::eval_basis_poly(const double& xi_, const int& basis_
     case 5:
         Lk_ = (63.0 * pow(xi_,5) - 70.0 * pow(xi_,3) + 15.0 * xi_ ) /8. ;  break;
     default:
-        char *ss=nullptr; ss= new char[100];
-        sprintf(ss,"polynomial order of: %d",basis_k_);
-        _notImplemented(ss);
+        FatalError_exit("k basis exceeds poly order");
         break;
     }
 
@@ -633,9 +879,7 @@ double DGSolverAdvecDiffus::eval_basis_poly_derivative(const double& xi_
     case 4: dLk_= 0.5 * (35.0 * pow(xi_,3) - 15.0 * xi_ );  break;
     case 5: dLk_= ( 315.0 * pow(xi_,4) - 210.0 * pow(xi_,2) + 15.0 ) / 8. ;  break;
     default:
-        char *ss=nullptr; ss= new char[100];
-        sprintf(ss,"polynomial order of: %d",basis_k_);
-        _notImplemented(ss);
+        FatalError_exit("k basis exceeds poly order");
         break;
     }
 
@@ -658,6 +902,16 @@ double DGSolverAdvecDiffus::evalSolution(const double* q_, const double& xi_pt_)
     return Q_;
 }
 
+double DGSolverAdvecDiffus::evalSolution(const double* q_, const int& i_pos_){
+
+    double Q_=0.0;
+    int k;
+    for(k=0; k<Ndof; k++)
+        Q_ += q_[k] * Lk[k][i_pos_];   // i_pos_ = 0 if xi =-1, i_pos_ =1 if xi =1
+
+    return Q_;
+}
+
 double DGSolverAdvecDiffus::eval_local_du_fluxproj(const int eID, const double *q_
                                            , const int &basis_k_){
     int k=basis_k_;
@@ -665,10 +919,59 @@ double DGSolverAdvecDiffus::eval_local_du_fluxproj(const int eID, const double *
     double II=0.0, dL_k=0.0;
     double du_flux_=0.0;
 
-    for (i=0; i<quad_.Nq; i++){
-        dL_k = eval_basis_poly_derivative(quad_.Gaus_pts[i],k);
-        du_flux_ = eval_local_du(eID, q_, quad_.Gaus_pts[i]);
-        II += quad_.Gaus_wts[i] * du_flux_ * dL_k;
+    for (i=0; i<quad_viscF_.Nq; i++){
+        dL_k = eval_basis_poly_derivative(quad_viscF_.Gaus_pts[i],k);
+        du_flux_ = eval_local_du(eID, q_, quad_viscF_.Gaus_pts[i]);
+        II += quad_viscF_.Gaus_wts[i] * du_flux_ * dL_k;
+    }
+
+    return II;
+}
+
+double DGSolverAdvecDiffus::eval_local_du_fluxproj_exact(const int eID, const double *q_
+                                           , const int &basis_k_){
+    int i;
+    double II=0.0;
+    double fact_ = 2.0/grid_->h_j[eID];
+
+
+    switch(basis_k_){
+    case 0: // p0 -> p5
+        II = 0.0;
+        break;
+    case 1:  // p1 -> p5
+        for(i=1; i<Ndof; i+=2)
+            II+= q_[i];
+        II = 2.0* fact_ * II;
+        break;
+    case 2:  // p2 -> p5
+        for(i=2; i<Ndof; i+=2)
+            II+= q_[i];
+        II = 6.0 * fact_ * II;
+        break;
+    case 3:  // p3 -> p5
+        switch(Ndof){
+        case 4: // p3
+        case 5: // p4
+            II = 2.0 *fact_ *(q_[1]+6.0*q_[3]);
+            break;
+        case 6: // p5
+            II = 2.0 *fact_ *(q_[1]+6.0*(q_[3]+q_[5]));
+            break;
+        default:
+            FatalError_exit("for basis_k = 3, Ndof differs from p3, p4, and p5");
+            break;
+        }
+        break;
+    case 4: // p4, p5
+        II = fact_ * (6.0 * q_[2] + 20.0 * q_[4]);
+        break;
+    case 5: // p5
+        II = 2.0 *fact_ *(q_[1]+6.0*q_[3]+15.0*q_[5]);
+        break;
+    default:
+        FatalError_exit("k basis exceeds poly order");
+        break;
     }
 
     return II;

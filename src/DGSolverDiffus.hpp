@@ -45,20 +45,16 @@ public:
    virtual void UpdateResidOneCell(const int& cellid, double* q_
                            , double* resid_);
 
-//   virtual void Compute_flux_upw();
-//   virtual void get_left_right_sol();
-//   virtual void Rusanov_flux();
-//   virtual void Roe_flux();
-
    virtual double eval_init_sol(const double& xx);
    virtual double eval_exact_sol(double& xx);
    virtual double eval_basis_poly(const double& xi_, const int& basis_k_);
    virtual double eval_basis_norm_squared(const int& basis_k_);
-   virtual double evalSolution(const double* q_, const double& xi_pt);
+   virtual void setup_basis_interpolation_matrices(){}
 
+   virtual double evalSolution(const double* q_, const double& xi_pt);
+   virtual double evalSolution(const double *q_, const int& position_){}
    virtual double initSol_legendre_proj(const int& eID, const int &basis_id,
                                 const GaussQuad & quad_);
-
    virtual double ExactSol_legendre_proj(const int &eID,
                                  const int &basis_k,
                                   const GaussQuad &quad_);

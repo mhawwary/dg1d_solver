@@ -89,6 +89,57 @@ protected:
             Gaus_wts[3] =  (322+13*sqrt(70))/900.0 ;
             Gaus_wts[4] =  (322-13*sqrt(70))/900.0;
 
+        }else if(Nq==6){
+            Gaus_pts[0] =  -9.3246951420315202781230155449399e-01L;
+            Gaus_pts[1] =  -6.6120938646626451366139959501991e-01L;
+            Gaus_pts[2] =  -2.3861918608319690863050172168071e-01L;
+            Gaus_pts[3] =  -Gaus_pts[2];
+            Gaus_pts[4] =  -Gaus_pts[1];
+            Gaus_pts[5] =  -Gaus_pts[0];
+
+            Gaus_wts[0] =  1.7132449237917034504029614217273e-01L;
+            Gaus_wts[1] =  3.6076157304813860756983351383772e-01L;
+            Gaus_wts[2] =  4.6791393457269104738987034398955e-01L;
+            Gaus_wts[3] =  Gaus_wts[2];
+            Gaus_wts[4] =  Gaus_wts[1];
+            Gaus_wts[5] =  Gaus_wts[0];
+
+        }else if(Nq==7){
+            Gaus_pts[0] =  -9.4910791234275852452618968404785e-01L;
+            Gaus_pts[1] =  -7.4153118559939443986386477328079e-01L;
+            Gaus_pts[2] =  -4.0584515137739716690660641207696e-01L;
+            Gaus_pts[3] =   0.0;
+            Gaus_pts[4] =  -Gaus_pts[2];
+            Gaus_pts[5] =  -Gaus_pts[1];
+            Gaus_pts[6] =  -Gaus_pts[0];
+
+            Gaus_wts[0] =  1.2948496616886969327061143267908e-01L;
+            Gaus_wts[1] =  2.7970539148927666790146777142378e-01L;
+            Gaus_wts[2] =  3.8183005050511894495036977548898e-01L;
+            Gaus_wts[3] =  4.1795918367346938775510204081633e-01L;
+            Gaus_wts[4] =  Gaus_wts[2];
+            Gaus_wts[5] =  Gaus_wts[1];
+            Gaus_wts[6] =  Gaus_wts[0];
+
+        }else if(Nq==8){
+            Gaus_pts[0] =  -9.6028985649753623168356086856947e-01L;
+            Gaus_pts[1] =  -7.9666647741362673959155393647583e-01L;
+            Gaus_pts[2] =  -5.2553240991632898581773904918925e-01L;
+            Gaus_pts[3] =  -1.8343464249564980493947614236018e-01L;
+            Gaus_pts[4] =  -Gaus_pts[3];
+            Gaus_pts[5] =  -Gaus_pts[2];
+            Gaus_pts[6] =  -Gaus_pts[1];
+            Gaus_pts[7] =  -Gaus_pts[0];
+
+            Gaus_wts[0] =  1.0122853629037625915253135430996e-01L;
+            Gaus_wts[1] =  2.2238103445337447054435599442624e-01L;
+            Gaus_wts[2] =  3.1370664587788728733796220198660e-01L;
+            Gaus_wts[3] =  3.6268378337836198296515044927720e-01L;
+            Gaus_wts[4] =  Gaus_wts[3];
+            Gaus_wts[5] =  Gaus_wts[2];
+            Gaus_wts[6] =  Gaus_wts[1];
+            Gaus_wts[7] =  Gaus_wts[0];
+
         }else{
 
             cout<< "\n Gauss Quadrature with order of:  "
