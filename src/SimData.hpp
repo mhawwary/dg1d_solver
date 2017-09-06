@@ -54,7 +54,7 @@ struct SimData {
     // Burger's Tubulence Parameters:
     std::string turb_prob_type_;
     int max_wave_no_ = 1024;
-    int max_energy_wave_no_ = 10;
+    double max_energy_wave_no_ = 10.0;
     int* k_wave_no_ =nullptr;
     double* epsi_phase_=nullptr;
     double* energy_spect_=nullptr;

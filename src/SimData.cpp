@@ -48,7 +48,7 @@ void SimData::Parse(const std::string &fname){
         turb_prob_type_
                 = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_Adams");
         max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024);
-        max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10);
+        max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10.0);
     }
 }
 
