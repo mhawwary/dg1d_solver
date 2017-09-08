@@ -102,15 +102,15 @@ clean_temp:
 	
 
 plot:
-	python DGsolplot_reader.py -f ./input/python_input.in 
+	python python_tools/DGsolplot_reader.py -f ./input/python_input.in 
 
 plot_compare:
-	python DGplot_compare_Beta.py -f ./input/python_input_compare_Beta.in 
+	python python_tools/DGplot_compare_Beta.py -f ./input/python_input_compare_Beta.in 
 
 plot_errors:
-	python DGplot_errors.py -f ./input/python_input_errors.in 
+	python python_tools/DGplot_errors.py -f ./input/python_input_errors.in 
 
 plot_error_analys:
-	python DGplot_error_analysis.py -f ./input/python_input_error_analysis.in 
+	python python_tools/DGplot_error_analysis.py -f ./input/python_input_error_analysis.in 
 
 
