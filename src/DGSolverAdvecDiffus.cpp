@@ -775,6 +775,8 @@ void DGSolverAdvecDiffus::Compute_exact_vertex_sol(){
                 Q_exact[j] = 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
             else
                 Q_exact[j] = (eval_init_sol(x0)+ eval_init_sol(x1));
+        }else if(simdata_->wave_form_==3){ // burger's decay turb
+           Q_exact[j] = eval_init_u_decay_burger_turb(xx);
         }
     }
 
@@ -1194,40 +1196,42 @@ void DGSolverAdvecDiffus::print_cont_vertex_sol(){
     char *fname=nullptr;
     fname = new char[150];
 
-    if(simdata_->Sim_mode=="error_analysis_dt"){
+    if(simdata_->wave_form_!=3){
+        if(simdata_->Sim_mode=="error_analysis_dt"){
 
-        sprintf(fname,"%snodal/u_cont_N%d_dt%1.3e_Eps%1.2f_%1.3fT.dat"
-                ,simdata_->case_postproc_dir
-                ,grid_->Nelem
-                ,time_step
-                ,e_penalty
-                ,simdata_->Nperiods);
+            sprintf(fname,"%snodal/u_cont_N%d_dt%1.3e_Eps%1.2f_%1.3fT.dat"
+                    ,simdata_->case_postproc_dir
+                    ,grid_->Nelem
+                    ,time_step
+                    ,e_penalty
+                    ,simdata_->Nperiods);
 
-        FILE* sol_out=fopen(fname,"w");
+            FILE* sol_out=fopen(fname,"w");
 
-        for(j=0; j<grid_->Nfaces; j++)
-            fprintf(sol_out, "%2.10e %2.10e\n", grid_->X[j], Qv[j]);
+            for(j=0; j<grid_->Nfaces; j++)
+                fprintf(sol_out, "%2.10e %2.10e\n", grid_->X[j], Qv[j]);
 
-        fclose(sol_out);
-        emptyarray(fname);
+            fclose(sol_out);
+            emptyarray(fname);
 
-    } else{
+        } else{
 
-        sprintf(fname,"%snodal/u_cont_N%d_CFL%1.3e_Beta%1.2f_Eps%1.2f_%1.3fT.dat"
-                ,simdata_->case_postproc_dir
-                ,grid_->Nelem
-                ,CFL
-                ,simdata_->upwind_param_
-                ,e_penalty
-                ,simdata_->Nperiods);
+            sprintf(fname,"%snodal/u_cont_N%d_CFL%1.3e_Beta%1.2f_Eps%1.2f_%1.3fT.dat"
+                    ,simdata_->case_postproc_dir
+                    ,grid_->Nelem
+                    ,CFL
+                    ,simdata_->upwind_param_
+                    ,e_penalty
+                    ,simdata_->Nperiods);
 
-        FILE* sol_out=fopen(fname,"w");
+            FILE* sol_out=fopen(fname,"w");
 
-        for(j=0; j<grid_->Nfaces; j++)
-            fprintf(sol_out, "%2.10e %2.10e\n", grid_->X[j], Qv[j]);
+            for(j=0; j<grid_->Nfaces; j++)
+                fprintf(sol_out, "%2.10e %2.10e\n", grid_->X[j], Qv[j]);
 
-        fclose(sol_out);
-        emptyarray(fname);
+            fclose(sol_out);
+            emptyarray(fname);
+        }
     }
 
     fname = new char[100];
@@ -1664,10 +1668,10 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
 
     // Dump time accurate Discontinuous data:
     fname = new char[250];
-    sprintf(fname,"%stime_data/u_disc_N%d_CFL%1.3e_Beta%1.2f_Eps%1.3f_%1.3ft.dat"
+    sprintf(fname,"%stime_data/u_disc_N%d_dt%1.3e_Beta%1.2f_Eps%1.3f_%1.3ft.dat"
             ,simdata_->case_postproc_dir
             ,grid_->Nelem
-            ,CFL
+            ,time_step
             ,simdata_->upwind_param_
             ,e_penalty
             ,phy_time);

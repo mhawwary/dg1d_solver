@@ -35,7 +35,16 @@ int main(int argc, char** argv){
 
     RunSim();
 
-    PostProcess();
+    if(simdata_.wave_form_==3){
+        dg_solver_->print_average_sol();
+        dg_solver_->print_cont_vertex_sol();
+        dg_solver_->dump_discont_sol();
+    }
+    else{
+        PostProcess();
+    }
+    printf("\nFinal Iteration number is: %d\n",time_solver_->GetIter());
+    printf("Final time is: %1.5f\n",dg_solver_->GetPhyTime());
 
     clock_t t_end=clock();
 
@@ -73,13 +82,10 @@ void InitSim(const int& argc,char** argv){
         _notImplemented("Equation set");
 
     time_solver_ = new ExplicitTimeSolver;
-
     dg_solver_->setup_solver(meshdata_,simdata_);
-
     dg_solver_->InitSol();
-
+    dg_solver_->dump_timeaccurate_sol();
     time_solver_->setupTimeSolver(dg_solver_,&simdata_);
-
     simdata_.dump_python_inputfile();
 
     return;
@@ -88,29 +94,24 @@ void InitSim(const int& argc,char** argv){
 void RunSim(){
 
     double gtime = dg_solver_->GetPhyTime();
-
     double dt_= dg_solver_->GetTimeStep();
+    int n_iter_print = (int) round( simdata_.data_print_time_ / dt_) ;
+    printf("\nNIter to print unsteady data: %d",n_iter_print);
 
     time_solver_->ComputeInitialResid(dg_solver_->GetNumSolution());
-
-    dg_solver_->dump_timeaccurate_sol();
-
     time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
-
     time_solver_->space_solver->UpdatePhyTime(dt_);
-
     gtime=dg_solver_->GetPhyTime();
 
-    int n_iter_print = (int) round( 0.05 / dt_) ;
-
-    printf("\nNIter to print unsteady data: %d",n_iter_print);
+    if(time_solver_->GetIter()%n_iter_print==0){
+        printf("\nIter No:%d, time: %f",time_solver_->GetIter(),gtime);
+        dg_solver_->dump_timeaccurate_sol();
+    }
 
     while ( gtime < simdata_.t_end_- 1.05*dt_ ){
 
         time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
-
         time_solver_->space_solver->UpdatePhyTime(dt_);
-
         gtime=dg_solver_->GetPhyTime();
 
         if(time_solver_->GetIter()%n_iter_print==0){
@@ -122,14 +123,12 @@ void RunSim(){
     // Last iteration:
 
     time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
-
     if(dg_solver_->GetLastTimeStep()>=1e-10)
         time_solver_->space_solver->UpdatePhyTime(dg_solver_->GetLastTimeStep());
     else
         time_solver_->space_solver->UpdatePhyTime(dt_);
 
     gtime=dg_solver_->GetPhyTime();
-
     dg_solver_->dump_timeaccurate_sol();
 
     return;

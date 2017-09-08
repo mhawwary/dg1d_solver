@@ -17,7 +17,6 @@ void SimData::Parse(const std::string &fname){
     restart_iter_ = gp_input("Simulation/restart_iter",0);
     restart_flag = gp_input("Simulation/restart_flag",0);
     Sim_mode = gp_input("Simulation/mode","normal");
-    case_no_ = gp_input("Simulation/case_no","00");
 
     a_wave_ = gp_input("wave/wave_speed",1.0);
     wave_form_ = gp_input("wave/wave_form",0);
@@ -49,12 +48,15 @@ void SimData::Parse(const std::string &fname){
                 = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_Adams");
         max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024);
         max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10.0);
+        spectrum_restart_flag = gp_input("wave/Burger_turb/spectrum_restart_flag",0);
+        data_print_time_ = gp_input("wave/Burger_turb/data_print_time",0.01);
+        case_no_ = gp_input("Simulation/case_no","00");
     }
 }
 
 void SimData::prepare_dump_burgers_turb_param(){
 
-    if(restart_flag==0){
+    if(spectrum_restart_flag==0){
         register int i;
         int n_pts_=max_wave_no_;
         double A_=0.;
@@ -106,7 +108,7 @@ void SimData::prepare_dump_burgers_turb_param(){
         fclose(b_spect_out_);
         emptyarray(fname);
 
-    }else if(restart_flag==2){
+    }else if(spectrum_restart_flag==1){
         // Reading Binary data:
         char *fname=nullptr;
         fname=new char[150];
@@ -173,15 +175,10 @@ void SimData::setup_output_directory(){
     }
 
     mkdir(main_dir,0777);
-
     chdir(main_dir);
-
     mkdir(case_title,0777);
-
     chdir(case_title);
-
     mkdir(case_dir,0777);
-
     case_postproc_dir = new char[350];
 
     if(wave_form_==3){  // burgers decay turb

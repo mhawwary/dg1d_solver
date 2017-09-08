@@ -58,6 +58,8 @@ struct SimData {
     int* k_wave_no_ =nullptr;
     double* epsi_phase_=nullptr;
     double* energy_spect_=nullptr;
+    int spectrum_restart_flag = 0;
+    double data_print_time_=0.01;
 
 
     void Parse(const std::string &fname);

@@ -1,30 +1,30 @@
 [Case]
  title = Gaussian   # sine wave
- num_elements = 1024
+ num_elements = 256
  x_begin =  0.0
  x_end   =  6.283185307
  uniform_grid = 1
  refinement_level = 0
  Npoints_plot = 5             # no. of unifromly spaced pts per element for plotting discont sol
  N_uniform_pts_per_elem = 4   # no. of unifromly spaced pts per element for plotting cont sol
- N_exact_plot_pts = 512
+ N_exact_plot_pts = 100
 
-[Simulation] 
+[Simulation]
  print_freq = 1000  # for unsteady data
- restart_flag = 2   # 0: no restart, 1: restart from restart file, 2: for decay turb, use input spectrum and phase angle
+ restart_flag = 0
  restart_iter = 1e6
  mode = test   # normal/test/error_analysis_dt/error_analysis_CFL
- case_no = 00  # case number for burgers decaying turb
+ case_no = 01
 
 [wave]
  wave_speed = 1.0;
  wave_form = 3 ;      # 0: sine wave, 1: Gaussian wave, 2: InViscid Burgers 3: Decaying Turbulence
  Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
- wave_frequency = 2.0  # wave_frequnecy x Pi 
+ wave_frequency = 2.0  # wave_frequnecy x Pi
 
  [./Burger_turb]
    turb_prob_type = Decay_turb_omerSan   # Decay_turb_Adams, Decay_turb_Yanan, forced_turb_Sherwin
-   max_wave_no = 1024
+   max_wave_no = 2048
    ko = 10
    spectrum_restart_flag = 0 # 0: compute new spectrum, 1: load spectrum
    data_print_time = 0.01 # frequency of data print for spectrum calculations
@@ -32,30 +32,30 @@
 [space_solver]
  eqn_set = Advection_Diffusion  # Advection / Diffusion / Advection_Diffusion
  polynomial_order = 3
- upwind_param = 1.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
- 
+ upwind_param = 0.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
+
  [./heat_eqn]
   penalty_param = 1.00
   thermal_diffusivity = 2e-4
   diffus_scheme_type = BR2 # SIP/BR2
-    
+
 [time_solver]
  calculate_dt_flag = 0  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
- 
+
  CFL_no = 0.30
 
- dt = 1.0e-5
+ dt = 2.5e-6
 
  initial_time = 0.0
 
- final_time = 0.10
- 
+ final_time = 0.20
+
  no_of_periods = 1.0  #  period = (xf-x0) / wave_speed
- 
+
  maximum_iteration = 1000 ;
 
  end_of_simulation_flag = 1
-# 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged 
+# 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged
 
  [./explicit]
 
