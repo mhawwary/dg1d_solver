@@ -10,7 +10,7 @@ struct SimData {
 
     // Case parameters:
     //-----------------------------
-    std::string case_title_;    // parent folder for the case results
+    std::string case_title;    // parent folder for the case results
     int Nelem_ = 1;  // no. of elements in the grid
     double x0_=0.0;  // x_begin of domain
     double xf_=1.0;  // x_end of domain

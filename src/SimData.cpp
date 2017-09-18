@@ -6,7 +6,7 @@ void SimData::Parse(const std::string &fname){
 
     // Case parameters:
     //-----------------------------
-    case_title_ = gp_input("Case/title","test");
+    case_title = gp_input("Case/title","test");
     Nelem_ = gp_input("Case/num_elements",1);
     x0_ = gp_input("Case/x_begin",0.0);
     xf_ = gp_input("Case/x_end",1.0);
@@ -168,16 +168,16 @@ void SimData::setup_output_directory(){
 
     case_postproc_dir =new char[300];
 
-    char *case_dir=nullptr,*case_title=nullptr;
+//    char *case_title=nullptr;
+//    case_title=new char[30];
+//    if(wave_form_==0) sprintf(case_title,"sine_wave");
+//    else if(wave_form_==1) sprintf(case_title,"Gaussian_wave");
+//    else if(wave_form_==2) sprintf(case_title,"InViscid_Burgers");
+//    else if(wave_form_==3) sprintf(case_title,"Decaying_Burgers_turb");
+//    else FatalError_exit("Wrong Wave form and not implemented");
+
+    char *case_dir=nullptr;
     case_dir=new char[70];
-    case_title=new char[30];
-
-    if(wave_form_==0) sprintf(case_title,"sine_wave");
-    else if(wave_form_==1) sprintf(case_title,"Gaussian_wave");
-    else if(wave_form_==2) sprintf(case_title,"InViscid_Burgers");
-    else if(wave_form_==3) sprintf(case_title,"Decaying_Burgers_turb");
-    else FatalError_exit("Wrong Wave form and not implemented");
-
     if(Sim_mode=="normal" || Sim_mode=="CFL_const" || Sim_mode=="dt_const")
         sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
     else if(Sim_mode=="test")
@@ -191,8 +191,8 @@ void SimData::setup_output_directory(){
     char *current_working_dir=allchar.allocate(1500);
     getcwd(current_working_dir,1500);
 
-    char *main_dir=nullptr; main_dir = new char[25];
-
+    char *main_dir=nullptr;
+    main_dir = new char[25];
     if(eqn_set=="Advection"){
         sprintf(main_dir,"./Results");
     }else if (eqn_set=="Diffusion"){
@@ -205,8 +205,8 @@ void SimData::setup_output_directory(){
 
     mkdir(main_dir,0777);
     chdir(main_dir);
-    mkdir(case_title,0777);
-    chdir(case_title);
+    mkdir(case_title.c_str(),0777);
+    chdir(case_title.c_str());
     mkdir(case_dir,0777);
     case_postproc_dir = new char[350];
 
@@ -218,10 +218,10 @@ void SimData::setup_output_directory(){
         mkdir(case_no_t,0777);
         chdir(case_no_t);
         sprintf(case_no_t,"%s/case%s",case_dir,case_no_.c_str());
-        sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title,case_no_t);
+        sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title.c_str(),case_no_t);
         emptyarray(case_no_t);
     }else{
-        sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title,case_dir);
+        sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title.c_str(),case_dir);
         chdir(case_dir);
     }
 
@@ -237,7 +237,8 @@ void SimData::setup_output_directory(){
 
     emptyarray(case_dir);
     emptyarray(main_dir);
-    emptyarray(case_title);
+    emptyarray(current_working_dir);
+    //emptyarray(case_title);
 
     return;
 }
@@ -260,50 +261,45 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"disc_unsteady_num:%s\n",(char*)"time_data/u_disc");
     fprintf(python_out,"discont:%s\n",(char*)"nodal/u_disc");
     fprintf(python_out,"discont_exact:%s\n",(char*)"nodal/u_disc_exact");
-    fprintf(python_out,"DGp:%d\n",poly_order_);
-    fprintf(python_out,"RK:%d\n",RK_order_);
-    fprintf(python_out,"Nelem:%d\n",Nelem_);
-    fprintf(python_out,"dt:%1.3e\n",dt_);
-    fprintf(python_out,"t_end:%1.3e\n",t_end_);
-
-    if(eqn_set=="Advection" || eqn_set=="Diffusion" )
-        fprintf(python_out,"CFL:%1.3f\n",CFL_);
-    else if(eqn_set=="Advection_Diffusion")
-        fprintf(python_out,"CFL:%1.3e\n",CFL_);
-
-    if(eqn_set=="Advection"){
-        fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
-        fprintf(python_out,"Eqn_set:%s\n",(char*)"Advection");
-    }else if(eqn_set=="Diffusion"){
-        fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
-        fprintf(python_out,"Eqn_set:%s\n",(char*)"Diffusion");
-        fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
-    }else if(eqn_set=="Advection_Diffusion"){
-        fprintf(python_out,"Eqn_set:%s\n",(char*)"Advection_Diffusion");
-        fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
-        fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
-        fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
-    }else{
-        FatalError_exit("Eqn_set not defined in python_dump");
-    }
+    fprintf(python_out,"Eqn_set:%s\n",eqn_set.c_str());
+    fprintf(python_out,"Eqn_type:%s\n",eqn_type_.c_str());
 
     if(wave_form_==0) fprintf(python_out,"wave_form:%s\n",(char*)"sine_wave");
     else if(wave_form_==1) fprintf(python_out,"wave_form:%s\n",(char*)"Gaussian_wave");
     else if(wave_form_==2) fprintf(python_out,"wave_form:%s\n",(char*)"InViscid_Burgers");
     else if(wave_form_==3) fprintf(python_out,"wave_form:%s\n",(char*)"Decaying_Burgers_turb");
 
-    fprintf(python_out,"T:%1.3f\n",Nperiods);
-
-    if(Sim_mode=="error_analysis_dt")
+    if(Sim_mode=="error_analysis_dt" || Sim_mode=="dt_const")
         fprintf(python_out,"mode:%s","dt_const");
-    else if(Sim_mode=="error_analysis_CFL")
+    else if(Sim_mode=="error_analysis_CFL" || Sim_mode=="CFL_const")
         fprintf(python_out,"mode:%s","CFL_const");
     else if(Sim_mode=="error_analysis_Beta")
         fprintf(python_out,"mode:%s","Beta_const");
     else if(Sim_mode=="error_analysis_Epsilon")
         fprintf(python_out,"mode:%s","Epsilon_const");
     else
-        fprintf(python_out,"mode:%s",Sim_mode.c_str());
+        fprintf(python_out,"mode:%s\n",Sim_mode.c_str());
+
+    if(eqn_set=="Advection"){
+        fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+    }else if(eqn_set=="Diffusion"){
+        fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
+        fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
+    }else if(eqn_set=="Advection_Diffusion"){
+        fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
+        fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
+        fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+    }else{
+        FatalError_exit("Eqn_set is not defined for python_dump");
+    }
+
+    fprintf(python_out,"p:%d\n",poly_order_);
+    fprintf(python_out,"RK:%d\n",RK_order_);
+    fprintf(python_out,"Nelem:%d\n",Nelem_);
+    fprintf(python_out,"CFL:%1.4f\n",CFL_);
+    fprintf(python_out,"dt:%1.3e\n",dt_);
+    fprintf(python_out,"t_end:%1.3e\n",t_end_);
+    fprintf(python_out,"T:%1.3f\n",Nperiods);
 
     fclose(python_out);
     emptyarray(fname);
