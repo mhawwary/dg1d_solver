@@ -52,6 +52,7 @@ struct SimData {
     double* energy_spect_=nullptr;      // E
     int spectrum_restart_flag = 0;      // 0: compute new spectrum, 1: load spectrum
     double velocity_mean_=0.0;   // u(x) = sum(E(k) *cos(k))+ u_mean
+
     // Space Solver parameters:
     //-----------------------------
     std::string eqn_set;    //  Advection / Diffusion / Advection_Diffusion

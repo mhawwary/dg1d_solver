@@ -299,8 +299,8 @@ def plot_burgers_decay_turb(dir1, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, c
                      
     Beta = Decimal(Beta.quantize(Decimal('.01')));
     Epsilon = Decimal(Epsilon.quantize(Decimal('.01')));
+    CFL = Decimal(CFL.quantize(Decimal('.0001')));
 
-    #CFL = Decimal(CFL.quantize(Decimal('.001')));
     dt = float(dt_);
 
     fname = dir1 + cont_num + str("_N") + Nelem \

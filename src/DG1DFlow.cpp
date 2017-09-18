@@ -133,6 +133,7 @@ void RunSim(){
         time_solver_->space_solver->UpdatePhyTime(dt_);
 
     gtime=dg_solver_->GetPhyTime();
+    printf("Iter No:%d, time: %f\n",time_solver->GetIter(),gtime);
     dg_solver_->dump_timeaccurate_sol();
 
     return;

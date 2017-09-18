@@ -23,9 +23,9 @@ with open(args.python_input) as file:
         elif row[0]=='Diffusion_scheme':
             diffus_scheme=str(row[1]);
         elif row[0]=='CFL':
-            #CFL=Decimal(row[1]);
-            CFL = str(row[1]);
-        elif row[0]=='DGp':
+            CFL=Decimal(row[1]);
+            #CFL = str(row[1]);
+        elif row[0]=='p':
             DG=str(row[1]);
         elif row[0] == 'RK':    
             RK=str(row[1]);

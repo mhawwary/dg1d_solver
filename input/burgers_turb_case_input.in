@@ -57,7 +57,7 @@
  CFL_no = 0.20
  dt = 1.0e-4
  initial_time = 0.0
- final_time = 5.00
+ final_time = 1.00
  no_of_periods = 1.0  #  period = (xf-x0) / wave_speed
  maximum_iteration = 1000 ;
 
