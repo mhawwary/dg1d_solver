@@ -1,53 +1,70 @@
 [Case]
- title = Gaussian   # sine wave
- num_elements = 100
- x_begin =  0.0
+ title = decay_burg_turb   # sine wave / Gaussian / .....
+ num_elements = 256
+ x_begin =  0.0   
  x_end   =  6.283185307
- uniform_grid = 1
- refinement_level = 0
- Npoints_plot = 10  # no. of equally spaced points per element for plotting discontinuous sol
- N_exact_plot_pts = 150
- N_equally_spaced_pts = 200  # no. of equally spaced points (globally over the entire domain) for plotting discontinuous sol
+ uniform_grid = 1        # all have the same dx
+ refinement_level = 0    # if mesh refinement is introduced
+ N_uniform_pts_per_elem = 4   # no. of unifromly spaced pts per element for post-processing
+ N_exact_plot_pts = 512     # no. of points for exact solution plotting
 
 [Simulation] 
- print_freq = 1000
- restart_flag = 0
+ unsteady_data_print_flag = 0   # 0: use iter , 1: use time
+ unsteady_data_print_iter  = 100  # iter no. for print of unsteady data 
+ unsteady_data_print_time  = 0.100  # time point for print of unsteady data
+ restart_flag = 0   # 0: no-restart, 1: restart from restart file
  restart_iter = 1e6
- mode = test   # normal/test/error_analysis_dt/error_analysis_CFL
+ mode = test   # normal/test/error_analysis_dt/error_analysis_CFL/CFL_const/dt_const
+ case_no = 00  # case number if needed for burgers decaying turb and any turbluent flow
 
 [wave]
- wave_speed = 1.0;
- wave_form = 0 ;      # 0: sine wave, 1: Gaussian wave, 2: InViscid Burgers 3: Decaying Turbulence
- Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
- wave_frequency = 2.0  # wave_frequnecy x Pi 
+ wave_form = 3 ;      # 0: sine wave, 1: Gaussian wave, 2: InViscid Burgers 3: Decaying Turbulence   
+ wave_speed = 1.0;    # for linear advection or linear Advec_Diffus
+   
+ [./trigonometric]    # u(x,0) = A * sin ( f * PI + phy ) + C
+     wave_freq = 2.0       # wave_frequnecy f
+     wave_amplitude = 1.0  # wave amplitude A
+     wave_const = 0.0       # C
+     wave_freq_shift = 0.0   # phy
+     
+ [../Gaussian]
+   Gaussian_exponent = 38.6  # u(x) = A * exp(-38.6 *x^2)
+   Gaussian_amplitude = 1.0 
+     
+ [../Burger_turb]
+   turb_prob_type = Decay_turb_omerSan   # Decay_turb_Adams, Decay_turb_Yanan, forced_turb_Sherwin
+   max_wave_no = 2048 
+   ko = 10
+   spectrum_restart_flag = 0  # 0: compute new spectrum, 1: load spectrum     
+   velocity_mean = 0.0  #  u(x) = sum(E(k) *cos(k))+ u_mean
 
 [space_solver]
  eqn_set = Advection_Diffusion  # Advection / Diffusion / Advection_Diffusion
- polynomial_order = 4
- upwind_param = 1.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
+ eqn_type = visc_burger # inv_burger / linear_advec / linear_diffus
+ polynomial_order = 3
+
+ [./advec_eqn]
+  upwind_param = 1.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
  
- [./heat_eqn]
+ [../heat_eqn]
   penalty_param = 1.00
-  thermal_diffusivity = 5e-4
+  thermal_diffusivity = 2.0e-4
   diffus_scheme_type = BR2 # SIP/BR2
     
 [time_solver]
  calculate_dt_flag = 0  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
- 
- CFL_no = 0.05
-
- dt = 1e-4
+ calc_dt_adv_diffus_flag = 0 # 0: based on advection, 1: based on diffusion, 2: based on combined advection-diffusion
+ CFL_no = 0.20
+ dt = 1.0e-3
  initial_time = 0.0
-
- final_time = 1.0
- 
+ final_time = 5.00
  no_of_periods = 1.0  #  period = (xf-x0) / wave_speed
- 
  maximum_iteration = 1000 ;
 
  end_of_simulation_flag = 1
-# 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged 
+# 0: use no. of periods to setup the maxIter, 
+# 1: use final time directly, 
+# 2: use max_iteration as a stopping criteria if not converged or diverged 
 
  [./explicit]
-
   RK_order = 3

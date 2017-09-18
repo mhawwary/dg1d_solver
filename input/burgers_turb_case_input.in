@@ -1,5 +1,5 @@
 [Case]
- title = decay_burg_turb   # sine wave / Gaussian / .....
+ title = decay_burg_turb1   # sine wave / Gaussian / .....
  num_elements = 256
  x_begin =  0.0   
  x_end   =  6.283185307
@@ -36,7 +36,7 @@
    max_wave_no = 2048 
    ko = 10
    spectrum_restart_flag = 0  # 0: compute new spectrum, 1: load spectrum     
-   velocity_mean = 0.0  #  u(x) = sum(E(k) *cos(k))+ u_mean
+   velocity_mean = 10.0  #  u(x) = sum(E(k) *cos(k))+ u_mean
 
 [space_solver]
  eqn_set = Advection_Diffusion  # Advection / Diffusion / Advection_Diffusion
@@ -55,7 +55,7 @@
  calculate_dt_flag = 0  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
  calc_dt_adv_diffus_flag = 0 # 0: based on advection, 1: based on diffusion, 2: based on combined advection-diffusion
  CFL_no = 0.20
- dt = 1.0e-3
+ dt = 1.0e-4
  initial_time = 0.0
  final_time = 5.00
  no_of_periods = 1.0  #  period = (xf-x0) / wave_speed

@@ -21,7 +21,7 @@ public:
    virtual void UpdateResid(double **Resid_, double **Qn_);
 
    virtual void Compute_vertex_sol();
-   virtual void Compute_cont_sol();
+   virtual void Compute_cont_sol(){}
    virtual double ComputePolyError();
    virtual double L1_error_projected_sol();
    virtual double L2_error_projected_sol();
@@ -83,6 +83,8 @@ protected:
    double Rusanov(const double &Ql, const double &Qr);
    double eval_burgers_inviscidFlux(const double& xi_pt, const double *q_);
    double eval_init_u_decay_burger_turb(const double& xx_);
+   void compute_uniform_cont_sol();
+   double compute_totalVariation();
 
    void Reset_solver();
 
@@ -97,8 +99,9 @@ protected:
    int Nquad_invFlux_=1;
    int Nquad_viscFlux_=1;
 
-   double **dLk=nullptr; //Derivatives of legendre polynomials at(-1), (1)
+   double *u_cont_sol=nullptr;
 
+   double **dLk=nullptr; //Derivatives of legendre polynomials at(-1), (1)
 };
 
 #endif

@@ -27,7 +27,7 @@ struct GridData {
 
     int N_exact_ppts=100;
     int N_xi_disc_ppts=1;
-    int N_uniform_pts=2*Nelem;
+    int N_uniform_pts=1*Nelem+1;
     int n_uniform_pts_per_elem=2;
 
     int uniform=1;  // 0: for nonuniform mesh elements

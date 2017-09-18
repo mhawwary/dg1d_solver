@@ -35,14 +35,9 @@ int main(int argc, char** argv){
 
     RunSim();
 
-    if(simdata_.wave_form_==3){
-        dg_solver_->print_average_sol();
-        dg_solver_->print_cont_vertex_sol();
-        dg_solver_->dump_discont_sol();
-    }
-    else{
+    if(simdata_.wave_form_!=3)
         PostProcess();
-    }
+
     printf("\nFinal Iteration number is: %d\n",time_solver_->GetIter());
     printf("Final time is: %1.5f\n",dg_solver_->GetPhyTime());
 
@@ -93,11 +88,20 @@ void InitSim(const int& argc,char** argv){
 
 void RunSim(){
 
+    int n_iter_print;
     double gtime = dg_solver_->GetPhyTime();
     double dt_= dg_solver_->GetTimeStep();
-    int n_iter_print = (int) round( simdata_.data_print_time_ / dt_) ;
-    printf("\nNIter to print unsteady data: %d",n_iter_print);
 
+    if(simdata_.unsteady_data_print_flag_==0)
+        n_iter_print = simdata_.unsteady_data_print_iter_;
+    else if(simdata_.unsteady_data_print_flag_==1)
+        n_iter_print= (int) round( simdata_.unsteady_data_print_time_/ dt_) ;
+    else
+        FatalError_exit("unsteady data print flag error");
+
+    printf("\nnIter to print unsteady data: %d",n_iter_print);
+
+    // First Solve:
     time_solver_->ComputeInitialResid(dg_solver_->GetNumSolution());
     time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
     time_solver_->space_solver->UpdatePhyTime(dt_);
@@ -108,7 +112,8 @@ void RunSim(){
         dg_solver_->dump_timeaccurate_sol();
     }
 
-    while ( gtime < simdata_.t_end_- 1.05*dt_ ){
+    // main solution loop:
+    while ( gtime < simdata_.t_end_- 1.01*dt_ ){
 
         time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
         time_solver_->space_solver->UpdatePhyTime(dt_);
@@ -121,7 +126,6 @@ void RunSim(){
     }
 
     // Last iteration:
-
     time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
     if(dg_solver_->GetLastTimeStep()>=1e-10)
         time_solver_->space_solver->UpdatePhyTime(dg_solver_->GetLastTimeStep());

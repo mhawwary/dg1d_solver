@@ -83,6 +83,7 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     flux_com = new double[grid_->Nfaces];
     viscflux_com = new double[grid_->Nfaces];
     u_sol_jump = new double[grid_->Nfaces];
+    u_cont_sol = new double[grid_->N_uniform_pts];
 
     if(simdata_->diffus_scheme_type_=="SIP")
         r_lift = pow(simdata_->poly_order_,2);
@@ -93,32 +94,10 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     SetPhyTime(simdata_->t_init_);
 
-    CalcTimeStep();
     ComputeExactSolShift();
     Compute_projected_exact_sol();
     Compute_exact_vertex_sol();
     setup_basis_interpolation_matrices();
-
-    // Screen Output of input and simulation parameters:
-    cout <<"\n===============================================\n";
-    cout << "CFL no.        : "<<CFL<<endl;
-    cout << "time step, dt  : "<<time_step<<endl;
-    cout << "last_time_step: "<<last_time_step<<endl;
-    cout << "input Nperiods : "<<simdata_->Nperiods<<endl;
-    cout << "new   Nperiods : "<<simdata_->t_end_/T_period<<endl;
-    cout << "exact_sol_shift: "<<exact_sol_shift<<endl;
-    cout << "T_period       : "<<T_period<<endl;
-    printf("actual_end_time:%1.5f",simdata_->t_end_);
-    cout <<"\nMax_iter: "<<simdata_->maxIter_<<endl;
-
-    cout << "\nNumber of Elements: "<< grid_->Nelem<<"  dx:  "<<grid_->dx<<endl;
-    cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
-    cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
-    cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
-    cout << "Penalty parameter : "<< e_penalty << endl;
-    cout << "Poly GaussQuad order  : "<< Nquad_ << endl;
-    cout << "Flux GaussQuad order  : "<< Nquad_invFlux_ << endl;
-    cout <<"===============================================\n";
 
     return;
 }
@@ -145,6 +124,7 @@ void DGSolverAdvecDiffus::Reset_solver(){
     emptyarray(flux_com);
     emptyarray(viscflux_com);
     emptyarray(u_sol_jump);
+    emptyarray(u_cont_sol);
     emptyarray(Qv);
     emptyarray(grid_->Nelem,Qex_proj);
     emptyarray(Ndof,Lk);
@@ -167,19 +147,29 @@ void DGSolverAdvecDiffus::Reset_solver(){
 
 void DGSolverAdvecDiffus::CalcTimeStep(){
 
+    compute_uniform_cont_sol();
+    double TV_ = compute_totalVariation();
+
     double dx = grid_->dx;
     double dx2 = pow(dx,2);
     double radius_advec_=0.0, radius_diffus_ =0.0;
 
     T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
-    radius_advec_ =  simdata_->a_wave_ / dx  ;
+    radius_advec_ =  max_eigen_advec / dx  ;
     radius_diffus_ = simdata_->thermal_diffus / dx2 ;
 
     if(simdata_->calc_dt_flag==1){   // use CFL as input
 
         CFL = simdata_->CFL_;
+        if(simdata_->calc_dt_adv_diffus_flag==0)   // based on advection effect only
+            time_step = CFL / radius_advec_ ;
+        else if(simdata_->calc_dt_adv_diffus_flag==1)  // based on diffusion effect only
+            time_step = CFL /  radius_diffus_ ;
+        else if(simdata_->calc_dt_adv_diffus_flag==2)  // based on combined advection and diffusion effects
+            time_step = CFL / ( radius_advec_ + radius_diffus_ );
+        else
+            FatalError_exit("Wrong Calc dt adv diffus flag");
 
-        time_step = CFL / ( radius_advec_ + radius_diffus_ );
         last_time_step = time_step;
         simdata_->dt_ = time_step;
 
@@ -188,10 +178,18 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
         time_step = simdata_->dt_;
         last_time_step = time_step;
 
-        CFL = time_step * ( radius_advec_ + radius_diffus_ );
+        if(simdata_->calc_dt_adv_diffus_flag==0)
+            CFL = time_step * radius_advec_ ;
+        else if(simdata_->calc_dt_adv_diffus_flag==1)
+            CFL = time_step * radius_diffus_ ;
+        else if(simdata_->calc_dt_adv_diffus_flag==2)
+            CFL = time_step * ( radius_advec_ + radius_diffus_ );
+        else
+            FatalError_exit("Wrong Calc dt adv diffus flag");
+
         simdata_->CFL_ = CFL;
 
-    }else {
+    }else{
 
         FatalError_exit("Wrong Calc_dt_flag");
     }
@@ -223,7 +221,7 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
 
             last_time_step = simdata_->t_end_ - ((simdata_->maxIter_-1) * time_step);
 
-        }else if((simdata_->maxIter_ * time_step) < (simdata_->Nperiods * T_period) ){
+        }else if((simdata_->maxIter_ * time_step) < simdata_->t_end_ ){
 
             last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
         }
@@ -242,17 +240,67 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
         FatalError_exit("Wrong end_of_simulation_flag");
     }
 
+    // Screen Output of input and simulation parameters:
+    cout <<"\n===============================================\n";
+    cout << "max eigenvalue : "<<max_eigen_advec<<endl;
+    cout << "TotalVariation : "<<TV_<<endl;
+    cout << "ThermalDiffusiv: "<< simdata_->thermal_diffus << endl;
+    cout << "CFL no.        : "<<CFL<<endl;
+    cout << "time step, dt  : "<<time_step<<endl;
+    cout << "last_time_step: "<<last_time_step<<endl;
+    cout << "input Nperiods : "<<simdata_->Nperiods<<endl;
+    cout << "new   Nperiods : "<<simdata_->t_end_/T_period<<endl;
+    cout << "exact_sol_shift: "<<exact_sol_shift<<endl;
+    cout << "T_period       : "<<T_period<<endl;
+    printf("actual_end_time:%1.5f",simdata_->t_end_);
+    cout <<"\nMax_iter: "<<simdata_->maxIter_<<endl;
+
+    cout << "\nNumber of Elements: "<< grid_->Nelem<<"  dx:  "<<grid_->dx<<endl;
+    cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
+    cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
+    cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
+    cout << "Penalty parameter : "<< e_penalty << endl;
+    cout << "Poly GaussQuad order  : "<< Nquad_ << endl;
+    cout << "Flux GaussQuad order  : "<< Nquad_invFlux_ << endl;
+    cout <<"===============================================\n";
+
     return;
 }
 
 void DGSolverAdvecDiffus::InitSol(){
 
     register int j;
-    int k=0;
+    int k=0,i;
+    double xx=0.0,qi_=0.0;
 
-    for(j=0; j<grid_->Nelem; j++)
-        for(k=0; k<Ndof; k++)
-            Qn[j][k] = initSol_legendre_proj(j,k,quad_);
+    max_eigen_advec=0.0;  // initializing the maximum eigen value with zero
+
+    GaussQuad quad_temp; quad_temp.setup_quadrature(8);
+
+    if(simdata_->wave_form_==3 || simdata_->wave_form_==2){  // burger's equation
+        max_eigen_advec=0.0;  // initializing the maximum eigen value with zero
+        for(j=0; j<grid_->Nelem; j++){
+            for(k=0; k<Ndof; k++)
+                Qn[j][k] = initSol_legendre_proj(j,k,quad_);
+
+            for (i=0; i<quad_temp.Nq; i++){
+                xx = 0.5 * grid_->h_j[j] * quad_temp.Gaus_pts[i] + grid_->Xc[j];
+                qi_ = evalSolution(&Qn[j][0],xx);
+                if(fabs(qi_)>max_eigen_advec) max_eigen_advec = fabs(qi_);
+            }
+        }
+    }
+    else {
+        for(j=0; j<grid_->Nelem; j++)
+            for(k=0; k<Ndof; k++)
+                Qn[j][k] = initSol_legendre_proj(j,k,quad_);
+
+        max_eigen_advec = simdata_->a_wave_;
+    }
+
+    CalcTimeStep(); // based on maximum eigenvalues
+
+    quad_temp.Reset_quad();
 
     return;
 }
@@ -751,11 +799,6 @@ void DGSolverAdvecDiffus::Compute_vertex_sol(){
     return;
 }
 
-void DGSolverAdvecDiffus::Compute_cont_sol(){
-
-    return;
-}
-
 void DGSolverAdvecDiffus::Compute_exact_vertex_sol(){
 
     register int j;
@@ -818,10 +861,10 @@ double DGSolverAdvecDiffus::eval_init_u_decay_burger_turb(const double& xx_){
         k_ = simdata_->k_wave_no_[i];
         epsi_= simdata_->epsi_phase_[i];
         E_= simdata_->energy_spect_[i];
-        u_ += sqrt(2.*E_ ) * cos (k_ * xx_ + 2.*PI*epsi_) ;
+        u_ += sqrt(2.*E_ ) * cos (k_ * xx_ + 2.*PI*epsi_);
     }
 
-    return u_;
+    return (u_ + simdata_->velocity_mean_ );
 }
 
 double DGSolverAdvecDiffus::eval_exact_sol(double &xx){
@@ -1550,21 +1593,34 @@ void DGSolverAdvecDiffus::dump_discont_sol(){
 
 void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
 
-    register int j; int k; int eID_=0;
+    register int j; int k;
 
     double xx=0.0,qq=0.0;
 
     char *fname=nullptr;
     fname = new char[250];
 
-    // Dump time accurate continuous equally spaced solution data:
-    sprintf(fname,"%stime_data/u_cont_N%d_dt%1.3e_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
-            ,simdata_->case_postproc_dir
-            ,grid_->Nelem
-            ,time_step
-            ,simdata_->upwind_param_
-            ,e_penalty
-            ,phy_time);
+    if(simdata_->Sim_mode=="CFL_const"){
+        // Dump time accurate continuous equally spaced solution data:
+        sprintf(fname,"%stime_data/u_cont_N%d_CFL%1.4f_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,CFL
+                ,simdata_->upwind_param_
+                ,e_penalty
+                ,phy_time);
+
+    }else{
+        // Dump time accurate continuous equally spaced solution data:
+        sprintf(fname,"%stime_data/u_cont_N%d_dt%1.3e_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,time_step
+                ,simdata_->upwind_param_
+                ,e_penalty
+                ,phy_time);
+
+    }
 
     FILE* sol_out=fopen(fname,"w");
 
@@ -1621,60 +1677,28 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
     }
 
     fprintf(sol_out,"%2.10e %2.10e\n",grid_->xf,qq_end_);
-
-    /*for(j=0; j<grid_->N_equal_spaced+1; j++){
-
-        qq=0.0;
-
-        eID_ = grid_->x_dump_to_elem[j];
-
-        if(j==0 || j==grid_->N_equal_spaced){
-            int jj=0;
-            eID_ = 0;
-            xxi_ = 2. * (grid_->X_dump[jj] - grid_->Xc[eID_])
-                    / grid_->h_j[eID_];
-            qq = evalSolution(&Qn[eID_][0],xxi_);
-
-            jj= grid_->N_equal_spaced;
-            eID_ = grid_->Nelem-1;
-            xxi_ = 2. * (grid_->X_dump[jj] - grid_->Xc[eID_])
-                    / grid_->h_j[eID_];
-            qq += evalSolution(&Qn[eID_][0],xxi_);
-            qq = 0.5*qq;
-
-        }else if(eID_>=0){
-            xxi_ = 2.0 * (grid_->X_dump[j] - grid_->Xc[eID_])
-                    / grid_->h_j[eID_];
-            qq = evalSolution(&Qn[eID_][0],xxi_);
-
-        }else{
-            eID_=grid_->x_dump_to_elem[j-1];
-            xxi_ = 2. * (grid_->X_dump[j] - grid_->Xc[eID_])
-                    / grid_->h_j[eID_];
-            qq = evalSolution(&Qn[eID_][0],xxi_);
-
-            eID_=grid_->x_dump_to_elem[j+1];
-            xxi_ = 2. * (grid_->X_dump[j] - grid_->Xc[eID_])
-                    / grid_->h_j[eID_];
-            qq += evalSolution(&Qn[eID_][0],xxi_);
-            qq = 0.5*qq;
-        }
-
-        fprintf(sol_out,"%2.10e %2.10e\n",grid_->X_dump[j],qq);
-    }*/
-
     fclose(sol_out);
     emptyarray(fname);
 
     // Dump time accurate Discontinuous data:
     fname = new char[250];
-    sprintf(fname,"%stime_data/u_disc_N%d_dt%1.3e_Beta%1.2f_Eps%1.3f_%1.3ft.dat"
-            ,simdata_->case_postproc_dir
-            ,grid_->Nelem
-            ,time_step
-            ,simdata_->upwind_param_
-            ,e_penalty
-            ,phy_time);
+    if(simdata_->Sim_mode=="CFL_const"){
+        sprintf(fname,"%stime_data/u_disc_N%d_CFL%1.4f_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,CFL
+                ,simdata_->upwind_param_
+                ,e_penalty
+                ,phy_time);
+    }else{
+        sprintf(fname,"%stime_data/u_disc_N%d_dt%1.3e_Beta%1.2f_Eps%1.2f_%1.3ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,time_step
+                ,simdata_->upwind_param_
+                ,e_penalty
+                ,phy_time);
+    }
 
     FILE* sol_out1=fopen(fname,"w");
 
@@ -1697,6 +1721,78 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
     return;
 }
 
+
+void DGSolverAdvecDiffus::compute_uniform_cont_sol(){
+
+    // Dump continuous data on uniform points:
+    //-------------------------------------------
+    register int j; int k;
+
+    double xx=0.0;
+
+    int count_=0; //continuous points counter
+
+    // For element zero:
+    u_cont_sol[count_] = 0.0;
+    k = simdata_->N_uniform_pts_per_elem_-1;
+    j= grid_->Nelem-1;
+    u_cont_sol[count_] = evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+
+    k=0; j=0;
+    xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+            + grid_->Xc[j];
+    u_cont_sol[count_] += evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+
+    u_cont_sol[count_] = u_cont_sol[count_]/2.;
+    count_++;
+
+    for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
+        xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+                + grid_->Xc[j];
+        u_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+        count_++;
+    }
+
+    u_cont_sol[count_]=0.0;
+    for(j=1; j<grid_->Nelem; j++){
+
+        k=0;
+        xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+                + grid_->Xc[j];
+        u_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+
+        k = simdata_->N_uniform_pts_per_elem_-1;
+        u_cont_sol[count_] += evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+
+        u_cont_sol[count_] = u_cont_sol[count_]/2.;
+        count_++;
+
+        for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
+            xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
+                    + grid_->Xc[j];
+            u_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+            count_++;
+        }
+    }
+    u_cont_sol[count_] = u_cont_sol[0];
+
+    printf("\n Count: %d \t N_uniform: %d\n", count_, grid_->N_uniform_pts);
+
+
+    return;
+}
+
+double DGSolverAdvecDiffus::compute_totalVariation(){
+
+    register int i;
+
+    double TV_=0.0;
+
+    for(i=1; i<grid_->N_uniform_pts; i++)
+        TV_ += fabs(u_cont_sol[i]-u_cont_sol[i-1]);
+
+    return TV_;
+}
 
 
 

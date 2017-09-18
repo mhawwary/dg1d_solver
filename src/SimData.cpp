@@ -4,28 +4,58 @@ void SimData::Parse(const std::string &fname){
 
     GetPot gp_input(fname.c_str());
 
+    // Case parameters:
+    //-----------------------------
+    case_title_ = gp_input("Case/title","test");
     Nelem_ = gp_input("Case/num_elements",1);
     x0_ = gp_input("Case/x_begin",0.0);
     xf_ = gp_input("Case/x_end",1.0);
     uniform_ = gp_input("Case/uniform_grid",1);
     refine_level_ = gp_input("Case/refinement_level",0);
-    Npplot = gp_input("Case/Npoints_plot",2);
     N_exact_plot_pts = gp_input("Case/N_exact_plot_pts",100);
     N_uniform_pts_per_elem_ = gp_input("Case/N_uniform_pts_per_elem",2);
+    Npplot = N_uniform_pts_per_elem_;
 
-    print_freq_=gp_input("Simulation/print_freq",0);
+    // Simulation parameters:
+    //-----------------------------
+    unsteady_data_print_flag_=gp_input("Simulation/unsteady_data_print_flag",0);
+    unsteady_data_print_iter_=gp_input("Simulation/unsteady_data_print_iter",0);
+    unsteady_data_print_time_=gp_input("Simulation/unsteady_data_print_time",0.100);
     restart_iter_ = gp_input("Simulation/restart_iter",0);
     restart_flag = gp_input("Simulation/restart_flag",0);
     Sim_mode = gp_input("Simulation/mode","normal");
+    case_no_ = gp_input("Simulation/case_no","00");
 
+    // Wave parameters:
+    //----------------------------
     a_wave_ = gp_input("wave/wave_speed",1.0);
     wave_form_ = gp_input("wave/wave_form",0);
-    Gaussian_exponent_ = gp_input("wave/Gaussian_exponent",-50.0);
-    wave_freq_ = gp_input("wave/wave_frequency",2.0);
+    // ./trigonometric:
+    wave_freq_ = gp_input("wave/trigonometric/wave_freq",2.0);
+    wave_amp_  = gp_input("wave/trigonometric/wave_amplitude",1.0);
+    wave_const = gp_input("wave/trigonometric/wave_const",0.0);
+    wave_shift = gp_input("wave/trigonometric/wave_freq_shift",0.0);
+    // ./Gaussian:
+    Gaussian_amp_ = gp_input("wave/Gaussian/Gaussian_amplitude",1.0);
+    Gaussian_exponent_ = gp_input("wave/Gaussian/Gaussian_exponent",-50.0);
+    // ./Burger_turb:
+    if(wave_form_==3){  // Burger's Turbulence
+        turb_prob_type_
+                = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_Adams");
+        max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024);
+        max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10.0);
+        spectrum_restart_flag = gp_input("wave/Burger_turb/spectrum_restart_flag",0);
+        velocity_mean_ = gp_input("wave/Burger_turb/velocity_mean",0.0);
+    }
 
-    poly_order_=gp_input("space_solver/polynomial_order",1);
-    upwind_param_=gp_input("space_solver/upwind_param",1.0);
+    // Space Solver parameters:
+    //-----------------------------
     eqn_set = gp_input("space_solver/eqn_set","Advection");
+    eqn_type_ = gp_input("space_solver/eqn_type","linear_advec");
+    poly_order_=gp_input("space_solver/polynomial_order",1);
+    // ./advec_eqn:
+    upwind_param_=gp_input("space_solver/advec_eqn/upwind_param",1.0);
+    // ./heat_eqn:
     thermal_diffus
             = gp_input("space_solver/heat_eqn/thermal_diffusivity",1.0);
     penalty_param_
@@ -33,25 +63,19 @@ void SimData::Parse(const std::string &fname){
     diffus_scheme_type_ =
             gp_input("space_solver/heat_eqn/diffus_scheme_type","SIP");
 
+    // Time Solver parameters:
+    //--------------------------------
     calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1);
+    calc_dt_adv_diffus_flag = gp_input("time_solver/calc_dt_adv_diffus_flag",0);
     CFL_ = gp_input("time_solver/CFL_no",1.0);
     dt_ = gp_input("time_solver/dt",1e-9);
     t_init_ = gp_input("time_solver/initial_time",0.0);
     t_end_ = gp_input("time_solver/final_time",1.0);
     maxIter_ = gp_input("time_solver/maximum_iteration",1e9);
     end_of_sim_flag_ = gp_input("time_solver/end_of_simulation_flag",0);
-    RK_order_=gp_input("time_solver/explicit/RK_order",1);
     Nperiods = gp_input("time_solver/no_of_periods",1.0);
-
-    if(wave_form_==3){  // Burger's Turbulence
-        turb_prob_type_
-                = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_Adams");
-        max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024);
-        max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10.0);
-        spectrum_restart_flag = gp_input("wave/Burger_turb/spectrum_restart_flag",0);
-        data_print_time_ = gp_input("wave/Burger_turb/data_print_time",0.01);
-        case_no_ = gp_input("Simulation/case_no","00");
-    }
+    // ./explicit:
+    RK_order_=gp_input("time_solver/explicit/RK_order",1);
 }
 
 void SimData::prepare_dump_burgers_turb_param(){
@@ -67,10 +91,10 @@ void SimData::prepare_dump_burgers_turb_param(){
 
         // Preparing Random number seeds:
         //-----------------------------------
-        srand(time(NULL));
-        //std::random_device rd;  //Will be used to obtain a seed for the random number engine
-        //std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-        //std::uniform_real_distribution<> dis(0, 1);
+        //srand(time(NULL));
+        std::random_device rd;  //Will be used to obtain a seed for the random number engine
+        std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+        std::uniform_real_distribution<> dis(0.0, std::nextafter(0.9999999999999999, DBL_MAX));  // std::nextafter(0.9999999999999999, DBL_MAX)
 
         // Preparing Dump Spectrum Data:
         //----------------------------------
@@ -80,8 +104,8 @@ void SimData::prepare_dump_burgers_turb_param(){
         FILE* spect_out_ = fopen(fname,"w");
 
         for(i=0; i<n_pts_; i++){
-            //epsi_phase_[i] = dis(gen);
-            epsi_phase_[i] = 1.*((double) rand()/(RAND_MAX)) ;
+            epsi_phase_[i] = dis(gen);
+            //epsi_phase_[i] = 1.*((double) rand()/(RAND_MAX));
             k_wave_no_[i] = i+1;
 
             A_ = 2. * pow(max_energy_wave_no_,-5) / (3. * sqrt(PI) ) ;
@@ -108,24 +132,29 @@ void SimData::prepare_dump_burgers_turb_param(){
         fclose(b_spect_out_);
         emptyarray(fname);
 
-    }else if(spectrum_restart_flag==1){
-        // Reading Binary data:
+    }else if(spectrum_restart_flag==1){    // Reading Binary data
         char *fname=nullptr;
-        fname=new char[150];
+        fname=new char[400];
         sprintf(fname,"%sspectrum_binarydata_N%d",case_postproc_dir,max_wave_no_);
-        FILE*  b_spect_in_=fopen(fname,"rb");
+        struct stat statbuf;
+        stat(fname, &statbuf);   // check if the binary file exist
+        if(!S_ISDIR(statbuf.st_mode)){
+            FatalError_exit("Spectrum Binary file does not exist");
+        }else{
+            FILE*  b_spect_in_=fopen(fname,"rb");
+            k_wave_no_ = new int[max_wave_no_];
+            epsi_phase_ = new double[max_wave_no_];
+            energy_spect_ = new double[max_wave_no_];
 
-        k_wave_no_ = new int[max_wave_no_];
-        epsi_phase_ = new double[max_wave_no_];
-        energy_spect_ = new double[max_wave_no_];
-
-        fread(&max_wave_no_,sizeof(int),1,b_spect_in_);
-        fread(k_wave_no_,sizeof(int),max_wave_no_,b_spect_in_);
-        fread(epsi_phase_,sizeof(double),max_wave_no_,b_spect_in_);
-        fread(energy_spect_,sizeof(double),max_wave_no_,b_spect_in_);
-
-        fclose(b_spect_in_);
+            fread(&max_wave_no_,sizeof(int),1,b_spect_in_);
+            fread(k_wave_no_,sizeof(int),max_wave_no_,b_spect_in_);
+            fread(epsi_phase_,sizeof(double),max_wave_no_,b_spect_in_);
+            fread(energy_spect_,sizeof(double),max_wave_no_,b_spect_in_);
+            fclose(b_spect_in_);
+        }
         emptyarray(fname);
+    }else{
+        FatalError_exit("spectrum restart flag error, please use either 0 or 1");
     }
 
     return;
@@ -149,7 +178,7 @@ void SimData::setup_output_directory(){
     else if(wave_form_==3) sprintf(case_title,"Decaying_Burgers_turb");
     else FatalError_exit("Wrong Wave form and not implemented");
 
-    if(Sim_mode=="normal")
+    if(Sim_mode=="normal" || Sim_mode=="CFL_const" || Sim_mode=="dt_const")
         sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
     else if(Sim_mode=="test")
         sprintf(case_dir,"DGp%d_RK%d_test",poly_order_,RK_order_);

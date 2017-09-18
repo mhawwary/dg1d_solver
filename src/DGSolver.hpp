@@ -143,6 +143,8 @@ protected:
 
    double *flux_com=nullptr;  // common interface flux, Nfaces long
 
+   double max_eigen_advec=0.0; // maximum eigenvalue for adevction
+
    double phy_time=0.0;
    double time_step=1e-5;
    double last_time_step=1e-5;

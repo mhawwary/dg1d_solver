@@ -1,4 +1,4 @@
-dir:./Results_AdvecDiffus/sine_wave/DGp4_RK3_test/
+dir:./Results_AdvecDiffus/Decaying_Burgers_turb/DGp3_RK3_test/case00/
 errors:errors/errors
 aver:aver/u_aver
 cont_exact:nodal/u_cont_exact
@@ -7,15 +7,16 @@ cont_unsteady_num:time_data/u_cont
 disc_unsteady_num:time_data/u_disc
 discont:nodal/u_disc
 discont_exact:nodal/u_disc_exact
-DGp:4
+DGp:3
 RK:3
-Nelem:100
+Nelem:256
 dt:1.000e-04
-CFL:1.604e-03
+t_end:5.000e+00
+CFL:4.722e-02
 Eqn_set:Advection_Diffusion
 Beta:1.00
 Epsilon:1.00
 Diffusion_scheme:BR2
-wave_form:sine_wave
-T:0.159
+wave_form:Decaying_Burgers_turb
+T:0.796
 mode:test

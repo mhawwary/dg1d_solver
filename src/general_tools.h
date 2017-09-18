@@ -7,6 +7,8 @@
 #include <new>
 #include <iomanip>
 #include<map>
+//#include <limits>
+#include <cfloat>
 #ifdef _WIN32
  #include <direct.h>       // those are for mkdir and chdir and other directory and filesystem commands
 #elif defined __linux__

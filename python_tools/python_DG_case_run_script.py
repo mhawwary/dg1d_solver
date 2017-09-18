@@ -4,10 +4,11 @@ from subprocess import call, run, PIPE, Popen
 import fileinput
 from numpy import size
 
-elem_num = [256,512,1024,2048,4096,8192,16384,32768]  # OA4
+#elem_num = [256,512,1024,2048,4096,8192,16384,32768]  # p3
+elem_num = [64,128,256,512,1024,2048,4096,8192]  # p3
 #elem_num = [51,102,204,409,819,1638,3276,6553]  # p5
 
-fname = './input/burgers_decay_turb_case_input.in'
+fname = './input/burgers_case.in'
 log_name_dir = './Results_AdvecDiffus/Decaying_Burgers_turb/DGp3_RK3_test/case'
 
 # Computing and Running the first no. of elements :
@@ -17,7 +18,7 @@ for lines in fileinput.input(fname, inplace=True):
     a = lines.split('=')
     b = a[0].strip()
     if b == 'spectrum_restart_flag':
-       print(' {} = {}'.format(a[0].strip(),0))
+       print('   {} = {}'.format(a[0].strip(),1))
     elif b == 'num_elements':
         print(' {} = {}'.format(a[0].strip(),elem_num[0]))
     else:
@@ -40,7 +41,7 @@ for i in range(1,33):
         else:
             print(lines.rstrip())
 
-    cmd = ['./bin/FD1DFlow.exe', fname]
+    cmd = ['./bin/DG1DFlow.exe', fname]
     process = Popen(cmd, stdin=PIPE, stdout=PIPE,start_new_session=True)
 
     try:
@@ -77,7 +78,7 @@ for lines in fileinput.input(fname, inplace=True):
     a = lines.split('=')
     b = a[0].strip()
     if b == 'spectrum_restart_flag':
-       print(' {} = {}'.format(a[0].strip(),1))
+       print('   {} = {}'.format(a[0].strip(),1))
     else:
        print(lines.rstrip())
        
@@ -108,7 +109,7 @@ for j in range(1,size(elem_num)):
             else:
                 print(lines.rstrip())
 
-        cmd = ['./bin/FD1DFlow.exe', fname]
+        cmd = ['./bin/DG1DFlow.exe', fname]
         process = Popen(cmd, stdin=PIPE, stdout=PIPE,start_new_session=True)
 
         try:

@@ -1,0 +1,53 @@
+[Case]
+ title = Gaussian   # sine wave
+ num_elements = 20
+ x_begin =  0.0
+ x_end   =  6.283185307
+ uniform_grid = 1
+ refinement_level = 0
+ Npoints_plot = 10  # no. of equally spaced points per element for plotting discontinuous sol
+ N_exact_plot_pts = 150
+ N_equally_spaced_pts = 40  # no. of equally spaced points (globally over the entire domain) for plotting discontinuous sol
+
+[Simulation] 
+ print_freq = 1000
+ restart_flag = 0
+ restart_iter = 1e6
+ mode = test   # normal/test/error_analysis_dt/error_analysis_CFL
+
+[wave]
+ wave_speed = 1.0;
+ wave_form = 3 ;      # 0: sine wave, 1: Gaussian wave, 2: InViscid Burgers 3: Decaying Turbulence
+ Gaussian_exponent = 38.6;  # u(x) = exp(-38.6 *x^2)
+ wave_frequency = 2.0  # wave_frequnecy x Pi 
+
+[space_solver]
+ eqn_set = Advection_Diffusion  # Advection / Diffusion / Advection_Diffusion
+ polynomial_order = 1
+ upwind_param = 1.00  # 1: fully upwind, 0: fully central, (0,1) hybrid
+ 
+ [./heat_eqn]
+  penalty_param = 1.00
+  thermal_diffusivity = 5e-4
+  diffus_scheme_type = BR2 # SIP/BR2
+    
+[time_solver]
+ calculate_dt_flag = 0  # 0: specify dt and calc CFL, 1: specify CFL and calc dt
+ 
+ CFL_no = 0.05
+
+ dt = 1e-7
+ initial_time = 0.0
+
+ final_time = 0.05
+ 
+ no_of_periods = 1.0  #  period = (xf-x0) / wave_speed
+ 
+ maximum_iteration = 1000 ;
+
+ end_of_simulation_flag = 1
+# 0: use no. of periods to setup the maxIter, 1: use final time directly, 2: use max_iteration as a stopping criteria if not converged or diverged 
+
+ [./explicit]
+
+  RK_order = 3

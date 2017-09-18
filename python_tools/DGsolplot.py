@@ -290,3 +290,91 @@ def plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
     pyplot.show()
 
     return 'true'
+    
+ #==================================================================================================================#
+ #                                Decay Burger's Turbulence 
+ #==================================================================================================================#
+ 
+def plot_burgers_decay_turb(dir1, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, cont_num, disc_num):
+                     
+    Beta = Decimal(Beta.quantize(Decimal('.01')));
+    Epsilon = Decimal(Epsilon.quantize(Decimal('.01')));
+
+    #CFL = Decimal(CFL.quantize(Decimal('.001')));
+    dt = float(dt_);
+
+    fname = dir1 + cont_num + str("_N") + Nelem \
+    + str("_dt") + dt_ + str("_Beta") + str(Beta)\
+    + str("_Eps") + str(Epsilon) \
+    + str('_')+ str(tt_) + str("t.dat")
+
+    data = loadtxt(fname)
+
+    x_cont = data[:, 0]
+    u_cont = data[:, 1]
+
+    del fname, data
+    
+    fname = dir1 + disc_num + str("_N") + Nelem \
+    + str("_dt") + dt_ + str("_Beta") + str(Beta)\
+    + str("_Eps") + str(Epsilon) \
+    + str('_')+ str(tt_) + str("t.dat")
+
+    data = loadtxt(fname)
+
+    x_disc = data[:, 0]
+    u_disc = data[:, 1]
+
+    nn = size(x_disc);
+
+    if int(DG) == 0:
+        Np = 2;
+    elif int(DG) == 1:
+        Np = 2;
+    else:
+        Np = 10;
+
+    pyplot.figure();
+
+    ylim_0 = list();
+    ylim_1 = list();
+    ylim_0.append(min(u_cont));
+    ylim_1.append(max(u_cont));
+
+    pyplot.plot(x_cont, u_cont, '-k', label='continuous sol');
+
+    for i in range(0, size(x_disc) - 1, Np):
+        xx = x_disc[i:i + Np];
+        uu = u_disc[i:i + Np];
+        #pyplot.plot(xx, uu, '-r');
+
+    ylim_0.append(min(u_disc));
+    ylim_1.append(max(u_disc));
+
+    xx = x_disc[i:i + Np];
+    uu = u_disc[i:i + Np];
+    ll = str("discontinuous sol");
+    #pyplot.plot(xx, uu, '-r', label=ll);
+
+    #pyplot.legend();
+
+    title_a = str("DGp") + DG  + "-RK" + RK +" with dt=" + dt_ \
+              + " and at t=" + str(tt_);
+
+    pyplot.title(title_a);
+    pyplot.xlabel('X', labelpad=10);
+    pyplot.ylabel('u(x)', labelpad=10);
+
+    #pyplot.xlim(min(x_cont), max(x_cont));
+    #pyplot.ylim(min(ylim_0) * 1.05, max(ylim_1) * 1.05);
+
+    xlabels = linspace(min(x_cont), max(x_cont), 5);
+    xlocs = xlabels;
+    #pyplot.xticks(xlocs, xlabels);
+    pyplot.grid();
+
+    pyplot.show()
+
+    return 'true'
+                     
+                     
