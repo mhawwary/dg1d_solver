@@ -18,9 +18,6 @@ struct GridData {
 
     double *x_exact_ppts=nullptr;
     double *xi_disc=nullptr;
-    double *xi_uniform=nullptr;
-    double *X_dump=nullptr; // Equally Spaced mesh nodes for post processing
-    int *x_dump_to_elem=nullptr;
 
     int Nelem=1;
     int Nfaces=2;
@@ -31,9 +28,7 @@ struct GridData {
     int n_uniform_pts_per_elem=2;
 
     int uniform=1;  // 0: for nonuniform mesh elements
-
     int refine_level=0; // 0: no refinement
-
 
     void set_grid_param(const SimData& simdata_){
 
@@ -52,13 +47,10 @@ struct GridData {
 
         n_uniform_pts_per_elem = simdata_.N_uniform_pts_per_elem_;
         N_uniform_pts = (n_uniform_pts_per_elem-1) * Nelem +1 ;
-        X_dump = new double[N_uniform_pts];
         xi_uniform = new double[n_uniform_pts_per_elem];
 
         if(uniform==1) dx = (xf-x0)/Nelem;
-
         h_j = new double [Nelem];
-
         Xc = new double [Nelem];
 
         if(simdata_.poly_order_==0){
@@ -70,9 +62,7 @@ struct GridData {
         }
 
         N_exact_ppts= simdata_.N_exact_plot_pts+1;
-
         x_exact_ppts = new double[N_exact_ppts];
-
         xi_disc = new double[N_xi_disc_ppts];
 
         return;
@@ -81,16 +71,11 @@ struct GridData {
     void generate_grid(){
 
         register int i;
-
-        for(i=0; i<Nfaces; i++){
-
+        for(i=0; i<Nfaces; i++)
             X[i]   = dx * (i)  + x0 ;  // node 0, element i
-        }
 
         for (i=0; i<Nelem; i++){
-
             h_j[i]= X[i+1]-X[i];
-
             Xc[i] = 0.5 * ( X[i+1]+X[i] );
         }
 
@@ -98,13 +83,9 @@ struct GridData {
         // for plotting a smooth numerical solution:
 
         if(N_xi_disc_ppts==1){
-
             xi_disc[0] = 0.0;
-
         }else{
-
             double dxi_=2.0/(N_xi_disc_ppts-1);
-
             for(i=0; i<N_xi_disc_ppts; i++)
                 xi_disc[i] = dxi_ * (i) + -1.0 ;
         }
@@ -112,48 +93,19 @@ struct GridData {
         // Globally Equally spaced points for plottings:
 
         double dxi_u=2.0/(n_uniform_pts_per_elem-1);
-
         for(i=0; i<n_uniform_pts_per_elem; i++)
             xi_uniform[i] = dxi_u * (i) + -1.0 ;
 
-//        double dx_eq_ = (xf-x0)/(N_equal_spaced);
-//        int eID_=0;
-
-//        for(i=0; i<N_equal_spaced+1; i++){
-//            X_dump[i] = dx_eq_ *(i) + x0;
-
-//            if(X_dump[i]>X[eID_+1]){
-//                eID_++;
-//                x_dump_to_elem[i] = eID_;
-
-//            }else if(X_dump[i]==X[eID_+1]){
-//                eID_++;
-//                x_dump_to_elem[i] = -100;
-
-//            }else{
-//                x_dump_to_elem[i] = eID_;
-//            }
-//        }
-
-//        x_dump_to_elem[N_equal_spaced]=Nelem-1;
-
         // New sampling for plotting a smooth exact solution
-
         double dxx_ = (xf - x0) / (N_exact_ppts-1);
-
-        for(i=0; i<N_exact_ppts; i++){
-
+        for(i=0; i<N_exact_ppts; i++)
             x_exact_ppts[i]   = dxx_ * (i)  + x0 ;
-        }
 
         return;
     }
 
     void Reset_(){
-
         emptyarray(X);
-        emptyarray(X_dump);
-        emptyarray(x_dump_to_elem);
         emptyarray(h_j);
         emptyarray(Xc);
         emptyarray(x_exact_ppts);

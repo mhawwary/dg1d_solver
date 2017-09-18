@@ -1721,7 +1721,6 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
     return;
 }
 
-
 void DGSolverAdvecDiffus::compute_uniform_cont_sol(){
 
     // Dump continuous data on uniform points:
@@ -1776,8 +1775,7 @@ void DGSolverAdvecDiffus::compute_uniform_cont_sol(){
     }
     u_cont_sol[count_] = u_cont_sol[0];
 
-    printf("\n Count: %d \t N_uniform: %d\n", count_, grid_->N_uniform_pts);
-
+    //printf("\n Count: %d \t N_uniform: %d\n", count_, grid_->N_uniform_pts);
 
     return;
 }
