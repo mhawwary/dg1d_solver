@@ -18,6 +18,7 @@ struct GridData {
 
     double *x_exact_ppts=nullptr;
     double *xi_disc=nullptr;
+    double *xi_uniform=nullptr;
 
     int Nelem=1;
     int Nfaces=2;

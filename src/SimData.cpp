@@ -122,6 +122,7 @@ void SimData::prepare_dump_burgers_turb_param(){
         // Dumping Binary data:
         fname=new char[150];
         sprintf(fname,"%sspectrum_binarydata_N%d",case_postproc_dir,n_pts_);
+        printf("--> Dumping Spectrum Binrary file...........\n");
         FILE*  b_spect_out_=fopen(fname,"wb");
 
         fwrite(&max_wave_no_,sizeof(int),1,b_spect_out_);
@@ -137,10 +138,11 @@ void SimData::prepare_dump_burgers_turb_param(){
         fname=new char[400];
         sprintf(fname,"%sspectrum_binarydata_N%d",case_postproc_dir,max_wave_no_);
         struct stat statbuf;
-        stat(fname, &statbuf);   // check if the binary file exist
-        if(!S_ISDIR(statbuf.st_mode)){
+        // check if the binary file exist
+        if(stat(fname, &statbuf)==-1){
             FatalError_exit("Spectrum Binary file does not exist");
         }else{
+            printf("--> Reading Spectrum Binrary file...........\n");
             FILE*  b_spect_in_=fopen(fname,"rb");
             k_wave_no_ = new int[max_wave_no_];
             epsi_phase_ = new double[max_wave_no_];

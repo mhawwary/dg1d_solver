@@ -1,6 +1,6 @@
 #include "general_tools.h"
 #include "SimData.hpp"
-#include "GirdData.h"
+#include "GridData.h"
 #include "DGSolver.hpp"
 #include "DGSolverAdvec.hpp"
 #include "DGSolverDiffus.hpp"
@@ -133,7 +133,7 @@ void RunSim(){
         time_solver_->space_solver->UpdatePhyTime(dt_);
 
     gtime=dg_solver_->GetPhyTime();
-    printf("Iter No:%d, time: %f\n",time_solver->GetIter(),gtime);
+    printf("\nIter No:%d, time: %f\n",time_solver_->GetIter(),gtime);
     dg_solver_->dump_timeaccurate_sol();
 
     return;

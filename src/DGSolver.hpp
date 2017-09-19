@@ -2,7 +2,7 @@
 #define DGSOLVER_H
 
 
-#include"GirdData.h"
+#include"GridData.h"
 #include"SimData.hpp"
 #include"quadrature.h"
 #include"general_tools.h"
