@@ -8,8 +8,8 @@ from numpy import size
 elem_num = [256]  # OA4
 #elem_num = [51,102,204,409,819,1638,3276,6553]  # p5
 
-fname = './input/burgers_case.in'
-log_name_dir = './Results_AdvecDiffus/Decaying_Burgers_turb/DGp3_RK3/case'
+fname = './input/burgers_turb_case_input.in'
+log_name_dir = './Results_AdvecDiffus/decay_burg_turb/DGp3_RK3/case'
 
 # Computing and Running the first no. of elements :
 #--------------------------------------------------
