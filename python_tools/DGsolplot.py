@@ -195,9 +195,13 @@ def plot_advect(mode, DG, RK, CFL, Nelem, T, dt_\
     pyplot.xlim(min(xn_exact), max(xn_exact));
     pyplot.ylim(min(ylim_0) * 1.05, max(ylim_1) * 1.05);
 
-    xlabels = linspace(min(xn_exact), max(xn_exact), 5);
+    n_divisions = 8;
+    xtick_dx = (xn_exact[-1] - xn_exact[0] ) / n_divisions;
+    xlabels = arange(xn_exact[0], xn_exact[-1]+xtick_dx,xtick_dx);
+    #xlabels = [0,10,20,30,40,50,60,70,80];
     xlocs = xlabels;
     pyplot.xticks(xlocs, xlabels);
+    pyplot.grid();
 
     pyplot.show()
 
@@ -295,16 +299,19 @@ def plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
  #                                Decay Burger's Turbulence 
  #==================================================================================================================#
  
-def plot_burgers_decay_turb(dir1, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, cont_num, disc_num):
-                     
-    Beta = Decimal(Beta.quantize(Decimal('.01')));
-    Epsilon = Decimal(Epsilon.quantize(Decimal('.01')));
-    CFL = Decimal(CFL.quantize(Decimal('.0001')));
+def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, cont_num, disc_num):
+    
+    if  (mode == 'test') | (mode == 'dt_const'):
+        mm_name = str('_dt') + dt_
+        m_name = str('dt=') + dt_
+    elif(mode == 'CFL_const') | (mode == 'normal'):
+        mm_name = str('_CFL')+ str(CFL)     
+        m_name = str('CFL=')+ str(CFL)             
 
     dt = float(dt_);
 
-    fname = dir1 + cont_num + str("_N") + Nelem \
-    + str("_dt") + dt_ + str("_Beta") + str(Beta)\
+    fname = dir_input + cont_num + str("_N") + Nelem \
+    + mm_name + str("_Beta") + str(Beta)\
     + str("_Eps") + str(Epsilon) \
     + str('_')+ str(tt_) + str("t.dat")
 
@@ -315,8 +322,8 @@ def plot_burgers_decay_turb(dir1, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, c
 
     del fname, data
     
-    fname = dir1 + disc_num + str("_N") + Nelem \
-    + str("_dt") + dt_ + str("_Beta") + str(Beta)\
+    fname = dir_input + disc_num + str("_N") + Nelem \
+    + mm_name + str("_Beta") + str(Beta)\
     + str("_Eps") + str(Epsilon) \
     + str('_')+ str(tt_) + str("t.dat")
 
@@ -358,7 +365,7 @@ def plot_burgers_decay_turb(dir1, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, c
 
     #pyplot.legend();
 
-    title_a = str("DGp") + DG  + "-RK" + RK +" with dt=" + dt_ \
+    title_a = str("DGp") + DG  + "-RK" + RK +" with " + m_name \
               + " and at t=" + str(tt_);
 
     pyplot.title(title_a);
