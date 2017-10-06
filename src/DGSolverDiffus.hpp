@@ -28,7 +28,6 @@ public:
    virtual double L2_error_projected_sol();
    virtual double L1_error_average_sol();
    virtual double L2_error_average_sol();
-   virtual double L2_error_nodal_disc_sol();
    virtual double L1_error_nodal_gausspts();
    virtual double L2_error_nodal_gausspts();
    virtual double L1_error_nodal_gausspts_proj();
@@ -60,12 +59,12 @@ public:
                                   const GaussQuad &quad_);
 
    virtual void CalcTimeStep();
-//   virtual void CalcLocalTimeStep();
-
    virtual void ComputeExactSolShift();
-
    virtual void Compute_exact_vertex_sol();
    virtual void Compute_projected_exact_sol();
+
+   virtual void compute_uniform_cont_sol(){}
+   virtual double compute_totalVariation(){}
 
 protected:
 

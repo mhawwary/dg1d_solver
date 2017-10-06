@@ -34,7 +34,6 @@ public:
    virtual double L2_error_projected_sol()=0;
    virtual double L1_error_average_sol()=0;
    virtual double L2_error_average_sol()=0;
-   virtual double L2_error_nodal_disc_sol()=0;
    virtual double L1_error_nodal_gausspts()=0;
    virtual double L2_error_nodal_gausspts()=0;
    virtual double L1_error_nodal_gausspts_proj()=0;
@@ -126,6 +125,9 @@ protected:
    virtual void Compute_exact_vertex_sol()=0;
    virtual void Compute_projected_exact_sol()=0;
 
+   virtual void compute_uniform_cont_sol()=0;
+   virtual double compute_totalVariation()=0;
+
 protected:
 
    GridData *grid_=nullptr;
@@ -159,6 +161,8 @@ protected:
 
    double **Lk=nullptr;   // Legendre polynomials at (-1) and (1)
    double *Lk_norm_squar=nullptr; // norm of squared of Lk's
+
+   double *u_cont_sol=nullptr;
 
 };
 

@@ -24,7 +24,7 @@ struct SimData {
     //-----------------------------
     int unsteady_data_print_flag_ = 1;   // 0: use iter , 1: use time
     int unsteady_data_print_iter_ = 1000;  // iter no. for print of unsteady data
-    double unsteady_data_print_time_ = 1000; // time point for print of unsteady data
+    double unsteady_data_print_time_ =1.0; // time point for print of unsteady data
     int restart_flag=0;      //  0: start a new simulation; 1: restart a previous simulation
     int restart_iter_=0;
     std::string Sim_mode;    // normal/test/error_analysis_dt/error_analysis_CFL/CFL_const/dt_const

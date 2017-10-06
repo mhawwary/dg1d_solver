@@ -20,7 +20,7 @@ void SimData::Parse(const std::string &fname){
     //-----------------------------
     unsteady_data_print_flag_=gp_input("Simulation/unsteady_data_print_flag",0);
     unsteady_data_print_iter_=gp_input("Simulation/unsteady_data_print_iter",0);
-    unsteady_data_print_time_=gp_input("Simulation/unsteady_data_print_time",0.100);
+    unsteady_data_print_time_=gp_input("Simulation/unsteady_data_print_time",1.0);
     restart_iter_ = gp_input("Simulation/restart_iter",0);
     restart_flag = gp_input("Simulation/restart_flag",0);
     Sim_mode = gp_input("Simulation/mode","normal");
@@ -38,6 +38,7 @@ void SimData::Parse(const std::string &fname){
     // ./Gaussian:
     Gaussian_amp_ = gp_input("wave/Gaussian/Gaussian_amplitude",1.0);
     Gaussian_exponent_ = gp_input("wave/Gaussian/Gaussian_exponent",-50.0);
+
     // ./Burger_turb:
     if(wave_form_==3){  // Burger's Turbulence
         turb_prob_type_
@@ -52,6 +53,20 @@ void SimData::Parse(const std::string &fname){
     //-----------------------------
     eqn_set = gp_input("space_solver/eqn_set","Advection");
     eqn_type_ = gp_input("space_solver/eqn_type","linear_advec");
+    if(eqn_set=="Advection"){
+        if(eqn_type_!="linear_advec"
+                && eqn_type_!="inv_burger")
+            FatalError_exit("eqn type is not compatible");
+    }else if(eqn_set=="Diffusion"){
+        if(eqn_type_!="linear_diffus")
+            FatalError_exit("eqn type is not compatible");
+    }else if(eqn_set=="Advection_Diffusion"){
+        if(eqn_type_!="linear_advec_diffus"
+                && eqn_type_!="visc_burger")
+            FatalError_exit("eqn type is not compatible");
+    }else{
+        FatalError_exit("eqn set is not implemented");
+    }
     poly_order_=gp_input("space_solver/polynomial_order",1);
     // ./advec_eqn:
     upwind_param_=gp_input("space_solver/advec_eqn/upwind_param",1.0);
@@ -272,13 +287,13 @@ void SimData::dump_python_inputfile(){
     else if(wave_form_==3) fprintf(python_out,"wave_form:%s\n",(char*)"Decaying_Burgers_turb");
 
     if(Sim_mode=="error_analysis_dt" || Sim_mode=="dt_const")
-        fprintf(python_out,"mode:%s","dt_const");
+        fprintf(python_out,"mode:%s\n","dt_const");
     else if(Sim_mode=="error_analysis_CFL" || Sim_mode=="CFL_const")
-        fprintf(python_out,"mode:%s","CFL_const");
+        fprintf(python_out,"mode:%s\n","CFL_const");
     else if(Sim_mode=="error_analysis_Beta")
-        fprintf(python_out,"mode:%s","Beta_const");
+        fprintf(python_out,"mode:%s\n","Beta_const");
     else if(Sim_mode=="error_analysis_Epsilon")
-        fprintf(python_out,"mode:%s","Epsilon_const");
+        fprintf(python_out,"mode:%s\n","Epsilon_const");
     else
         fprintf(python_out,"mode:%s\n",Sim_mode.c_str());
 

@@ -819,16 +819,6 @@ double DGSolverDiffus::L2_error_projected_sol(){
     return L2_error;
 }
 
-double DGSolverDiffus::L2_error_nodal_disc_sol(){
-
-    // We have two options: either use only
-    // the interface nodes or also use the center node
-
-    double L2_error=0.0;
-
-    return L2_error;
-}
-
 double DGSolverDiffus::L1_error_average_sol(){
 
     register int j;

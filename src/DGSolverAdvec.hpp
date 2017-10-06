@@ -28,7 +28,6 @@ public:
    virtual double L2_error_projected_sol();
    virtual double L1_error_average_sol();
    virtual double L2_error_average_sol();
-   virtual double L2_error_nodal_disc_sol();
    virtual double L1_error_nodal_gausspts();
    virtual double L2_error_nodal_gausspts();
    virtual double L1_error_nodal_gausspts_proj();
@@ -40,7 +39,7 @@ public:
                     ,double& L1_aver_sol_,double& L2_aver_sol_
                     ,double& L1_nodal_gausspts, double& L2_nodal_gausspts);
    virtual void dump_discont_sol();
-   virtual void dump_timeaccurate_sol(){}
+   virtual void dump_timeaccurate_sol();
 
    virtual void UpdateResidOneCell(const int& cellid, double* q_
                            , double* resid_);
@@ -49,10 +48,10 @@ public:
    virtual double eval_exact_sol(double& xx);
    virtual double eval_basis_poly(const double& xi_, const int& basis_k_);
    virtual double eval_basis_norm_squared(const int& basis_k_);
-   virtual void setup_basis_interpolation_matrices(){}
+   virtual void setup_basis_interpolation_matrices();
 
    virtual double evalSolution(const double* q_, const double& xi_pt);
-   virtual double evalSolution(const double *q_, const int& position_){}
+   virtual double evalSolution(const double *q_, const int& position_);
    virtual double initSol_legendre_proj(const int& eID, const int &basis_id,
                                 const GaussQuad & quad_);
    virtual double ExactSol_legendre_proj(const int &eID,
@@ -60,20 +59,27 @@ public:
                                   const GaussQuad &quad_);
 
    virtual void CalcTimeStep();
-//   virtual void CalcLocalTimeStep();
-
    virtual void ComputeExactSolShift();
-
    virtual void Compute_exact_vertex_sol();
    virtual void Compute_projected_exact_sol();
+
+   virtual void compute_uniform_cont_sol();
+   virtual double compute_totalVariation();
 
 protected:
    double Compute_common_flux(const double& ql, const double& qr,
                                const double& wave_speed
                                , const double& upwind_Beta_);
-   double eval_localflux_proj(const double* q_
+   double eval_local_invflux_proj_exact(const double* q_
                                  , const int& basis_k_);
+   double eval_burgers_invflux(const double& xi_pt, const double *q_);
+   double Rusanov(const double &Ql, const double &Qr);
+
    void Reset_solver();
+
+protected:
+   GaussQuad quad_invF_;
+   int Nquad_invFlux_=1;
 
 
 };

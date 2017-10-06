@@ -27,7 +27,6 @@ public:
    virtual double L2_error_projected_sol();
    virtual double L1_error_average_sol();
    virtual double L2_error_average_sol();
-   virtual double L2_error_nodal_disc_sol();
    virtual double L1_error_nodal_gausspts();
    virtual double L2_error_nodal_gausspts();
    virtual double L1_error_nodal_gausspts_proj();
@@ -60,6 +59,9 @@ public:
    virtual void Compute_exact_vertex_sol();
    virtual void Compute_projected_exact_sol();
 
+   virtual void compute_uniform_cont_sol();
+   virtual double compute_totalVariation();
+
 protected:
 
    double eval_basis_poly_derivative(const double& xi_pt, const int& basis_k_);
@@ -72,19 +74,18 @@ protected:
    double eval_local_du_fluxproj_exact(const int eID, const double* q_
                                  , const int& basis_k_);
    double Compute_common_sol_jump(const double& ul_, const double& ur_);
+
    // Inviscid Flux functions:
-   double Compute_common_flux(const double& ql, const double& qr,
+   double Compute_common_invflux(const double& ql, const double& qr,
                                const double& wave_speed
                                , const double& upwind_Beta_);
-   double eval_localInviscidFlux_proj(const double* q_
+   double eval_local_invflux_proj(const double* q_
                                  , const int& basis_k_);
-   double eval_localInviscidFlux_proj_exact(const double* q_
+   double eval_local_invflux_proj_exact(const double* q_
                                  , const int& basis_k_);
    double Rusanov(const double &Ql, const double &Qr);
-   double eval_burgers_inviscidFlux(const double& xi_pt, const double *q_);
+   double eval_burgers_invflux(const double& xi_pt, const double *q_);
    double eval_init_u_decay_burger_turb(const double& xx_);
-   void compute_uniform_cont_sol();
-   double compute_totalVariation();
 
    void Reset_solver();
 
@@ -99,7 +100,7 @@ protected:
    int Nquad_invFlux_=1;
    int Nquad_viscFlux_=1;
 
-   double *u_cont_sol=nullptr;
+   //double *u_cont_sol=nullptr;
 
    double **dLk=nullptr; //Derivatives of legendre polynomials at(-1), (1)
 };
