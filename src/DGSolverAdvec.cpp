@@ -72,10 +72,6 @@ void DGSolverAdvec::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     SetPhyTime(simdata_->t_init_);
 
-    //CalcTimeStep();
-    //ComputeExactSolShift();
-//    Compute_projected_exact_sol();
-//    Compute_exact_vertex_sol();
     setup_basis_interpolation_matrices();
 
     return;
@@ -142,31 +138,47 @@ void DGSolverAdvec::CalcTimeStep(){
 
     // Determining end of simulation parameters:
     //----------------------------------------------------
-
+    double temp_tol=1e-8;
     if(simdata_->end_of_sim_flag_==0){  // use Nperiods as stopping criteria
+
         simdata_->t_end_ = simdata_->Nperiods * T_period;
-        simdata_->maxIter_ = (int) ceil(simdata_->t_end_/time_step);
 
-        if((simdata_->maxIter_ * time_step) > simdata_->t_end_ )
+        simdata_->maxIter_ = (int) floor(simdata_->t_end_/time_step);
+
+        if((simdata_->maxIter_ * time_step)
+                > (simdata_->Nperiods * T_period) ){
+
             last_time_step = simdata_->t_end_ - ((simdata_->maxIter_-1) * time_step);
-        else if((simdata_->maxIter_ * time_step) < (simdata_->Nperiods * T_period) )
-            last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
 
-    }else if(simdata_->end_of_sim_flag_==1){  // use final time as stopping criteria
+        }else if((simdata_->maxIter_ * time_step)
+                 < (simdata_->Nperiods * T_period) ){
+
+            last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
+        }
+
+    }else if(simdata_->end_of_sim_flag_==1){ // use final time as stopping criteria
+
         simdata_->Nperiods = simdata_->t_end_/T_period;
-        simdata_->maxIter_ = (int) ceil(simdata_->t_end_/time_step);
+        simdata_->maxIter_ = (int) floor(simdata_->t_end_/time_step);
 
-        if((simdata_->maxIter_ * time_step) > simdata_->t_end_ )
+        if((simdata_->maxIter_ * time_step)
+                > (simdata_->t_end_-temp_tol) ){
+
             last_time_step = simdata_->t_end_ - ((simdata_->maxIter_-1) * time_step);
-        else if((simdata_->maxIter_ * time_step) < (simdata_->Nperiods * T_period) )
+
+        }else if((simdata_->maxIter_ * time_step)
+                 < (simdata_->t_end_+temp_tol) ){
+
             last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
+        }
 
         if(last_time_step<=1e-10){
             last_time_step=time_step;
             simdata_->maxIter_--;
         }
 
-    }else if(simdata_->end_of_sim_flag_==2){ // use Max Iter as stopping criteria
+    }else if(simdata_->end_of_sim_flag_==2){  // use Max Iter as stopping criteria
+
         simdata_->t_end_ = simdata_->maxIter_ * time_step;
         simdata_->Nperiods = simdata_->t_end_/T_period;
 
@@ -1287,7 +1299,8 @@ void DGSolverAdvec::dump_timeaccurate_sol(){
                 ,CFL
                 ,simdata_->upwind_param_
                 ,phy_time);
-    }else{
+    }else if(simdata_->Sim_mode=="dt_const"
+             || simdata_->Sim_mode=="error_analysis_dt" ){
         // Dump time accurate continuous equally spaced solution data:
         sprintf(fname,"%stime_data/u_cont_N%d_dt%1.3e_Beta%1.2f_%1.3ft.dat"
                 ,simdata_->case_postproc_dir
@@ -1307,7 +1320,7 @@ void DGSolverAdvec::dump_timeaccurate_sol(){
     // For element zero:
     k = simdata_->N_uniform_pts_per_elem_-1;
     j= grid_->Nelem-1;
-    qq = evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+    qq = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
 
     k=0; j=0;
     xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
@@ -1367,7 +1380,8 @@ void DGSolverAdvec::dump_timeaccurate_sol(){
                 ,CFL
                 ,simdata_->upwind_param_
                 ,phy_time);
-    }else{
+    }else if(simdata_->Sim_mode=="dt_const"
+             || simdata_->Sim_mode=="error_analysis_dt" ){
         sprintf(fname,"%stime_data/u_disc_N%d_dt%1.3e_Beta%1.2f_%1.3ft.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
@@ -1376,17 +1390,52 @@ void DGSolverAdvec::dump_timeaccurate_sol(){
                 ,phy_time);
     }
 
-    FILE* sol_out1=fopen(fname,"w");
+    sol_out=fopen(fname,"w");
 
     for(j=0; j<grid_->Nelem; j++)
         for(k=0; k<grid_->N_xi_disc_ppts; k++) {
             qq = evalSolution(&Qn[j][0],grid_->xi_disc[k]);
             xx = ( 0.5 * grid_->h_j[j] * grid_->xi_disc[k])
                     + grid_->Xc[j];
-            fprintf(sol_out1,"%2.10e %2.10e\n",xx,qq);
+            fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
         }
 
-    fclose(sol_out1);
+    fclose(sol_out);
+    emptyarray(fname);
+
+    fname = new char[100];
+    sprintf(fname,"%stime_data/u_disc_exact_N%d_%1.3ft.dat"
+            ,simdata_->case_postproc_dir
+            ,grid_->Nelem
+            ,phy_time);
+
+    sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->Nelem; j++)
+        for(k=0; k<grid_->N_xi_disc_ppts; k++) {
+            qq = evalSolution(&Qex_proj[j][0],grid_->xi_disc[k]);
+            xx = ( 0.5 * grid_->h_j[j] * grid_->xi_disc[k])
+                    + grid_->Xc[j];
+
+            fprintf(sol_out,"%2.10e %2.10e\n",xx,qq);
+        }
+
+    fclose(sol_out);
+    emptyarray(fname);
+
+    fname = new char[100];
+
+    sprintf(fname,"%stime_data/u_cont_exact_%1.3ft.dat"
+            ,simdata_->case_postproc_dir
+            ,phy_time);
+
+    sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->N_exact_ppts; j++)
+        fprintf(sol_out, "%2.10e %2.10e\n"
+                ,grid_->x_exact_ppts[j], Q_exact[j]);
+
+    fclose(sol_out);
     emptyarray(fname);
 
     return;

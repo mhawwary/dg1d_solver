@@ -196,18 +196,20 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
 
     // Determining end of simulation parameters:
     //----------------------------------------------------
-
+    double temp_tol=1e-8;
     if(simdata_->end_of_sim_flag_==0){  // use Nperiods as stopping criteria
 
         simdata_->t_end_ = simdata_->Nperiods * T_period;
 
-        simdata_->maxIter_ = (int) ceil(simdata_->t_end_/time_step);
+        simdata_->maxIter_ = (int) floor(simdata_->t_end_/time_step);
 
-        if((simdata_->maxIter_ * time_step) > simdata_->t_end_ ){
+        if((simdata_->maxIter_ * time_step)
+                > (simdata_->Nperiods * T_period) ){
 
             last_time_step = simdata_->t_end_ - ((simdata_->maxIter_-1) * time_step);
 
-        }else if((simdata_->maxIter_ * time_step) < (simdata_->Nperiods * T_period) ){
+        }else if((simdata_->maxIter_ * time_step)
+                 < (simdata_->Nperiods * T_period) ){
 
             last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
         }
@@ -215,13 +217,15 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
     }else if(simdata_->end_of_sim_flag_==1){ // use final time as stopping criteria
 
         simdata_->Nperiods = simdata_->t_end_/T_period;
-        simdata_->maxIter_ = (int) ceil(simdata_->t_end_/time_step);
+        simdata_->maxIter_ = (int) floor(simdata_->t_end_/time_step);
 
-        if((simdata_->maxIter_ * time_step) > simdata_->t_end_ ){
+        if((simdata_->maxIter_ * time_step)
+                > (simdata_->t_end_-temp_tol) ){
 
             last_time_step = simdata_->t_end_ - ((simdata_->maxIter_-1) * time_step);
 
-        }else if((simdata_->maxIter_ * time_step) < simdata_->t_end_ ){
+        }else if((simdata_->maxIter_ * time_step)
+                 < (simdata_->t_end_+temp_tol) ){
 
             last_time_step = simdata_->t_end_ - (simdata_->maxIter_ * time_step);
         }
@@ -1649,7 +1653,7 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
     // For element zero:
     k = simdata_->N_uniform_pts_per_elem_-1;
     j= grid_->Nelem-1;
-    qq = evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+    qq = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
 
     k=0; j=0;
     xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
