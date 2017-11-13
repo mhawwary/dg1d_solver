@@ -5,10 +5,13 @@ import csv
 
 from numpy import pi
 
+from subprocess import call, run, PIPE, Popen
+from sys_cmd_toolbox import system_process    # locally defined file
+
 parser = argparse.ArgumentParser(description='python_DG_argument_parsing');
 
 parser.add_argument('-f', type=str, dest='python_input');
-parser.add_argument('-t', type=float, dest='burgers_plot_time');
+parser.add_argument('-t', type=float, dest='plot_time');
 parser.add_argument('-o', type=int, dest='burger_plot_flag');
 parser.add_argument('-a', type=int, dest='comp_fft_flag');
 
@@ -34,6 +37,8 @@ with open(args.python_input) as file:
             RK=str(row[1]);
         elif row[0] == 'Nelem':    
             Nelem=str(int(row[1]));
+        elif row[0] == 'N_disc_ppt':    
+            N_disc_ppt=int(row[1])
         elif row[0] == 'T':     
             T=Decimal(row[1]);
         elif row[0] =='dir':    
@@ -47,7 +52,7 @@ with open(args.python_input) as file:
         elif row[0] == 'discont': 
             discont = str(row[1]);
         elif row[0] == 'cont_unsteady_num': 
-            cont_sol = str(row[1]);
+            cont_num_time = str(row[1]);
         elif row[0] == 'disc_unsteady_num': 
             disc_num_time = str(row[1]);
         elif row[0] == 'Beta':
@@ -57,7 +62,7 @@ with open(args.python_input) as file:
         elif row[0] == 'dt':
             dt_=str(row[1]);
             
-    tt_   = Decimal(args.burgers_plot_time)
+    tt_   = Decimal(args.plot_time)
     tt_ =  Decimal(tt_.quantize(Decimal('.001')))
     Beta = Decimal(Beta.quantize(Decimal('.01')))
     
@@ -65,12 +70,15 @@ with open(args.python_input) as file:
     if not(Epsilon is None):
         Epsilon = Decimal(Epsilon.quantize(Decimal('.01')))
     CFL = Decimal(CFL.quantize(Decimal('.0001')))
+    
+    cmd=['mkdir',dir_input+'tempfig/']
+    cmd_out,cmd_err=system_process(cmd,1000)
 
-from DGsolplot import plot_diffus, plot_advect, plot_AdvecDiffus, plot_burgers_decay_turb
+from DGsolplot import plot_diffus, plot_advec, plot_AdvecDiffus, plot_burgers_decay_turb
 
 if eqn_set=='Advection':
-    a =plot_advect(mode, DG, RK, CFL, Nelem, T, dt_\
-                   , Beta, dir_input, aver, nodal_exact, nodal_comp, discont )
+    a =plot_advec(dir_input, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
+                     , Beta, Epsilon, cont_num_time, disc_num_time)
                    
     if args.comp_fft_flag==1:
         from fft_toolbox_python_new import load_data, compute_fft, plot_fft

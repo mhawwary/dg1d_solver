@@ -196,13 +196,13 @@ void SimData::setup_output_directory(){
     char *case_dir=nullptr;
     case_dir=new char[70];
     if(Sim_mode=="normal" || Sim_mode=="CFL_const" || Sim_mode=="dt_const")
-        sprintf(case_dir,"DGp%d_RK%d",poly_order_,RK_order_);
+        sprintf(case_dir,"p%dRK%d",poly_order_,RK_order_);
     else if(Sim_mode=="test")
-        sprintf(case_dir,"DGp%d_RK%d_test",poly_order_,RK_order_);
+        sprintf(case_dir,"p%dRK%d_test",poly_order_,RK_order_);
     else if(Sim_mode=="error_analysis_CFL"
             || Sim_mode=="error_analysis_dt"
             || Sim_mode=="error_analysis_Beta")
-        sprintf(case_dir,"DGp%d_RK%d_error_analysis",poly_order_,RK_order_);
+        sprintf(case_dir,"p%dRK%d_error_analysis",poly_order_,RK_order_);
     else FatalError_exit("Simulation mode is not defined");
 
     char *current_working_dir=allchar.allocate(1500);
@@ -313,6 +313,7 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"p:%d\n",poly_order_);
     fprintf(python_out,"RK:%d\n",RK_order_);
     fprintf(python_out,"Nelem:%d\n",Nelem_);
+    fprintf(python_out,"N_disc_ppt:%d\n",N_uniform_pts_per_elem_);
     fprintf(python_out,"CFL:%1.4f\n",CFL_);
     fprintf(python_out,"dt:%1.3e\n",dt_);
     fprintf(python_out,"t_end:%1.3e\n",t_end_);

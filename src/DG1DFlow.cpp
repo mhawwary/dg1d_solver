@@ -94,27 +94,33 @@ void RunSim(){
     double gtime = dg_solver_->GetPhyTime();
     double dt_= dg_solver_->GetTimeStep();
     double dt_last_print=0.0;
+    double temp_tol=1e-8;
 
-    if(simdata_.unsteady_data_print_flag_==0){
+    if(simdata_.unsteady_data_print_flag_==0){       // use iter_print to print
         n_iter_print = simdata_.unsteady_data_print_iter_;
         if(n_iter_print<=1)
             FatalError_exit("Warning: iter to print is very small <=1 ");
         dt_last_print = dt_;
         n_iter_print--;
-    }else if(simdata_.unsteady_data_print_flag_==1){
-        if(simdata_.unsteady_data_print_time_ < (dt_ - 1e-10))
+
+    }else if(simdata_.unsteady_data_print_flag_==1){  // use time point to print
+        if(simdata_.unsteady_data_print_time_ < (dt_ - temp_tol))
             FatalError_exit("Warning:  time to print is less than dt");
 
         n_iter_print= (int) round( simdata_.unsteady_data_print_time_/ dt_) ;
-        if((n_iter_print*dt_) > (simdata_.unsteady_data_print_time_-1e-10) ){
-            dt_last_print = simdata_.unsteady_data_print_time_ - ((n_iter_print-1) * dt_);
+
+        if((n_iter_print*dt_) > (simdata_.unsteady_data_print_time_-temp_tol) ){
             n_iter_print--;
-        }else if((n_iter_print*dt_) < (simdata_.unsteady_data_print_time_+1e-10) ){
+            dt_last_print = simdata_.unsteady_data_print_time_ - (n_iter_print * dt_);
+        }else if((n_iter_print*dt_) < (simdata_.unsteady_data_print_time_+temp_tol) ){
             dt_last_print = simdata_.unsteady_data_print_time_ - (n_iter_print*dt_);
         }
 
-    }else if(simdata_.unsteady_data_print_flag_==2){  // print each time step
-        n_iter_print=1;
+        if(n_iter_print<=1)
+            FatalError_exit("Warning: iter to print is very small <=1 ");
+
+    }else if(simdata_.unsteady_data_print_flag_==2){  // print using the specified iter_print without dt changing except the last one
+        n_iter_print=simdata_.unsteady_data_print_iter_;
         dt_last_print=dt_;
     }else{
         FatalError_exit("unsteady data print flag error");
@@ -130,9 +136,10 @@ void RunSim(){
     gtime=dg_solver_->GetPhyTime();
     local_iter++;
 
-    if(time_solver_->GetIter()%n_iter_print==0){
+    if(n_iter_print==1){
         printf("\nIter No:%d, time: %f",time_solver_->GetIter(),gtime);
         dg_solver_->dump_timeaccurate_sol();
+        local_iter=0;
     }
 
     // main solution loop:
@@ -157,8 +164,8 @@ void RunSim(){
             }
         }
 
-    }else{
-        while ( gtime < (simdata_.t_end_-(1+1e-5)*(dt_+1e-10)) ){
+    }else if(simdata_.unsteady_data_print_flag_==2){
+        while ( fabs(gtime - simdata_.t_end_) > (dt_+temp_tol) ){
 
             time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
             time_solver_->space_solver->UpdatePhyTime(dt_);
@@ -173,9 +180,11 @@ void RunSim(){
         }
 
         // Last iteration:
+        dt_last_print = dg_solver_->GetLastTimeStep();
+        time_solver_->Set_time_step(dt_last_print);
         time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
-        if(dg_solver_->GetLastTimeStep()>=1e-10)
-            time_solver_->space_solver->UpdatePhyTime(dg_solver_->GetLastTimeStep());
+        if(dt_last_print>=temp_tol)
+            time_solver_->space_solver->UpdatePhyTime(dt_last_print);
         else
             time_solver_->space_solver->UpdatePhyTime(dt_);
 
