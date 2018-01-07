@@ -66,7 +66,8 @@ with open(args.python_input) as file:
     tt_ =  Decimal(tt_.quantize(Decimal('.001')))
     Beta = Decimal(Beta.quantize(Decimal('.01')))
     
-    Epsilon = None;
+    if eqn_set == 'Advection':
+        Epsilon = None;
     if not(Epsilon is None):
         Epsilon = Decimal(Epsilon.quantize(Decimal('.01')))
     CFL = Decimal(CFL.quantize(Decimal('.0001')))
@@ -103,7 +104,7 @@ elif eqn_set=='Diffusion':
                   , Epsilon, dir1, aver, nodal_exact, nodal_comp, discont )
 
 elif args.burger_plot_flag==1:
-    if not(args.burgers_plot_time is None):
+    if not(args.plot_time is None):
         plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_ \
                      , Beta, Epsilon, cont_num_time, disc_num_time)
     else:

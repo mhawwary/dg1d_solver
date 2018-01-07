@@ -148,7 +148,9 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     x_disc = data[:, 0]
     u_disc = data[:, 1]
     
+    print('u_cont_max: ',max(u_cont))
     print('u_disc_max: ',max(u_disc))
+    print('error: ',abs(1-max(u_disc)))
 
     del fname, data
 
@@ -165,7 +167,7 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
 
     pyplot.plot(xn_exact, un_exact, '--k', label='exact sol');
     pyplot.plot(x_cont, u_cont, '-.b', label='cont sol');
-    print('u_cont_max: ',max(u_cont))
+    
 
     for i in range(0, size(x_disc) - 1, Np):
         xx = x_disc[i:i + Np];
@@ -206,8 +208,9 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     pyplot.ylim(min(ylim_0), max(ylim_1)*1.3)
 
     fig.tight_layout()
-    figname = dir1 + 'tempfig/' + 'contsol_N'\
-    +Nelem+mm_name+str('_')+str(tt_)+str('t.png')
+    figname = dir1 + 'tempfig/' + 'p'+str(DG)+'RK'+RK+\
+    '_beta'+str(Beta)+'_N'+Nelem+mm_name+str('_')+\
+    str(tt_)+str('t.png')
     fig.set_size_inches(15.0, 9.0, forward=True)
     pyplot.savefig(figname)
     pyplot.show()
@@ -316,6 +319,8 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
         m_name = str('CFL=')+ str(CFL)             
 
     dt = float(dt_);
+    
+    #print('Epsilon: ',Epsilon)
 
     fname = dir_input + cont_num + str("_N") + Nelem \
     + mm_name + str("_Beta") + str(Beta)\
