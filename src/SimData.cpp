@@ -109,7 +109,8 @@ void SimData::prepare_dump_burgers_turb_param(){
         //srand(time(NULL));
         std::random_device rd;  //Will be used to obtain a seed for the random number engine
         std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-        std::uniform_real_distribution<> dis(0.0, std::nextafter(0.9999999999999999, DBL_MAX));  // std::nextafter(0.9999999999999999, DBL_MAX)
+        std::uniform_real_distribution<>
+                dis(0.0, std::nextafter(0.9999999999999999, DBL_MAX));  // std::nextafter(0.9999999999999999, DBL_MAX)
 
         // Preparing Dump Spectrum Data:
         //----------------------------------
