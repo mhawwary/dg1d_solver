@@ -277,23 +277,24 @@ void DGSolverAdvecDiffus::InitSol(){
     int k=0,i;
     double xx=0.0,qi_=0.0;
 
-    max_eigen_advec=0.0;  // initializing the maximum eigen value with zero
+    //max_eigen_advec=0.0;  // initializing the maximum eigen value with zero
 
     if(simdata_->eqn_type_=="visc_burger"){  // burger's equation
-        GaussQuad quad_temp; quad_temp.setup_quadrature(8);
-        max_eigen_advec=0.0;  // initializing the maximum eigen value with zero
+        //GaussQuad quad_temp; quad_temp.setup_quadrature(8);
+        //max_eigen_advec=0.0;  // initializing the maximum eigen value with zero
 
         for(j=0; j<grid_->Nelem; j++){
             for(k=0; k<Ndof; k++)
                 Qn[j][k] = initSol_legendre_proj(j,k,quad_);
 
-            for (i=0; i<quad_temp.Nq; i++){
-                xx = 0.5 * grid_->h_j[j] * quad_temp.Gaus_pts[i] + grid_->Xc[j];
-                qi_ = evalSolution(&Qn[j][0],xx);
-                if(fabs(qi_)>max_eigen_advec) max_eigen_advec = fabs(qi_);
-            }
+//            for (i=0; i<quad_temp.Nq; i++){
+//                xx = 0.5 * grid_->h_j[j] * quad_temp.Gaus_pts[i] + grid_->Xc[j];
+//                qi_ = evalSolution(&Qn[j][0],xx);
+//                cout << "xx: "<<xx<<"\tqi_: "<<qi_<<endl;
+//                if(fabs(qi_)>max_eigen_advec) max_eigen_advec = fabs(qi_);
+//            }
         }
-        quad_temp.Reset_quad();
+        //quad_temp.Reset_quad();
 
     }else if(simdata_->eqn_type_=="linear_advec_diffus"){ // linear sdvection-diffusion equation
         for(j=0; j<grid_->Nelem; j++)
@@ -1806,9 +1807,13 @@ double DGSolverAdvecDiffus::compute_totalVariation(){
     register int i;
 
     double TV_=0.0;
+    max_eigen_advec = 0.0;
 
-    for(i=1; i<grid_->N_uniform_pts; i++)
+    for(i=1; i<grid_->N_uniform_pts; i++){
         TV_ += fabs(u_cont_sol[i]-u_cont_sol[i-1]);
+        if(fabs(u_cont_sol[i-1])>max_eigen_advec)
+            max_eigen_advec=fabs(u_cont_sol[i-1]);
+    }
 
     return TV_;
 }
