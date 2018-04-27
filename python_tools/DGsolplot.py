@@ -111,7 +111,7 @@ def plot_diffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
     return 'true'
 
 def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
-                     , Beta, Epsilon, cont_num, disc_num):
+                     , Beta, Epsilon, cont_num, disc_num, T_period):
 
     dt = float(dt_);
     
@@ -211,6 +211,28 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     figname = dir1 + 'tempfig/' + 'p'+str(DG)+'RK'+RK+\
     '_beta'+str(Beta)+'_N'+Nelem+mm_name+str('_')+\
     str(tt_)+str('t.png')
+    fig.set_size_inches(15.0, 9.0, forward=True)
+    pyplot.savefig(figname)
+    
+    # Read DG data:
+    res_dir = './Results/'
+    fname = dir1 + 'errors/errors_N'+str(Nelem)+'_CFL'+str(CFL)+'_Beta1.00_'+str(T_period)+'T.dat'
+    data = loadtxt(fname);  # continuous exact nodal solution
+    time  = data[:, 0];
+    L1err = data[:, 1];
+    L2err = data[:, 2];
+
+    fig = pyplot.figure();
+    
+    pyplot.plot(time, L2err,'-ok',time,L1err,'-.b')
+    pyplot.xlabel('time')
+    pyplot.ylabel('L2err')
+    #pyplot.xscale('log')
+    #pyplot.yscale('log')
+    
+    figname = dir1 + 'tempfig/' + 'errors_p'+str(DG)+'RK'+RK+\
+    '_beta'+str(Beta)+'_N'+Nelem+mm_name+str('_')+\
+    str(T_period)+str('T.png')
     fig.set_size_inches(15.0, 9.0, forward=True)
     pyplot.savefig(figname)
     pyplot.show()

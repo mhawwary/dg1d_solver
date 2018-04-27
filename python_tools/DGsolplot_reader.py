@@ -10,7 +10,7 @@ from sys_cmd_toolbox import system_process    # locally defined file
 
 parser = argparse.ArgumentParser(description='python_DG_argument_parsing');
 
-parser.add_argument('-f', type=str, dest='python_input');
+parser.add_argument('-i', type=str, dest='python_input');
 parser.add_argument('-t', type=float, dest='plot_time');
 parser.add_argument('-o', type=int, dest='burger_plot_flag');
 parser.add_argument('-a', type=int, dest='comp_fft_flag');
@@ -65,6 +65,7 @@ with open(args.python_input) as file:
     tt_   = Decimal(args.plot_time)
     tt_ =  Decimal(tt_.quantize(Decimal('.001')))
     Beta = Decimal(Beta.quantize(Decimal('.01')))
+    T =  Decimal(T.quantize(Decimal('.001')))
     
     if eqn_set == 'Advection':
         Epsilon = None;
@@ -79,7 +80,7 @@ from DGsolplot import plot_diffus, plot_advec, plot_AdvecDiffus, plot_burgers_de
 
 if eqn_set=='Advection':
     a =plot_advec(dir_input, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
-                     , Beta, Epsilon, cont_num_time, disc_num_time)
+                     , Beta, Epsilon, cont_num_time, disc_num_time,T)
                    
     if args.comp_fft_flag==1:
         from fft_toolbox_python_new import load_data, compute_fft, plot_fft
