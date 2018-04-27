@@ -19,6 +19,7 @@ struct GridData {
     double *x_exact_ppts=nullptr;
     double *xi_disc=nullptr;
     double *xi_uniform=nullptr;
+    double *x_unifrom_pts=nullptr;
 
     int Nelem=1;
     int Nfaces=2;
@@ -49,6 +50,7 @@ struct GridData {
         n_uniform_pts_per_elem = simdata_.N_uniform_pts_per_elem_;
         N_uniform_pts = (n_uniform_pts_per_elem-1) * Nelem +1 ;
         xi_uniform = new double[n_uniform_pts_per_elem];
+        x_unifrom_pts = new double[N_uniform_pts];
 
         if(uniform==1) dx = (xf-x0)/Nelem;
         h_j = new double [Nelem];
@@ -63,6 +65,7 @@ struct GridData {
         }
 
         N_exact_ppts= simdata_.N_exact_plot_pts+1;
+        //N_exact_ppts=N_uniform_pts; // Just for testing
         x_exact_ppts = new double[N_exact_ppts];
         xi_disc = new double[N_xi_disc_ppts];
 
@@ -97,6 +100,27 @@ struct GridData {
         for(i=0; i<n_uniform_pts_per_elem; i++)
             xi_uniform[i] = dxi_u * (i) + -1.0 ;
 
+        int count_=0,k=0,j=0;
+        //Element zero:
+        x_unifrom_pts[0]=x0;
+        count_++;
+        for(k=1; k<n_uniform_pts_per_elem-1; k++){
+            x_unifrom_pts[count_] = ( 0.5 * h_j[j]*xi_uniform[k])+ Xc[j];
+            count_++;
+        }
+        //rest of the elements
+        for(j=1; j<Nelem; j++){
+            k=0;
+            x_unifrom_pts[count_] = ( 0.5 * h_j[j]*xi_uniform[k])+ this->Xc[j];
+            count_++;
+            for(k=1; k<n_uniform_pts_per_elem-1; k++){
+                x_unifrom_pts[count_] = ( 0.5 * h_j[j]*xi_uniform[k])+ Xc[j];
+                count_++;
+            }
+        }
+        //final point:
+        x_unifrom_pts[count_] = xf;
+
         // New sampling for plotting a smooth exact solution
         double dxx_ = (xf - x0) / (N_exact_ppts-1);
         for(i=0; i<N_exact_ppts; i++)
@@ -112,6 +136,7 @@ struct GridData {
         emptyarray(x_exact_ppts);
         emptyarray(xi_disc);
         emptyarray(xi_uniform);
+        emptyarray(x_unifrom_pts);
 
         return;
     }

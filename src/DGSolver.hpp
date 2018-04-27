@@ -24,20 +24,19 @@ public:
    virtual void setup_solver(GridData& meshdata_, SimData& simdata_)=0;
 
    virtual void InitSol()=0;
-   virtual void UpdateResid(double **Resid_, double **Qn_)=0;
+   virtual void UpdateResid(double **Resid_, double **Qn_)=0; // updating residual
 //   virtual void UpdateSolution(double **Qn_)=0;
 
-   virtual void Compute_vertex_sol()=0;
-   virtual void Compute_cont_sol()=0;
+   virtual void Compute_vertex_sol()=0; // compute num sol at element nodes and average
    virtual double ComputePolyError()=0;
-   virtual double L1_error_projected_sol()=0;
-   virtual double L2_error_projected_sol()=0;
-   virtual double L1_error_average_sol()=0;
-   virtual double L2_error_average_sol()=0;
-   virtual double L1_error_nodal_gausspts()=0;
-   virtual double L2_error_nodal_gausspts()=0;
-   virtual double L1_error_nodal_gausspts_proj()=0;
-   virtual double L2_error_nodal_gausspts_proj()=0;
+   virtual double L1_error_projected_sol()=0; // L1 of projected exact and numerical solutions
+   virtual double L2_error_projected_sol()=0; // L2 of projected exact and numerical solutions
+   virtual double L1_error_average_sol()=0;   // L1 of the averages of both exact and numerical solutions
+   virtual double L2_error_average_sol()=0;   // L2 of the averages of both exact and numerical solutions
+   virtual double L1_error_nodal_gausspts()=0; // L1 at gauss points, but using non-projected exact solution
+   virtual double L2_error_nodal_gausspts()=0; // L2 at gauss points, but using non-projected exact solution
+   virtual double L1_error_nodal_gausspts_proj()=0; // L1 at gauss points, but using projected exact and numerical solutions
+   virtual double L2_error_nodal_gausspts_proj()=0; // L2 at gauss points, but using projected exact and numerical solutions
 
    void UpdatePhyTime(const double& dt_){
 
@@ -73,18 +72,23 @@ public:
        return Ndof;
    }
 
-   double** GetNumSolution(){
-
+   double** GetNumSolution(){ // modal pointer array
        return Qn;
    }
 
-   double* GetVertexNumSol(){
+   double** GetExactSolution(){ // continuous uniform exact solution
+       return Qex_proj;
+   }
 
+   double* GetVertexNumSol(){ //only numerical solution at nodes only and averaged
        return Qv;
    }
 
-   double* GetExactSolution(){
+   double* GetContUniformNumSol(){  // continuous uniform numerical solution
+       return Q_cont_sol;
+   }
 
+   double* GetContUniformExactSol(){ // continuous uniform exact solution
        return Q_exact;
    }
 
@@ -100,6 +104,7 @@ public:
                     ,double& L1_nodal_gausspts, double& L2_nodal_gausspts)=0;
    virtual void dump_discont_sol()=0;
    virtual void dump_timeaccurate_sol()=0;
+   virtual void dump_timeaccurate_errors()=0; // remember that you always have to dump the time_accurate solution first
 
 protected:
 
@@ -120,13 +125,13 @@ protected:
                                  const int &basis_k,
                                   const GaussQuad &quad_)=0;
 
-   virtual void CalcTimeStep()=0;
-   virtual void ComputeExactSolShift()=0;
-   virtual void Compute_exact_vertex_sol()=0;
-   virtual void Compute_projected_exact_sol()=0;
+   virtual void CalcTimeStep()=0;              // calculate time step and CFL
+   virtual void ComputeExactSolShift()=0;      // compute shift each time step
+   virtual void Compute_exact_vertex_sol()=0;  //exact continuous solution
+   virtual void Compute_projected_exact_sol()=0; //projected exact solution
 
-   virtual void compute_uniform_cont_sol()=0;
-   virtual double compute_totalVariation()=0;
+   virtual void compute_uniform_cont_sol()=0; // compute numerical cont solution
+   virtual double compute_totalVariation()=0; // compute TV if needed
 
 protected:
 
@@ -136,33 +141,30 @@ protected:
    int Ndof = 1;
 
    double **Qn=nullptr;      // Nelem * Ndof long
-
    double *Q_exact=nullptr;  // Nfaces long
-
    double **Qex_proj=nullptr; // projected exact solution , Nelem long
-
    double *Qv=nullptr;       // Nfaces long
 
    double *flux_com=nullptr;  // common interface flux, Nfaces long
 
-   double max_eigen_advec=0.0; // maximum eigenvalue for adevction
+   double max_eigen_advec=0.0;  // maximum eigenvalue for adevction
+   double phy_time=0.0;         // physical time
+   double time_step=1e-5;       // time step dt
+   double last_time_step=1e-5;  // last time step dt_last
+   double CFL=1.0;              // CFL number
 
-   double phy_time=0.0;
-   double time_step=1e-5;
-   double last_time_step=1e-5;
-   double CFL=1.0;
+   double exact_sol_shift=0.;  // at or adt, since exact sol have f(x-at).
+   double wave_length_=0.;     // wave length, Lambda
+   double wave_speed_=0.0;      // wave speed (a), u_t + a u_x =0
 
-   double exact_sol_shift=0.;
-   double wave_length_=0.;
-
-   int Nquad_=5; // Gauss Quadrature rules
+   int Nquad_=1; // Gauss Quadrature rules
 
    GaussQuad quad_;
 
    double **Lk=nullptr;   // Legendre polynomials at (-1) and (1)
    double *Lk_norm_squar=nullptr; // norm of squared of Lk's
 
-   double *u_cont_sol=nullptr;
+   double *Q_cont_sol=nullptr;  // continuous numerical solution with uniform spacing
 
 };
 

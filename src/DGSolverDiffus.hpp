@@ -22,7 +22,6 @@ public:
 //   virtual void UpdateSolution(double **Qn_);
 
    virtual void Compute_vertex_sol();
-   virtual void Compute_cont_sol(){}
    virtual double ComputePolyError();
    virtual double L1_error_projected_sol();
    virtual double L2_error_projected_sol();
@@ -40,6 +39,7 @@ public:
                     ,double& L1_nodal_gausspts, double& L2_nodal_gausspts);
    virtual void dump_discont_sol();
    virtual void dump_timeaccurate_sol(){}
+   virtual void dump_timeaccurate_errors(){}
 
    virtual void UpdateResidOneCell(const int& cellid, double* q_
                            , double* resid_);

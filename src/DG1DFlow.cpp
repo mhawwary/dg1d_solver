@@ -16,6 +16,7 @@ ExplicitTimeSolver *time_solver_;
 void InitSim(const int& argc, char** argv);
 void RunSim();
 void PostProcess();
+//void Dump_errors_vs_time();
 void logo();
 
 int main(int argc, char** argv){
@@ -35,16 +36,16 @@ int main(int argc, char** argv){
 
     RunSim();
 
-    if(simdata_.wave_form_!=3){
-        PostProcess();
-    }else{
-        printf("\nFinal Iteration number is: %d\n",time_solver_->GetIter());
-        printf("Final time is: %1.5f\n",dg_solver_->GetPhyTime());
-    }
+    //    if(simdata_.wave_form_!=3){
+    //        PostProcess();
+    //    }else{
+    //        printf("\nFinal Iteration number is: %d\n",time_solver_->GetIter());
+    //        printf("Final time is: %1.5f\n",dg_solver_->GetPhyTime());
+    //    }
 
     clock_t t_end=clock();
 
-    cout << "Elapsed Time: " << 1.0*(t_end-t_start)/CLOCKS_PER_SEC
+    cout << "\n\nElapsed Time: " << 1.0*(t_end-t_start)/CLOCKS_PER_SEC
          << " seconds\n" <<endl;
 
     emptypointer(dg_solver_);
@@ -80,7 +81,10 @@ void InitSim(const int& argc,char** argv){
     time_solver_ = new ExplicitTimeSolver;
     dg_solver_->setup_solver(meshdata_,simdata_);
     dg_solver_->InitSol();
+    printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter()
+           ,dg_solver_->GetPhyTime());
     dg_solver_->dump_timeaccurate_sol();
+    dg_solver_->dump_timeaccurate_errors();
     time_solver_->setupTimeSolver(dg_solver_,&simdata_);
     simdata_.dump_python_inputfile();
 
@@ -121,7 +125,7 @@ void RunSim(){
 
     }else if(simdata_.unsteady_data_print_flag_==2){  // print using the specified iter_print without dt changing except the last one
         n_iter_print=simdata_.unsteady_data_print_iter_;
-        dt_last_print=dt_;
+        dt_last_print = dg_solver_->GetLastTimeStep();
     }else{
         FatalError_exit("unsteady data print flag error");
     }
@@ -139,6 +143,7 @@ void RunSim(){
     if(n_iter_print==1){
         printf("\nIter No:%d, time: %f",time_solver_->GetIter(),gtime);
         dg_solver_->dump_timeaccurate_sol();
+        dg_solver_->dump_timeaccurate_errors();
         local_iter=0;
     }
 
@@ -158,6 +163,7 @@ void RunSim(){
                 gtime=dg_solver_->GetPhyTime();
                 printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter(),gtime);
                 dg_solver_->dump_timeaccurate_sol();
+                dg_solver_->dump_timeaccurate_errors();
                 time_solver_->Set_time_step(dt_);
                 //time_solver_->Reset_iter(time_solver_->GetIter()-1);
                 local_iter=0;
@@ -175,6 +181,7 @@ void RunSim(){
             if(local_iter%n_iter_print==0){
                 printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter(),gtime);
                 dg_solver_->dump_timeaccurate_sol();
+                dg_solver_->dump_timeaccurate_errors();
                 local_iter=0;
             }
         }
@@ -188,7 +195,10 @@ void RunSim(){
         else
             time_solver_->space_solver->UpdatePhyTime(dt_);
 
+        gtime=dg_solver_->GetPhyTime();
+        printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter(),gtime);
         dg_solver_->dump_timeaccurate_sol();
+        dg_solver_->dump_timeaccurate_errors();
     }
 
     return;
@@ -213,8 +223,8 @@ void PostProcess(){
     dg_solver_->print_average_sol();
     dg_solver_->dump_discont_sol();
     dg_solver_->dump_errors(L1_projsol_,L2_projsol_
-                           ,L1_aversol_, L2_aversol_
-                           ,L1_nodal_gausspts, L2_nodal_gausspts);
+                            ,L1_aversol_, L2_aversol_
+                            ,L1_nodal_gausspts, L2_nodal_gausspts);
 
     printf("\nFinal Iteration number is: %d\n",time_solver_->GetIter());
     printf("Final time is: %1.5f\n",dg_solver_->GetPhyTime());
@@ -240,7 +250,25 @@ void logo(){
     return;
 }
 
+//void Dump_errors_vs_time(){
 
+//    double L1_aversol_=0.0,L1_projsol_=0.0
+//            ,L2_aversol_=0.0,L2_projsol_=0.0
+//            , L1_nodal_gausspts, L2_nodal_gausspts;
+
+//    dg_solver_->Compute_vertex_sol();
+
+//    L1_projsol_ = dg_solver_->L1_error_time_proj_sol();
+//    L2_projsol_ = dg_solver_->L2_error_time_proj_sol();
+//    L1_aversol_ = dg_solver_->L1_error_average_sol();
+//    L2_aversol_ = dg_solver_->L2_error_average_sol();
+//    L1_nodal_gausspts = dg_solver_->L1_error_nodal_gausspts();
+//    L2_nodal_gausspts = dg_solver_->L2_error_nodal_gausspts();
+
+//    dg_solver_->dump_errors_vs_time(L1_projsol_,L2_projsol_);
+
+//    return;
+//}
 
 
 

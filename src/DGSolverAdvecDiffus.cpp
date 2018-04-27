@@ -83,7 +83,7 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     flux_com = new double[grid_->Nfaces];
     viscflux_com = new double[grid_->Nfaces];
     u_sol_jump = new double[grid_->Nfaces];
-    u_cont_sol = new double[grid_->N_uniform_pts];
+    Q_cont_sol = new double[grid_->N_uniform_pts];
 
     if(simdata_->diffus_scheme_type_=="SIP")
         r_lift = pow(simdata_->poly_order_,2);
@@ -124,7 +124,7 @@ void DGSolverAdvecDiffus::Reset_solver(){
     emptyarray(flux_com);
     emptyarray(viscflux_com);
     emptyarray(u_sol_jump);
-    emptyarray(u_cont_sol);
+    emptyarray(Q_cont_sol);
     emptyarray(Qv);
     emptyarray(grid_->Nelem,Qex_proj);
     emptyarray(Ndof,Lk);
@@ -1754,48 +1754,48 @@ void DGSolverAdvecDiffus::compute_uniform_cont_sol(){
     int count_=0; //continuous points counter
 
     // For element zero:
-    u_cont_sol[count_] = 0.0;
+    Q_cont_sol[count_] = 0.0;
     k = simdata_->N_uniform_pts_per_elem_-1;
     j= grid_->Nelem-1;
-    u_cont_sol[count_] = evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+    Q_cont_sol[count_] = evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
 
     k=0; j=0;
     xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
             + grid_->Xc[j];
-    u_cont_sol[count_] += evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+    Q_cont_sol[count_] += evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
 
-    u_cont_sol[count_] = u_cont_sol[count_]/2.;
+    Q_cont_sol[count_] = Q_cont_sol[count_]/2.;
     count_++;
 
     for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
         xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
                 + grid_->Xc[j];
-        u_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+        Q_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
         count_++;
     }
 
-    u_cont_sol[count_]=0.0;
+    Q_cont_sol[count_]=0.0;
     for(j=1; j<grid_->Nelem; j++){
 
         k=0;
         xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
                 + grid_->Xc[j];
-        u_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+        Q_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
 
         k = simdata_->N_uniform_pts_per_elem_-1;
-        u_cont_sol[count_] += evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
+        Q_cont_sol[count_] += evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
 
-        u_cont_sol[count_] = u_cont_sol[count_]/2.;
+        Q_cont_sol[count_] = Q_cont_sol[count_]/2.;
         count_++;
 
         for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
             xx = ( 0.5 * grid_->h_j[j] * grid_->xi_uniform[k])
                     + grid_->Xc[j];
-            u_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+            Q_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
             count_++;
         }
     }
-    u_cont_sol[count_] = u_cont_sol[0];
+    Q_cont_sol[count_] = Q_cont_sol[0];
 
     //printf("\n Count: %d \t N_uniform: %d\n", count_, grid_->N_uniform_pts);
 
@@ -1810,9 +1810,9 @@ double DGSolverAdvecDiffus::compute_totalVariation(){
     max_eigen_advec = 0.0;
 
     for(i=1; i<grid_->N_uniform_pts; i++){
-        TV_ += fabs(u_cont_sol[i]-u_cont_sol[i-1]);
-        if(fabs(u_cont_sol[i-1])>max_eigen_advec)
-            max_eigen_advec=fabs(u_cont_sol[i-1]);
+        TV_ += fabs(Q_cont_sol[i]-Q_cont_sol[i-1]);
+        if(fabs(Q_cont_sol[i-1])>max_eigen_advec)
+            max_eigen_advec=fabs(Q_cont_sol[i-1]);
     }
 
     return TV_;

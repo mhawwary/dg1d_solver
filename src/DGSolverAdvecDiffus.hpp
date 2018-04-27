@@ -21,7 +21,6 @@ public:
    virtual void UpdateResid(double **Resid_, double **Qn_);
 
    virtual void Compute_vertex_sol();
-   virtual void Compute_cont_sol(){}
    virtual double ComputePolyError();
    virtual double L1_error_projected_sol();
    virtual double L2_error_projected_sol();
@@ -31,6 +30,7 @@ public:
    virtual double L2_error_nodal_gausspts();
    virtual double L1_error_nodal_gausspts_proj();
    virtual double L2_error_nodal_gausspts_proj();
+
    virtual void print_cont_vertex_sol();
    virtual void print_average_sol();
    virtual void dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
@@ -38,6 +38,7 @@ public:
                     ,double& L1_nodal_gausspts, double& L2_nodal_gausspts);
    virtual void dump_discont_sol();
    virtual void dump_timeaccurate_sol();
+   virtual void dump_timeaccurate_errors(){}
 
    virtual void UpdateResidOneCell(const int& cellid, double* q_
                            , double* resid_);
@@ -100,7 +101,7 @@ protected:
    int Nquad_invFlux_=1;
    int Nquad_viscFlux_=1;
 
-   //double *u_cont_sol=nullptr;
+   //double *Q_cont_sol=nullptr;
 
    double **dLk=nullptr; //Derivatives of legendre polynomials at(-1), (1)
 };
