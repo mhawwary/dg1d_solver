@@ -2,6 +2,7 @@ from matplotlib import pyplot ,ticker   #and the useful plotting library
 from numpy import sin,cos,pi,linspace,ones,zeros,abs,min,max,exp, shape, empty_like , size, loadtxt, arange , log
 from decimal import Decimal
 import csv
+from matplotlib import pyplot as plt
 
 pyplot.rc('legend',**{'loc':'best'});
 pyplot.rcParams[u'legend.fontsize'] = 15
@@ -333,6 +334,8 @@ def plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
  
 def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, cont_num, disc_num):
     
+    from fft_toolbox_python import load_data, compute_fft
+    
     if  (mode == 'test') | (mode == 'dt_const'):
         mm_name = str('_dt') + dt_
         m_name = str('dt=') + dt_
@@ -342,7 +345,7 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
 
     dt = float(dt_);
     
-    #print('Epsilon: ',Epsilon)
+    print('dir_input: ',dir_input)
 
     fname = dir_input + cont_num + str("_N") + Nelem \
     + mm_name + str("_Beta") + str(Beta)\
@@ -353,6 +356,9 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
 
     x_cont = data[:, 0]
     u_cont = data[:, 1]
+    
+    # compute fft:
+    k_freq, u_amp, KEnerg = compute_fft(u_cont);
 
     del fname, data
     
@@ -375,7 +381,8 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
     else:
         Np = 10;
 
-    pyplot.figure();
+    ################ Plotting the solution #####################
+    fig, ax = pyplot.subplots(frameon='True')
 
     ylim_0 = list();
     ylim_1 = list();
@@ -413,6 +420,44 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
     xlocs = xlabels;
     #pyplot.xticks(xlocs, xlabels);
     pyplot.grid();
+    
+    fig.set_size_inches(13.0, 9.0, forward=True)
+    fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0,rect=(0.0,0.0,1.0,0.985))
+    
+    temp_name = 'sol_vs_x_p' + DG + 'RK' + RK +'_'+ m_name \
+              + '_t'+ str(tt_);
+           
+    figname = dir_input + str('/tempfig/') + temp_name+'.eps'
+    fig.savefig(figname,format='eps',bbox='tight')
+    figname = dir_input + str('/tempfig/') + temp_name+'.png'
+    plt.savefig(figname,format='png',bbox='tight')
+    
+    ###################### Plot the fft ##########################
+    fig, ax = pyplot.subplots(frameon='True')
+    ax.plot(k_freq, KEnerg)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.legend(fontsize=19,edgecolor='black')
+    ax.set_facecolor('white')
+    ax.set_xlabel(r'$k$', labelpad=2,fontsize=24);
+    ax.set_ylabel(r'$E$', labelpad=2, fontsize=24);
+    ax.set_xlim(10**0, 10**3)
+    ax.set_ylim(10**-10, 10 ** -1)
+    ax.tick_params(axis='both', which='both', labelsize=24)
+    
+    ax.spines["top"].set_visible(True)
+    ax.spines["right"].set_visible(True)
+    ax.spines["bottom"].set_visible(True)
+    
+    fig.set_size_inches(13.0, 9.0, forward=True)
+    fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0,rect=(0.0,0.0,1.0,0.985))
+    
+    temp_name = 'FFT_p' + DG + 'RK' + RK +'_'+ m_name \
+              + '_t'+ str(tt_);
+    figname = dir_input + str('/tempfig/') + temp_name+'.eps'
+    fig.savefig(figname,format='eps',bbox='tight')
+    figname = dir_input + str('/tempfig/') + temp_name+'.png'
+    plt.savefig(figname,format='png',bbox='tight')
 
     pyplot.show()
 
