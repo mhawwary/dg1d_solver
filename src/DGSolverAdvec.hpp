@@ -67,6 +67,10 @@ public:
    virtual void compute_uniform_cont_sol();
    virtual double compute_totalVariation();
 
+   virtual double TimeAccurateExactSol_legendre_proj(const int &eID,
+                                                const int &basis_k,
+                                                const GaussQuad &quad_);
+   virtual void Compute_TimeAccurate_exact_sol();
 
 protected:
    double Compute_common_flux(const double& ql, const double& qr,
@@ -76,12 +80,6 @@ protected:
                                  , const int& basis_k_);
    double eval_burgers_invflux(const double& xi_pt, const double *q_);
    double Rusanov(const double &Ql, const double &Qr);
-
-   double TimeAccurateExactSol_legendre_proj(const int &eID,
-                                                const int &basis_k,
-                                                const GaussQuad &quad_);
-
-   void Compute_TimeAccurate_exact_sol();
 
    void Reset_solver();
 

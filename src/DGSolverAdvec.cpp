@@ -17,7 +17,8 @@ void DGSolverAdvec::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     Ndof= simdata_->poly_order_+1;
 
-    // Nquad  is for error integrations and Nquad_invFlux is for flux projection
+    // Nquad  is for error integrations
+    // Nquad_invFlux is for flux projection
     switch (Ndof) {
     case 1:  // p0
         Nquad_ = 8;  // 1, but use highest possible for more accuracy
@@ -71,7 +72,6 @@ void DGSolverAdvec::setup_solver(GridData& meshdata_, SimData& osimdata_){
     Q_cont_sol = new double[grid_->N_uniform_pts];
 
     SetPhyTime(simdata_->t_init_);
-
     setup_basis_interpolation_matrices();
 
     //Wave data:
@@ -249,8 +249,9 @@ void DGSolverAdvec::InitSol(){
                 Qn[j][k] = initSol_legendre_proj(j,k,quad_temp_);
 
         max_eigen_advec = simdata_->a_wave_;
+
     }else{
-        FatalError_exit("Wave for is not implemented");
+        FatalError_exit("Equation type is not implemented");
     }
 
     CalcTimeStep(); // based on maximum eigenvalues
@@ -301,14 +302,12 @@ double DGSolverAdvec::ExactSol_legendre_proj(const int &eID,
 
     ComputeExactSolShift(); // updating time accurate shift
 
-    II=0.0;
     for (i=0; i<quad_.Nq; i++){
         xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
                 + grid_->Xc[j] - exact_sol_shift;
 
         if(simdata_->wave_form_==0){    // single mode wave
             Qinit_ = eval_init_sol(xx);
-
         }else if(simdata_->wave_form_==1){  // Gaussian wave
             x0 = xx - wave_length_*floor(xx/wave_length_);
             x1 = xx + wave_length_*floor(xx/-wave_length_);
@@ -721,7 +720,6 @@ void DGSolverAdvec::Compute_exact_vertex_sol(){
 
         if(simdata_->wave_form_==0){   // single mode wave
             Q_exact[j] = eval_init_sol(xx);
-
         }else if(simdata_->wave_form_==1){ // Gaussian wave
             x0 = xx - wave_length_*floor(xx/wave_length_);
             x1 = xx + wave_length_*floor(xx/-wave_length_);
@@ -1498,7 +1496,6 @@ void DGSolverAdvec::dump_timeaccurate_sol(){
     fclose(sol_out);
     emptyarray(fname);
 
-
     // Dumping Exact solution data:
     Compute_projected_exact_sol();
     Compute_exact_vertex_sol();
@@ -1554,12 +1551,11 @@ void DGSolverAdvec::compute_uniform_cont_sol(){
     // For element zero:
     k = simdata_->N_uniform_pts_per_elem_-1;
     j= grid_->Nelem-1;
-    qq = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
+    qq = evalSolution(&Qn[j][0],grid_->xi_uniform[k]); // eval last element solution
 
     k=0; j=0;
-    qq += evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
-
-    qq = qq/2.; qq_end_=qq;
+    qq += evalSolution(&Qn[j][0],grid_->xi_uniform[k]); // eval first element solution
+    qq = 0.5*qq; qq_end_=qq;
     Q_cont_sol[count_] = qq;
     count_++;
 
@@ -1577,7 +1573,7 @@ void DGSolverAdvec::compute_uniform_cont_sol(){
         k = simdata_->N_uniform_pts_per_elem_-1;
         qq += evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
 
-        qq = qq/2.;
+        qq = 0.5*qq;
         Q_cont_sol[count_] = qq;
         count_++;
         qq=0.0;

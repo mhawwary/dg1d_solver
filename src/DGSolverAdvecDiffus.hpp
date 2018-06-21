@@ -63,8 +63,12 @@ public:
    virtual void compute_uniform_cont_sol();
    virtual double compute_totalVariation();
 
-protected:
+   virtual double TimeAccurateExactSol_legendre_proj(const int &eID,
+                                                const int &basis_k,
+                                                const GaussQuad &quad_){}
+   virtual void Compute_TimeAccurate_exact_sol(){}
 
+protected:
    double eval_basis_poly_derivative(const double& xi_pt, const int& basis_k_);
    double eval_local_du(const int eID, const double* q_, const double& xi_pt);
    double eval_local_du_fast(const int eID, const double* q_
@@ -93,8 +97,10 @@ protected:
 protected:
 
    double *u_sol_jump=nullptr;
-   double r_lift=1.0;
-   double e_penalty=1.0;
+   double C_lift=1.0;    // C lifting term multiplier for LDG, BR1, BR2/SIP
+   double C1_lift=1.0;   // C1 lifting term multiplier for BR1
+
+   double eta_penalty=1.0;  // penalty parameter
    double *viscflux_com=nullptr;
    GaussQuad quad_invF_;
    GaussQuad quad_viscF_;

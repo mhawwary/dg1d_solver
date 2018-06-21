@@ -133,6 +133,11 @@ protected:
    virtual void compute_uniform_cont_sol()=0; // compute numerical cont solution
    virtual double compute_totalVariation()=0; // compute TV if needed
 
+   virtual double TimeAccurateExactSol_legendre_proj(const int &eID,
+                                                const int &basis_k,
+                                                const GaussQuad &quad_)=0;
+   virtual void Compute_TimeAccurate_exact_sol()=0;
+
 protected:
 
    GridData *grid_=nullptr;
