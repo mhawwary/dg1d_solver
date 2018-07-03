@@ -80,7 +80,7 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     flux_com = new double[grid_->Nfaces];
     viscflux_com = new double[grid_->Nfaces];
-    u_sol_jump = new double[grid_->Nfaces];
+    u_sol_jump = new double[grid_->Nfaces+2]; // we added 2 to account for periodic B.C. and non compactness of BR1
     Q_cont_sol = new double[grid_->N_uniform_pts];
 
     eta_penalty = simdata_->penalty_param_; // penalty param
@@ -271,9 +271,10 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
     cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
     cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
     cout << "Upwind parameter  : "<< simdata_->upwind_param_<< endl;
-    cout << "Penalty parameter : "<< eta_penalty << endl;
     cout << "Poly GaussQuad order  : "<< Nquad_ << endl;
     cout << "Flux GaussQuad order  : "<< Nquad_invFlux_ << endl;
+    cout << "Penalty parameter : "<< eta_penalty << endl;
+    cout << "Viscous Flux scheme   : "<< simdata_->diffus_scheme_type_<<endl;
     cout <<"===============================================\n";
 
     return;
@@ -402,10 +403,11 @@ void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
     dQl = eval_local_du_fast(grid_->Nelem-1, &Qn_[grid_->Nelem-1][0], 1);
     dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
     // Viscous Common Flux:
+    int Nghost_l=1; // Needed for BR1 non-compactness
     viscflux_com[j] = Compute_common_du_flux(dQl,dQr);
-    u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
+    u_sol_jump[j+Nghost_l] = Compute_common_sol_jump(Ql,Qr);
     viscflux_com[grid_->Nfaces-1] = viscflux_com[j];
-    u_sol_jump[grid_->Nfaces-1] = u_sol_jump[j];
+    u_sol_jump[grid_->Nfaces-1+Nghost_l] = u_sol_jump[j+Nghost_l];
     // Inviscid Common Flux:
     flux_com[j] = Compute_common_invflux(Ql,Qr,simdata_->a_wave_
                                          , simdata_->upwind_param_);
@@ -419,11 +421,14 @@ void DGSolverAdvecDiffus::UpdateResid(double **Resid_, double **Qn_){
         dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
         // Viscous Common Flux:
         viscflux_com[j] = Compute_common_du_flux(dQl,dQr);
-        u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
+        u_sol_jump[j+Nghost_l] = Compute_common_sol_jump(Ql,Qr);
         // Inviscid Common Flux:
         flux_com[j] = Compute_common_invflux(Ql,Qr,simdata_->a_wave_
                                              , simdata_->upwind_param_);
     }
+    // Updating the additional jump values for BR1:
+    u_sol_jump[0] = u_sol_jump[grid_->Nfaces-2+Nghost_l]; // for left Boundary
+    u_sol_jump[grid_->Nfaces+Nghost_l] = u_sol_jump[1+Nghost_l]; // for right Boundary
     // Element loop to calculate and update the residual:
     //----------------------------------------------------
     for(j=0; j<grid_->Nelem; j++)
@@ -458,19 +463,20 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
     double u_jump_jp32 = 0.0;  // [[u]]_j+3/2
     double u_jump_jm32 = 0.0;  // [[u]]_j-3/2
 
+    int Nghost_l=1; // Needed for BR1 non-compactness
     if(simdata_->diffus_scheme_type_=="LDG"){
         // giving that beta_e+1/2 = 1, beta_e-1/2=0
         u_jump_jm12 = 0.0;
-        u_jump_jp12 = 2.0*u_sol_jump[j+1];
+        u_jump_jp12 = 2.0*u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="SIP"
              ||simdata_->diffus_scheme_type_=="BR2"){
-        u_jump_jm12 = u_sol_jump[j];
-        u_jump_jp12 = u_sol_jump[j+1];
+        u_jump_jm12 = u_sol_jump[j+Nghost_l];
+        u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="BR1"){
-        u_jump_jm12 = u_sol_jump[j];
-        u_jump_jp12 = u_sol_jump[j+1];
-        u_jump_jp32 = u_sol_jump[j+2];
-        u_jump_jm32 = u_sol_jump[j-1];
+        u_jump_jm12 = u_sol_jump[j+Nghost_l];
+        u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
+        u_jump_jp32 = u_sol_jump[j+2+Nghost_l];
+        u_jump_jm32 = u_sol_jump[j-1+Nghost_l];
     }
 
     du_flux_jm1 = viscflux_com[j];
@@ -1159,11 +1165,9 @@ double DGSolverAdvecDiffus::L1_error_nodal_gausspts(){
 
     for(j=0; j<grid_->Nelem; j++){
         for(i=0; i<quad_.Nq; i++) {
-
             xx =  0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
             q_ex = eval_exact_sol(xx);
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             II += fabs(q_ex - q_n);
         }
     }
@@ -1183,11 +1187,9 @@ double DGSolverAdvecDiffus::L2_error_nodal_gausspts(){
 
     for(j=0; j<grid_->Nelem; j++){
         for(i=0; i<quad_.Nq; i++) {
-
             xx =  0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
             q_ex = eval_exact_sol(xx);
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             II += pow((q_ex - q_n),2);
         }
     }
@@ -1206,11 +1208,8 @@ double DGSolverAdvecDiffus::L1_error_projected_sol(){
 
         elem_error=0.0;
         for(i=0; i<quad_.Nq; i++) {
-
             q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
-
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             elem_error += quad_.Gaus_wts[i] * fabs(q_ex - q_n);
         }
 

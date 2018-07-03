@@ -72,7 +72,7 @@ void DGSolverDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     Qv = new double[grid_->Nfaces];
 
     flux_com = new double[grid_->Nfaces];
-    u_sol_jump = new double[grid_->Nfaces];
+    u_sol_jump = new double[grid_->Nfaces+2]; // we added 2 to account for periodic B.C. and non compactness of BR1
     Q_cont_sol = new double[grid_->N_uniform_pts];
 
     eta_penalty = simdata_->penalty_param_; // penalty param
@@ -127,9 +127,16 @@ void DGSolverDiffus::Reset_solver(){
     emptyarray(u_sol_jump);
     emptyarray(Qv);
     emptyarray(grid_->Nelem,Qex_proj);
+    emptyarray(Q_cont_sol);
+    emptyarray(Ndof,Lk);
+    emptyarray(Ndof,dLk);
+    emptyarray(Lk_norm_squar);
+
+    quad_.Reset_quad();
+    quad_viscF_.Reset_quad();
 
     grid_->Reset_();
-
+    simdata_->Reset();
 
     return;
 }
@@ -233,9 +240,10 @@ void DGSolverDiffus::CalcTimeStep(){
     cout << "\nNumber of Elements: "<< grid_->Nelem<<"  dx:  "<<grid_->dx<<endl;
     cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
     cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
-    cout << "Penalty parameter : "<< eta_penalty << endl;
     cout << "Poly GaussQuad order  : "<< Nquad_ << endl;
     cout << "Flux GaussQuad order  : "<< Nquad_viscFlux_ << endl;
+    cout << "Penalty parameter : "<< eta_penalty << endl;
+    cout << "Viscous Flux scheme   : "<< simdata_->diffus_scheme_type_<<endl;
     cout <<"===============================================\n";
 
     return;
@@ -286,7 +294,6 @@ void DGSolverDiffus::ComputeExactSolShift(){
 double DGSolverDiffus::ExactSol_legendre_proj(const int &eID,
                                               const int &basis_k,
                                               const GaussQuad &quad_){
-
     int i=0,j=0,k=0;
     k=basis_k;
     j=eID;
@@ -296,20 +303,10 @@ double DGSolverDiffus::ExactSol_legendre_proj(const int &eID,
     double Qinit_=0.0;
     double Lk_=1.0;
 
-    ComputeExactSolShift(); // updating time accurate shift
-
     for (i=0; i<quad_.Nq; i++){
         xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
-                + grid_->Xc[j] - exact_sol_shift;
-
-        if(simdata_->wave_form_==0){       // single mode wave
-            Qinit_ = eval_init_sol(xx);
-        }else if(simdata_->wave_form_==1){  // Gaussian wave
-            x0 = xx - wave_length_*floor(xx/wave_length_);
-            x1 = xx + wave_length_*floor(xx/-wave_length_);
-            Qinit_= eval_init_sol(x0)+eval_init_sol(x1);
-            if(x0==0 && x1==0) Qinit_ = 0.5*Qinit_;
-        }
+                + grid_->Xc[j];
+        Qinit_ = eval_exact_sol(xx);
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
         II += quad_.Gaus_wts[i] * Qinit_ * Lk_ ;
     }
@@ -332,10 +329,11 @@ void DGSolverDiffus::UpdateResid(double **Resid_, double **Qn_){
     dQl = eval_local_du_fast(grid_->Nelem-1, &Qn_[grid_->Nelem-1][0], 1);
     dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
     // Viscous Common Flux:
+    int Nghost_l=1; // Needed for BR1 non-compactness
     flux_com[j] = Compute_common_du_flux(dQl,dQr);
-    u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
+    u_sol_jump[j+Nghost_l] = Compute_common_sol_jump(Ql,Qr);
     flux_com[grid_->Nfaces-1] = flux_com[j];
-    u_sol_jump[grid_->Nfaces-1] = u_sol_jump[j];
+    u_sol_jump[grid_->Nfaces-1+Nghost_l] = u_sol_jump[j+Nghost_l];
 
     // Interior Faces
     for(j=1; j<grid_->Nfaces-1; j++){
@@ -345,8 +343,11 @@ void DGSolverDiffus::UpdateResid(double **Resid_, double **Qn_){
         dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
         // Viscous Common Flux:
         flux_com[j] = Compute_common_du_flux(dQl,dQr);
-        u_sol_jump[j] = Compute_common_sol_jump(Ql,Qr);
+        u_sol_jump[j+Nghost_l] = Compute_common_sol_jump(Ql,Qr);
     }
+    // Updating the additional jump values for BR1:
+    u_sol_jump[0] = u_sol_jump[grid_->Nfaces-2+Nghost_l]; // for left Boundary
+    u_sol_jump[grid_->Nfaces+Nghost_l] = u_sol_jump[1+Nghost_l]; // for right Boundary
     // Element loop to calculate and update the residual:
     //----------------------------------------------------
     for(j=0; j<grid_->Nelem; j++){
@@ -381,19 +382,20 @@ void DGSolverDiffus::UpdateResidOneCell(const int &cellid, double *q_, double *r
     double u_jump_jp32 = 0.0;  // [[u]]_j+3/2
     double u_jump_jm32 = 0.0;  // [[u]]_j-3/2
 
+    int Nghost_l=1; // Needed for BR1 non-compactness
     if(simdata_->diffus_scheme_type_=="LDG"){
         // giving that beta_e+1/2 = 1, beta_e-1/2=0
         u_jump_jm12 = 0.0;
-        u_jump_jp12 = 2.0*u_sol_jump[j+1];
+        u_jump_jp12 = 2.0*u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="SIP"
              ||simdata_->diffus_scheme_type_=="BR2"){
-        u_jump_jm12 = u_sol_jump[j];
-        u_jump_jp12 = u_sol_jump[j+1];
+        u_jump_jm12 = u_sol_jump[j+Nghost_l];
+        u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="BR1"){
-        u_jump_jm12 = u_sol_jump[j];
-        u_jump_jp12 = u_sol_jump[j+1];
-        u_jump_jp32 = u_sol_jump[j+2];
-        u_jump_jm32 = u_sol_jump[j-1];
+        u_jump_jm12 = u_sol_jump[j+Nghost_l];
+        u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
+        u_jump_jp32 = u_sol_jump[j+2+Nghost_l];
+        u_jump_jm32 = u_sol_jump[j-1+Nghost_l];
     }
 
     du_flux_jm1 = flux_com[j];
@@ -496,25 +498,10 @@ void DGSolverDiffus::Compute_vertex_sol(){
 void DGSolverDiffus::Compute_exact_vertex_sol(){
     register int j;
     double xx=0.0;
-    double x0,x1;
-
-    ComputeExactSolShift(); // updating the shift for the currnet time
 
     for(j=0; j<grid_->N_exact_ppts; j++){
-        xx = grid_->x_exact_ppts[j]- exact_sol_shift;
-
-        if(simdata_->wave_form_==0){  // single wave mode
-            Q_exact[j] = eval_init_sol(xx);
-        }else if(simdata_->wave_form_==1){ // Gaussian wave
-            x0 = xx - wave_length_*floor(xx/wave_length_);
-            x1 = xx + wave_length_*floor(xx/-wave_length_);
-            if(x0==0 && x1==0)
-                Q_exact[j] = 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
-            else
-                Q_exact[j] = (eval_init_sol(x0)+ eval_init_sol(x1));
-        }else{
-            FatalError_exit("Wave form is not implemented");
-        }
+        xx = grid_->x_exact_ppts[j];
+        Q_exact[j] = eval_exact_sol(xx);
     }
 
     return;
@@ -547,50 +534,50 @@ double DGSolverDiffus::eval_init_sol(const double& xx){
 
 double DGSolverDiffus::eval_exact_sol(double &xx){
 
-    xx = xx - exact_sol_shift;
+    double Qexx_=0.0,wave_initial_value=0.0, Kfreq_=0.0;
+    //xx = xx - exact_sol_shift;
 
-    if(simdata_->wave_form_==0){
-
-        return eval_init_sol(xx);
-
-    }else if(simdata_->wave_form_==1){
-
+    if(simdata_->wave_form_==0){  // single wave mode
+        wave_initial_value = eval_init_sol(xx);
+        Kfreq_ = pow(simdata_->wave_freq_*PI,2);
+    }else if(simdata_->wave_form_==1){ // Gaussian wave
         double x0 = xx - wave_length_*floor(xx/wave_length_);
         double x1 = xx + wave_length_*floor(xx/-wave_length_);
-
         if(x0==0 && x1==0)
-            return 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
+            wave_initial_value= 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
         else
-            return (eval_init_sol(x0)+ eval_init_sol(x1));
+            wave_initial_value = (eval_init_sol(x0)+ eval_init_sol(x1));
     }else{
         _notImplemented("Wave form is not implemented");
     }
+    Qexx_ = wave_initial_value
+            * exp(-Kfreq_ * simdata_->thermal_diffus *phy_time);
+    return Qexx_;
 }
 
 double DGSolverDiffus::eval_basis_poly(const double& xi_, const int& basis_k_){
 
-    if(basis_k_==0) {
-        return 1.0;
+    double Lk_=0.0;
 
-    }else if(basis_k_==1) {
-        return xi_;
-
-    }else if(basis_k_==2) {
-        return 0.5 * (3.0 * xi_*xi_ -1.0);
-
-    }else if(basis_k_==3) {
-        return 0.5 * (5.0 * pow(xi_,3) - 3.0 * xi_);
-
-    }else if(basis_k_==4) {
-        return  (35 * pow(xi_,4) - 30 * xi_*xi_ + 3 ) /8. ;
-
-    }else {
-        char *ss=nullptr; ss= new char[100];
-        sprintf(ss,"polynomial order of: %d",basis_k_);
-        _notImplemented(ss);
-
-        return 0.0;
+    switch (basis_k_) {
+    case 0:
+        Lk_ = 1.0;  break;
+    case 1:
+        Lk_ = xi_;  break;
+    case 2:
+        Lk_ = 0.5 * (3.0 * xi_*xi_ -1.0);  break;
+    case 3:
+        Lk_ = 0.5 * (5.0 * pow(xi_,3) - 3.0 * xi_);  break;
+    case 4:
+        Lk_ = (35. * pow(xi_,4) - 30. * xi_*xi_ + 3. ) /8. ;  break;
+    case 5:
+        Lk_ = (63.0 * pow(xi_,5) - 70.0 * pow(xi_,3) + 15.0 * xi_ ) /8. ;  break;
+    default:
+        FatalError_exit("k basis exceeds poly order");
+        break;
     }
+
+    return Lk_;
 }
 
 double DGSolverDiffus::eval_basis_poly_derivative(const double& xi_
@@ -761,26 +748,16 @@ double DGSolverDiffus::ComputePolyError(){
 double DGSolverDiffus::L1_error_nodal_gausspts_proj(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Ndof);
-
     double L1_error=0.0,II=0.0,q_ex,q_n;
-
     II=0.0;
 
     for(j=0; j<grid_->Nelem; j++){
         for(i=0; i<quad_.Nq; i++) {
-
             q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
-
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             II += fabs(q_ex - q_n);
         }
     }
-
     L1_error = II/(Ndof*grid_->Nelem);
 
     return L1_error;
@@ -789,26 +766,16 @@ double DGSolverDiffus::L1_error_nodal_gausspts_proj(){
 double DGSolverDiffus::L2_error_nodal_gausspts_proj(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Ndof);
-
     double L2_error=0.0,II=0.0,q_ex,q_n;
-
     II=0.0;
 
     for(j=0; j<grid_->Nelem; j++){
         for(i=0; i<quad_.Nq; i++) {
-
             q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
-
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             II += pow((q_ex - q_n),2);
         }
     }
-
     L2_error = sqrt(II/(Ndof*grid_->Nelem));
 
     return L2_error;
@@ -817,26 +784,17 @@ double DGSolverDiffus::L2_error_nodal_gausspts_proj(){
 double DGSolverDiffus::L1_error_nodal_gausspts(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Ndof);
-
     double L1_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
-
     II=0.0;
 
     for(j=0; j<grid_->Nelem; j++){
         for(i=0; i<quad_.Nq; i++) {
-
             xx =  0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
             q_ex = eval_exact_sol(xx);
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             II += fabs(q_ex - q_n);
         }
     }
-
     L1_error = II/(Ndof*grid_->Nelem);
 
     return L1_error;
@@ -845,26 +803,17 @@ double DGSolverDiffus::L1_error_nodal_gausspts(){
 double DGSolverDiffus::L2_error_nodal_gausspts(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(Ndof);
-
     double L2_error=0.0,II=0.0,q_ex,q_n,xx=0.0;
-
     II=0.0;
 
     for(j=0; j<grid_->Nelem; j++){
         for(i=0; i<quad_.Nq; i++) {
-
             xx =  0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
             q_ex = eval_exact_sol(xx);
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             II += pow((q_ex - q_n),2);
         }
     }
-
     L2_error = sqrt(II/(Ndof*grid_->Nelem));
 
     return L2_error;
@@ -873,28 +822,17 @@ double DGSolverDiffus::L2_error_nodal_gausspts(){
 double DGSolverDiffus::L1_error_projected_sol(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     double L1_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
     for(j=0; j<grid_->Nelem; j++){
-
         elem_error=0.0;
         for(i=0; i<quad_.Nq; i++) {
-
             q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
-
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             elem_error += quad_.Gaus_wts[i] * fabs(q_ex - q_n);
         }
-
         II += (0.5 * grid_->h_j[j] * elem_error) ;
     }
-
     L1_error = II/(grid_->xf-grid_->x0);
 
     return L1_error;
@@ -903,28 +841,17 @@ double DGSolverDiffus::L1_error_projected_sol(){
 double DGSolverDiffus::L2_error_projected_sol(){
 
     register int j; int i;
-
-    GaussQuad quad_;
-
-    quad_.setup_quadrature(5);
-
     double L2_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
 
     for(j=0; j<grid_->Nelem; j++){
-
         elem_error=0.0;
         for(i=0; i<quad_.Nq; i++) {
-
             q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
-
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
-
             elem_error += quad_.Gaus_wts[i] * pow((q_ex - q_n),2);
         }
-
         II += (0.5 * grid_->h_j[j] * elem_error) ;
     }
-
     L2_error = sqrt(II/(grid_->xf-grid_->x0));
 
     return L2_error;
@@ -933,14 +860,9 @@ double DGSolverDiffus::L2_error_projected_sol(){
 double DGSolverDiffus::L1_error_average_sol(){
 
     register int j;
-
     double L1_error=0.0,error=0.0;
-
-    for(j=0; j<grid_->Nelem; j++){
-
+    for(j=0; j<grid_->Nelem; j++)
         error += fabs(Qex_proj[j][0] - Qn[j][0]);
-    }
-
     L1_error = error/grid_->Nelem;
 
     return L1_error;
@@ -949,14 +871,9 @@ double DGSolverDiffus::L1_error_average_sol(){
 double DGSolverDiffus::L2_error_average_sol(){
 
     register int j;
-
     double L2_error=0.0,error=0.0;
-
-    for(j=0; j<grid_->Nelem; j++){
-
+    for(j=0; j<grid_->Nelem; j++)
         error += pow((Qex_proj[j][0] - Qn[j][0]),2);
-    }
-
     L2_error = sqrt(error/grid_->Nelem);
 
     return L2_error;

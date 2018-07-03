@@ -115,6 +115,8 @@ void DGSolverAdvec::Reset_solver(){
 
     grid_->Reset_();
 
+    printf("\nMay need to add simdata reset like the other solvers ???\n");
+    // May need to add simdata reset like the other solvers ???
     return;
 }
 
