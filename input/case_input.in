@@ -1,6 +1,6 @@
 [Case]
  title = sine_wave_test   # sine wave / Gaussian / .....
- title_mode = 1 # 0: default for testing, 1: use above strict title
+ title_mode = 0 # 0: default for testing, 1: use above strict title
  num_elements = 80
  x_begin =  0.0   
  x_end   =  80.0
