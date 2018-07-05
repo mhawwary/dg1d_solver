@@ -7,6 +7,7 @@ void SimData::Parse(const std::string &fname){
     // Case parameters:
     //-----------------------------
     case_title = gp_input("Case/title","test");
+    case_title_mode_ = gp_input("Case/title_mode",0);
     Nelem_ = gp_input("Case/num_elements",1);
     x0_ = gp_input("Case/x_begin",0.0);
     xf_ = gp_input("Case/x_end",1.0);
@@ -186,14 +187,6 @@ void SimData::setup_output_directory(){
 
     case_postproc_dir =new char[300];
 
-//    char *case_title=nullptr;
-//    case_title=new char[30];
-//    if(wave_form_==0) sprintf(case_title,"sine_wave");
-//    else if(wave_form_==1) sprintf(case_title,"Gaussian_wave");
-//    else if(wave_form_==2) sprintf(case_title,"InViscid_Burgers");
-//    else if(wave_form_==3) sprintf(case_title,"Decaying_Burgers_turb");
-//    else FatalError_exit("Wrong Wave form and not implemented");
-
     char *case_dir=nullptr;
     case_dir=new char[70];
     if(Sim_mode=="normal" || Sim_mode=="CFL_const" || Sim_mode=="dt_const")
@@ -211,21 +204,31 @@ void SimData::setup_output_directory(){
 
     char *main_dir=nullptr;
     main_dir = new char[25];
-    if(eqn_set=="Advection"){
-        sprintf(main_dir,"./Results");
-    }else if (eqn_set=="Diffusion"){
-        sprintf(main_dir ,"./Results_diffus");
-    }else if (eqn_set=="Advection_Diffusion"){
-        sprintf(main_dir ,"./Results_AdvecDiffus");
-    }else{
-        FatalError_exit("Equation set when specifying output directory");
+    if(case_title_mode_==1){
+        sprintf(main_dir,".");
+        mkdir(case_title.c_str(),0777);
+        chdir(case_title.c_str());
+        mkdir(case_dir,0777);
+    }else if(case_title_mode_==0){
+        if(eqn_set=="Advection"){
+            sprintf(main_dir,"./Results");
+        }else if (eqn_set=="Diffusion"){
+            sprintf(main_dir ,"./Results_diffus");
+        }else if (eqn_set=="Advection_Diffusion"){
+            sprintf(main_dir ,"./Results_AdvecDiffus");
+        }else{
+            FatalError_exit("Wrong equation set when specifying\
+                            output directory");
+        }
+        mkdir(main_dir,0777);
+        chdir(main_dir);
+        mkdir(case_title.c_str(),0777);
+        chdir(case_title.c_str());
+        mkdir(case_dir,0777);
+    }else {
+        FatalError_exit("Wrong case title mode, use either 0 or 1");
     }
 
-    mkdir(main_dir,0777);
-    chdir(main_dir);
-    mkdir(case_title.c_str(),0777);
-    chdir(case_title.c_str());
-    mkdir(case_dir,0777);
     case_postproc_dir = new char[350];
 
     if(wave_form_==3){  // burgers decay turb
@@ -243,6 +246,7 @@ void SimData::setup_output_directory(){
         chdir(case_dir);
     }
 
+    mkdir("./input",0777);
     mkdir("./aver",0777);
     mkdir("./nodal",0777);
     mkdir("./time_data",0777);
@@ -266,7 +270,11 @@ void SimData::dump_python_inputfile(){
     char *fname=nullptr;
     fname = new char[100];
 
-    sprintf(fname,"./input/python_input.in");
+    if(case_title_mode_==1){
+        sprintf(fname,"%s/input/python_input.in",case_postproc_dir);
+    }else if(case_title_mode_==0){
+        sprintf(fname,"./input/python_input.in");
+    }
 
     FILE* python_out = fopen(fname,"w");
 
@@ -322,6 +330,8 @@ void SimData::dump_python_inputfile(){
 
     fclose(python_out);
     emptyarray(fname);
+
+    // Need to copy the input file to the case if case_title_mode=0
 
     return;
 }

@@ -81,12 +81,14 @@ void InitSim(const int& argc,char** argv){
     time_solver_ = new ExplicitTimeSolver;
     dg_solver_->setup_solver(meshdata_,simdata_);
     dg_solver_->InitSol();
-    printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter()
-           ,dg_solver_->GetPhyTime());
+    //printf("post processing directory:%s, \t case_title:%s"
+      //     ,simdata_.case_postproc_dir, simdata_.case_title.c_str());
     dg_solver_->dump_timeaccurate_sol();
     dg_solver_->dump_timeaccurate_errors();
     time_solver_->setupTimeSolver(dg_solver_,&simdata_);
     simdata_.dump_python_inputfile();
+    printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter()
+           ,dg_solver_->GetPhyTime());
 
     return;
 }
@@ -100,7 +102,10 @@ void RunSim(){
     double dt_last_print=0.0;
     double temp_tol=1e-8;
 
-    if(simdata_.unsteady_data_print_flag_==0){       // use iter_print to print
+    //======================================================================
+    //             Preparing simulation control variables
+    //======================================================================
+    if(simdata_.unsteady_data_print_flag_==0){    // use iter_print to print
         n_iter_print = simdata_.unsteady_data_print_iter_;
         if(n_iter_print<=1)
             FatalError_exit("Warning: iter to print is very small <=1 ");
@@ -123,7 +128,8 @@ void RunSim(){
         if(n_iter_print<=1)
             FatalError_exit("Warning: iter to print is very small <=1 ");
 
-    }else if(simdata_.unsteady_data_print_flag_==2){  // print using the specified iter_print without dt changing except the last one
+    // print using the specified iter_print without dt changing except the last one
+    }else if(simdata_.unsteady_data_print_flag_==2){
         n_iter_print=simdata_.unsteady_data_print_iter_;
         dt_last_print = dg_solver_->GetLastTimeStep();
     }else{
@@ -133,7 +139,9 @@ void RunSim(){
     printf("\nnIter to print unsteady data: %d, dt_last: %1.5e"
            ,n_iter_print, dt_last_print);
 
-    // First Solve:
+    //===========================
+    // Solve First Iteration
+    //===========================
     time_solver_->ComputeInitialResid(dg_solver_->GetNumSolution());
     time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
     time_solver_->space_solver->UpdatePhyTime(dt_);
@@ -147,7 +155,9 @@ void RunSim(){
         local_iter=0;
     }
 
-    // main solution loop:
+    //======================================================================
+    //                        Main Solution Loop
+    //======================================================================
     if(simdata_.unsteady_data_print_flag_==0
             || simdata_.unsteady_data_print_flag_==1){
         while ( gtime < (simdata_.t_end_-(1+1e-5)*(dt_+1e-10))){
