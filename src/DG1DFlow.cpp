@@ -81,14 +81,10 @@ void InitSim(const int& argc,char** argv){
     time_solver_ = new ExplicitTimeSolver;
     dg_solver_->setup_solver(meshdata_,simdata_);
     dg_solver_->InitSol();
-    //printf("post processing directory:%s, \t case_title:%s"
-      //     ,simdata_.case_postproc_dir, simdata_.case_title.c_str());
     dg_solver_->dump_timeaccurate_sol();
     dg_solver_->dump_timeaccurate_errors();
     time_solver_->setupTimeSolver(dg_solver_,&simdata_);
     simdata_.dump_python_inputfile();
-    printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter()
-           ,dg_solver_->GetPhyTime());
 
     return;
 }
@@ -139,6 +135,8 @@ void RunSim(){
     printf("\nnIter to print unsteady data: %d, dt_last: %1.5e"
            ,n_iter_print, dt_last_print);
 
+    printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter()
+           ,dg_solver_->GetPhyTime());
     //===========================
     // Solve First Iteration
     //===========================
