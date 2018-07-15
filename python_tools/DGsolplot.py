@@ -18,8 +18,14 @@ pyplot.rcParams[u'axes.spines.top']='false';
 pyplot.rcParams[u'lines.linewidth'] = 1.5;
 pyplot.rcParams[u'lines.markersize'] = 8;
 
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+#
+#                                  D I F F U S I ON
+#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 def plot_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
-                     , Epsilon, diffus_scheme, cont_num, disc_num, T):
+                     , Epsilon, gamma_, diffus_scheme, cont_num, disc_num, T):
 
     dt = float(dt_);
     
@@ -29,54 +35,67 @@ def plot_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     elif(mode == 'CFL_const') | (mode == 'normal'):
         mm_name = str('_CFL')+ str(CFL)     
         m_name = str('CFL=')+ str(CFL)             
-
-
-    fname = dir1 + 'time_data/u_cont_exact_'+ str(tt_) + str("t.dat");
-    data = loadtxt(fname);  # continuous exact nodal solution
-    xn_exact = data[:, 0];
-    un_exact = data[:, 1];
-    del fname, data
-    
+        
+    #===================================================
+    # Reading continuous data
+    #===================================================
+    #Numerical:
     fname = dir1 + cont_num + str("_N") + Nelem \
             + mm_name + str("_Eps") + str(Epsilon)\
             + str('_')+ str(tt_) + str("t.dat")
-
     data = loadtxt(fname)
-
     x_cont = data[:, 0]
     u_cont = data[:, 1]
     del fname, data
+    #Exact:
+    fname = dir1 + 'time_data/u_cont_exact_'+ str(tt_) + str("t.dat");
+    data = loadtxt(fname);  # continuous exact nodal solution
+    x_cont_exact = data[:, 0];
+    u_cont_exact = data[:, 1];
+    del fname, data
 
+    #===================================================
+    # Reading discontinuous data
+    #===================================================
+    #Numerical:
     fname = dir1 + disc_num + str("_N") + Nelem \
             + mm_name + str("_Eps") + str(Epsilon)\
             + str('_')+ str(tt_) + str("t.dat")
-
     data = loadtxt(fname)
-
     x_disc = data[:, 0]
     u_disc = data[:, 1]
+    del fname, data
+    #Exact:
+    fname = dir1 + 'time_data/u_disc_exact_N'+Nelem+"_"+ str(tt_) + str("t.dat");
+    data = loadtxt(fname);  # continuous exact nodal solution
+    x_disc_exact = data[:, 0];
+    u_disc_exact = data[:, 1];
+    del fname, data
     
     print('u_cont_max: ',max(u_cont))
     print('u_disc_max: ',max(u_disc))
+    print('u_cont_exact_max: ',max(u_cont_exact))
+    print('u_disc_exact_max: ',max(u_disc_exact))
     print('error: ',abs(1-max(u_disc)))
+    print('error_cont: ',abs(max(u_cont_exact)-max(u_cont)))
+    print('error_disc: ',abs(max(u_disc_exact)-max(u_disc)))
 
-    del fname, data
-
-    nn = size(x_disc);
-        
-    Np = N_disc_ppt;
-
+    #=========================== PLOTTING Solution(1) ============================#
     fig = pyplot.figure();
-
+    #plotting continuous data:
+    pyplot.plot(x_cont_exact, u_cont_exact, '--k', label='Exact solution');
+    label_cont = str("DGp")+ str(DG) + r'-$\eta$' + str(Epsilon) \
+    +"_RK" + str(RK) +", CFL="+str(CFL)+", t=" + str(tt_); # discontinuous label
+    pyplot.plot(x_cont, u_cont, '-.b', label=label_cont);
+    
     ylim_0 = list();
     ylim_1 = list();
-    ylim_0.append(min(un_exact));
-    ylim_1.append(max(un_exact));
+    ylim_0.append(min(u_cont_exact));
+    ylim_1.append(max(u_cont_exact));
 
-    pyplot.plot(xn_exact, un_exact, '--k', label='exact sol');
-    pyplot.plot(x_cont, u_cont, '-.b', label='cont sol');
-    
-
+    #plotting discontinuous numerical data:
+    nn = size(x_disc)
+    Np = N_disc_ppt
     for i in range(0, size(x_disc) - 1, Np):
         xx = x_disc[i:i + Np];
         uu = u_disc[i:i + Np];
@@ -87,54 +106,116 @@ def plot_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
 
     xx = x_disc[i:i + Np];
     uu = u_disc[i:i + Np];
-    ll = str("DGp")+ str(DG) + r'-$\eta$' + str(Epsilon) \
-    +"_RK" + str(RK) +", CFL="+str(CFL)+", t=" + str(tt_);
-    pyplot.plot(xx, uu, '-r', label=ll);
+    pyplot.plot(xx, uu, '-r', label='Discontinuous DG solution');
 
     pyplot.legend();
-
-    #title_a = str("DGp") + DG + " RK" + RK \
-     #         + ", and upwind_param (" + r'$\beta= $' \
-      #        + str(Beta) + ")\n for CFL=" + str(CFL) \
-       #       + " and at t/T=" + str(T);
 
     #pyplot.title(title_a);
     pyplot.xlabel('X', labelpad=10);
     pyplot.ylabel('u(x)', labelpad=10);
 
-    pyplot.xlim(min(xn_exact), max(xn_exact));
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact));
     pyplot.ylim(min(ylim_0) * 1.05, max(ylim_1) * 1.05);
 
     n_divisions = 8;
-    xtick_dx = (xn_exact[-1] - xn_exact[0] ) / n_divisions;
-    xlabels = arange(xn_exact[0], xn_exact[-1]+xtick_dx,xtick_dx);
+    xtick_dx = (x_cont_exact[-1] - x_cont_exact[0] ) / n_divisions;
+    xlabels = arange(x_cont_exact[0], x_cont_exact[-1]+xtick_dx,xtick_dx);
     #xlabels = [0,10,20,30,40,50,60,70,80];
     xlocs = xlabels;
     pyplot.xticks(xlocs, xlabels);
     pyplot.grid()
-    pyplot.xlim(min(xn_exact), max(xn_exact))
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact))
     pyplot.ylim(min(ylim_0), max(ylim_1)*1.3)
 
     fig.tight_layout()
     figname = dir1 + 'tempfig/' + 'p'+str(DG)+'RK'+RK+\
     '_eta'+str(Epsilon)+'_N'+Nelem+mm_name+str('_')+\
-    str(tt_)+str('t.png')
+    str(tt_)+str('t_cont.png')
     fig.set_size_inches(15.0, 9.0, forward=True)
     pyplot.savefig(figname)
     
-    # Read DG data:
+    #=========================== PLOTTING Solution(2) ============================#
+    fig = pyplot.figure();
+    
+    ylim_0 = list();
+    ylim_1 = list();
+    ylim_0.append(min(u_disc_exact));
+    ylim_1.append(max(u_disc_exact));
+    ylim_0.append(min(u_disc));
+    ylim_1.append(max(u_disc));
+
+    #plotting discontinuous numerical data:
+    label_disc = str("DGp")+ str(DG) + r'-$\eta$' + str(Epsilon) \
+    +"_RK" + str(RK) +", CFL="+str(CFL)+", t=" + str(tt_); # discontinuous label
+    for i in range(0, size(x_disc) - 1, Np):
+        xx = x_disc[i:i + Np];
+        uu = u_disc[i:i + Np];
+        pyplot.plot(xx, uu, '--r');
+    xx = x_disc[i:i + Np];
+    uu = u_disc[i:i + Np];
+    pyplot.plot(xx, uu, '--r', label=label_disc);
+    
+    #plotting discontinuous exact data:
+    nn = size(x_disc_exact)
+    Np = N_disc_ppt
+    label_disc = "exact discontinuous" ; # discontinuous exact label
+    for i in range(0, nn - 1, Np):
+        xx = x_disc_exact[i:i + Np];
+        uu = u_disc_exact[i:i + Np];
+        pyplot.plot(xx, uu, '-k');
+    xx = x_disc_exact[i:i + Np];
+    uu = u_disc_exact[i:i + Np];
+    pyplot.plot(xx, uu, '-k', label=label_disc);
+
+    pyplot.legend();
+
+    pyplot.title("Plotting of discontinuous solutions");
+    pyplot.xlabel('X', labelpad=10);
+    pyplot.ylabel('u(x)', labelpad=10);
+
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact));
+    pyplot.ylim(min(ylim_0) * 1.05, max(ylim_1) * 1.05);
+
+    n_divisions = 8;
+    xtick_dx = (x_cont_exact[-1] - x_cont_exact[0] ) / n_divisions;
+    xlabels = arange(x_cont_exact[0], x_cont_exact[-1]+xtick_dx,xtick_dx);
+    #xlabels = [0,10,20,30,40,50,60,70,80];
+    xlocs = xlabels;
+    pyplot.xticks(xlocs, xlabels);
+    pyplot.grid()
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact))
+    pyplot.ylim(min(ylim_0), max(ylim_1)*1.3)
+
+    fig.tight_layout()
+    figname = dir1 + 'tempfig/' + 'p'+str(DG)+'RK'+RK+\
+    '_eta'+str(Epsilon)+'_N'+Nelem+mm_name+str('_')+\
+    str(tt_)+str('t_disc.png')
+    fig.set_size_inches(15.0, 9.0, forward=True)
+    pyplot.savefig(figname)
+    
+    #=========================== PLOTTING Errors Evolution ============================#
+    # Read error data:
     res_dir = './Results/'
     fname = dir1 + 'errors/errors_N'+str(Nelem)+'_CFL'+str(CFL)+'_Eps'+str(Epsilon)+'_'+str(T)+'T.dat'
     data = loadtxt(fname);  # continuous exact nodal solution
     time  = data[:, 0];
     L1err = data[:, 1];
     L2err = data[:, 2];
+    L1err_nodal = data[:, 3];
+    L2err_nodal = data[:, 4];
 
+    #plotting
     fig = pyplot.figure();
     
-    pyplot.plot(time, L2err,'-ok',time,L1err,'-.b')
+    tau_p = float(gamma_)*time*((int(DG)+1)*int(Nelem))**2
+    pyplot.plot(tau_p,L1err,'-.sb',label=r'$L_{1}(u(\xi))$')
+    pyplot.plot(tau_p, L2err,'-ok',label=r'$L_{2}(u(\xi))$')
+    pyplot.plot(tau_p,L1err_nodal,':vm',label=r'$L_{1}$, nodal')
+    pyplot.plot(tau_p, L2err_nodal,'--c',label=r'$L_{2}$, nodal')
+    
     pyplot.xlabel('time')
-    pyplot.ylabel('L2err')
+    pyplot.ylabel('errors')
+    pyplot.legend();
     #pyplot.xscale('log')
     #pyplot.yscale('log')
     
@@ -143,9 +224,17 @@ def plot_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     str(T)+str('T.png')
     fig.set_size_inches(15.0, 9.0, forward=True)
     pyplot.savefig(figname)
+    
+    #------------------------
     pyplot.show()
 
     return 'true'
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+#
+#                                  A D V E C T I O N
+#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
                      , Beta, Epsilon, cont_num, disc_num, T_period):
@@ -159,99 +248,162 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
         mm_name = str('_CFL')+ str(CFL)     
         m_name = str('CFL=')+ str(CFL)             
 
-
-    fname = dir1 + 'time_data/u_cont_exact_'+ str(tt_) + str("t.dat");
-    data = loadtxt(fname);  # continuous exact nodal solution
-    xn_exact = data[:, 0];
-    un_exact = data[:, 1];
-    del fname, data
-    
+    #===================================================
+    # Reading continuous data
+    #===================================================
+    #Numerical:
     fname = dir1 + cont_num + str("_N") + Nelem \
             + mm_name + str("_Beta") + str(Beta)\
             + str('_')+ str(tt_) + str("t.dat")
-
     data = loadtxt(fname)
-
     x_cont = data[:, 0]
     u_cont = data[:, 1]
     del fname, data
-
+    #Exact:
+    fname = dir1 + 'time_data/u_cont_exact_'+ str(tt_) + str("t.dat");
+    data = loadtxt(fname);  # continuous exact nodal solution
+    x_cont_exact = data[:, 0];
+    u_cont_exact = data[:, 1];
+    del fname, data
+    
+    #===================================================
+    # Reading discontinuous data
+    #===================================================
+    #Numerical:
     fname = dir1 + disc_num + str("_N") + Nelem \
             + mm_name + str("_Beta") + str(Beta)\
             + str('_')+ str(tt_) + str("t.dat")
-
     data = loadtxt(fname)
-
     x_disc = data[:, 0]
     u_disc = data[:, 1]
+    del fname, data
+    #Exact:
+    fname = dir1 + 'time_data/u_disc_exact_N'+Nelem+"_"+ str(tt_) + str("t.dat");
+    data = loadtxt(fname);  # continuous exact nodal solution
+    x_disc_exact = data[:, 0];
+    u_disc_exact = data[:, 1];
+    del fname, data
     
     print('u_cont_max: ',max(u_cont))
     print('u_disc_max: ',max(u_disc))
+    print('u_cont_exact_max: ',max(u_cont_exact))
+    print('u_disc_exact_max: ',max(u_disc_exact))
     print('error: ',abs(1-max(u_disc)))
-
-    del fname, data
-
-    nn = size(x_disc);
-        
-    Np = N_disc_ppt;
-
+    print('error_cont: ',abs(max(u_cont_exact)-max(u_cont)))
+    print('error_disc: ',abs(max(u_disc_exact)-max(u_disc)))
+    #=========================== PLOTTING Solution(1) ============================#
     fig = pyplot.figure();
 
     ylim_0 = list();
     ylim_1 = list();
-    ylim_0.append(min(un_exact));
-    ylim_1.append(max(un_exact));
-
-    pyplot.plot(xn_exact, un_exact, '--k', label='exact sol');
-    pyplot.plot(x_cont, u_cont, '-.b', label='cont sol');
+    ylim_0.append(min(u_cont_exact));
+    ylim_1.append(max(u_cont_exact));
+    ylim_0.append(min(u_disc));
+    ylim_1.append(max(u_disc));
     
-
-    for i in range(0, size(x_disc) - 1, Np):
+    #plotting continuous data:
+    pyplot.plot(x_cont_exact, u_cont_exact, '--k', label='Exact solution');
+    ll = str("DGp")+ str(DG) + r'-$\beta$' + str(Beta) \
+    +"_RK" + str(RK) +", CFL="+str(CFL)+", t=" + str(tt_);
+    pyplot.plot(x_cont, u_cont, '-.b', label=ll);
+    
+    #plotting discontinuous numerical data:
+    nn = size(x_disc);
+    Np = N_disc_ppt;
+    for i in range(0, nn - 1, Np):
         xx = x_disc[i:i + Np];
         uu = u_disc[i:i + Np];
         pyplot.plot(xx, uu, '-r');
-
-    ylim_0.append(min(u_disc));
-    ylim_1.append(max(u_disc));
-
     xx = x_disc[i:i + Np];
     uu = u_disc[i:i + Np];
-    ll = str("DGp")+ str(DG) + r'-$\beta$' + str(Beta) \
-    +"_RK" + str(RK) +", CFL="+str(CFL)+", t=" + str(tt_);
-    pyplot.plot(xx, uu, '-r', label=ll);
+    pyplot.plot(xx, uu, '-r', label='Discontinuous solution');
 
     pyplot.legend();
-
-    #title_a = str("DGp") + DG + " RK" + RK \
-     #         + ", and upwind_param (" + r'$\beta= $' \
-      #        + str(Beta) + ")\n for CFL=" + str(CFL) \
-       #       + " and at t/T=" + str(T);
-
-    #pyplot.title(title_a);
+    pyplot.title("Plotting of Continuous solutions");
     pyplot.xlabel('X', labelpad=10);
     pyplot.ylabel('u(x)', labelpad=10);
 
-    pyplot.xlim(min(xn_exact), max(xn_exact));
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact));
     pyplot.ylim(min(ylim_0) * 1.05, max(ylim_1) * 1.05);
 
     n_divisions = 8;
-    xtick_dx = (xn_exact[-1] - xn_exact[0] ) / n_divisions;
-    xlabels = arange(xn_exact[0], xn_exact[-1]+xtick_dx,xtick_dx);
+    xtick_dx = (x_cont_exact[-1] - x_cont_exact[0] ) / n_divisions;
+    xlabels = arange(x_cont_exact[0], x_cont_exact[-1]+xtick_dx,xtick_dx);
     #xlabels = [0,10,20,30,40,50,60,70,80];
     xlocs = xlabels;
     pyplot.xticks(xlocs, xlabels);
     pyplot.grid()
-    pyplot.xlim(min(xn_exact), max(xn_exact))
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact))
     pyplot.ylim(min(ylim_0), max(ylim_1)*1.3)
 
     fig.tight_layout()
     figname = dir1 + 'tempfig/' + 'p'+str(DG)+'RK'+RK+\
     '_beta'+str(Beta)+'_N'+Nelem+mm_name+str('_')+\
-    str(tt_)+str('t.png')
+    str(tt_)+str('t_cont.png')
     fig.set_size_inches(15.0, 9.0, forward=True)
     pyplot.savefig(figname)
     
-    # Read DG data:
+    #=========================== PLOTTING Solution(2) ============================#
+    fig = pyplot.figure();
+    
+    ylim_0 = list();
+    ylim_1 = list();
+    ylim_0.append(min(u_disc_exact));
+    ylim_1.append(max(u_disc_exact));
+    ylim_0.append(min(u_disc));
+    ylim_1.append(max(u_disc));
+
+    #plotting discontinuous numerical data:
+    label_disc = str("DGp")+ str(DG) + r'-$\beta$' + str(Beta) \
+    +"_RK" + str(RK) +", CFL="+str(CFL)+", t=" + str(tt_); # discontinuous label
+    for i in range(0, nn - 1, Np):
+        xx = x_disc[i:i + Np];
+        uu = u_disc[i:i + Np];
+        pyplot.plot(xx, uu, '--r');
+    xx = x_disc[i:i + Np];
+    uu = u_disc[i:i + Np];
+    pyplot.plot(xx, uu, '--r', label=label_disc);
+    
+    #plotting discontinuous exact data:
+    nn = size(x_disc_exact)
+    Np = N_disc_ppt
+    label_disc = "Exact discontinuous" ; # discontinuous exact label
+    for i in range(0, nn - 1, Np):
+        xx = x_disc_exact[i:i + Np];
+        uu = u_disc_exact[i:i + Np];
+        pyplot.plot(xx, uu, '-k');
+    xx = x_disc_exact[i:i + Np];
+    uu = u_disc_exact[i:i + Np];
+    pyplot.plot(xx, uu, '-k', label=label_disc);
+
+    pyplot.legend();
+
+    pyplot.title("Plotting of discontinuous solutions");
+    pyplot.xlabel('X', labelpad=10);
+    pyplot.ylabel('u(x)', labelpad=10);
+
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact));
+    pyplot.ylim(min(ylim_0) * 1.05, max(ylim_1) * 1.05);
+
+    n_divisions = 8;
+    xtick_dx = (x_cont_exact[-1] - x_cont_exact[0] ) / n_divisions;
+    xlabels = arange(x_cont_exact[0], x_cont_exact[-1]+xtick_dx,xtick_dx);
+    #xlabels = [0,10,20,30,40,50,60,70,80];
+    xlocs = xlabels;
+    pyplot.xticks(xlocs, xlabels);
+    pyplot.grid()
+    pyplot.xlim(min(x_cont_exact), max(x_cont_exact))
+    pyplot.ylim(min(ylim_0), max(ylim_1)*1.3)
+
+    fig.tight_layout()
+    figname = dir1 + 'tempfig/' + 'p'+str(DG)+'RK'+RK+\
+    '_beta'+str(Beta)+'_N'+Nelem+mm_name+str('_')+\
+    str(tt_)+str('t_disc.png')
+    fig.set_size_inches(15.0, 9.0, forward=True)
+    pyplot.savefig(figname)
+    
+    #=========================== PLOTTING Errors Evolution ============================#
+    # Read error data:
     res_dir = './Results/'
     fname = dir1 + 'errors/errors_N'+str(Nelem)+'_CFL'+str(CFL)+'_Beta1.00_'+str(T_period)+'T.dat'
     data = loadtxt(fname);  # continuous exact nodal solution
@@ -259,8 +411,8 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     L1err = data[:, 1];
     L2err = data[:, 2];
 
+    #plotting
     fig = pyplot.figure();
-    
     pyplot.plot(time, L2err,'-ok',time,L1err,'-.b')
     pyplot.xlabel('time')
     pyplot.ylabel('L2err')
@@ -272,12 +424,19 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     str(T_period)+str('T.png')
     fig.set_size_inches(15.0, 9.0, forward=True)
     pyplot.savefig(figname)
+    
+    #------------------------
     pyplot.show()
 
     return 'true'
 
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+#
+#                                  A D V E C T I O N--D I F F U S I O N
+#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 def plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
-                , Beta, Epsilon, dir1, aver, nodal_exact, nodal_comp, discont ):
+                , Beta, Epsilon, gamma, dir1, aver, nodal_exact, nodal_comp, discont ):
 
     Beta = Decimal(Beta.quantize(Decimal('.01')));
     Epsilon = Decimal(Epsilon.quantize(Decimal('.01')));
@@ -364,11 +523,13 @@ def plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
 
     return 'true'
     
- #==================================================================================================================#
- #                                Decay Burger's Turbulence 
- #==================================================================================================================#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+#
+#                   B U R G E R S--D E C A Y I N G--T U R B U L E N C E
+#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
  
-def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, cont_num, disc_num):
+def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, gamma_, cont_num, disc_num):
     
     from fft_toolbox_python import load_data, compute_fft
     
@@ -460,12 +621,12 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
     fig.set_size_inches(13.0, 9.0, forward=True)
     fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0,rect=(0.0,0.0,1.0,0.985))
     
-    temp_name = 'sol_vs_x_p' + DG + 'RK' + RK +'_'+ m_name \
+    temp_name = 'sol_vs_x_p' + DG + 'RK' + RK +'_Ne'+ str(Nelem) +'_'+ m_name \
               + '_t'+ str(tt_);
            
-    figname = dir_input + str('/tempfig/') + temp_name+'.eps'
+    figname = dir_input + str('/tempfig/') + temp_name +'.eps'
     fig.savefig(figname,format='eps',bbox='tight')
-    figname = dir_input + str('/tempfig/') + temp_name+'.png'
+    figname = dir_input + str('/tempfig/') + temp_name +'.png'
     plt.savefig(figname,format='png',bbox='tight')
     
     ###################### Plot the fft ##########################
@@ -477,7 +638,7 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
     ax.set_facecolor('white')
     ax.set_xlabel(r'$k$', labelpad=2,fontsize=24);
     ax.set_ylabel(r'$E$', labelpad=2, fontsize=24);
-    ax.set_xlim(10**0, 10**3)
+    ax.set_xlim(10**0, 10**4)
     ax.set_ylim(10**-10, 10 ** -1)
     ax.tick_params(axis='both', which='both', labelsize=24)
     
@@ -488,7 +649,7 @@ def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta,
     fig.set_size_inches(13.0, 9.0, forward=True)
     fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0,rect=(0.0,0.0,1.0,0.985))
     
-    temp_name = 'FFT_p' + DG + 'RK' + RK +'_'+ m_name \
+    temp_name = 'KE_p' + DG + 'RK' + RK +'_Ne'+ str(Nelem)+ '_' + m_name \
               + '_t'+ str(tt_);
     figname = dir_input + str('/tempfig/') + temp_name+'.eps'
     fig.savefig(figname,format='eps',bbox='tight')
