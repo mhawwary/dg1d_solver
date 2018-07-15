@@ -7,6 +7,7 @@ void SimData::Parse(const std::string &fname){
     // Case parameters:
     //-----------------------------
     case_title = gp_input("Case/title","test");
+    case_title_mode_ = gp_input("Case/title_mode",0);
     Nelem_ = gp_input("Case/num_elements",1);
     x0_ = gp_input("Case/x_begin",0.0);
     xf_ = gp_input("Case/x_end",1.0);
@@ -211,22 +212,27 @@ void SimData::setup_output_directory(){
 
     char *main_dir=nullptr;
     main_dir = new char[25];
-    if(eqn_set=="Advection"){
-        sprintf(main_dir,"./Results");
-    }else if (eqn_set=="Diffusion"){
-        sprintf(main_dir ,"./Results_diffus");
-    }else if (eqn_set=="Advection_Diffusion"){
-        sprintf(main_dir ,"./Results_AdvecDiffus");
-    }else{
-        FatalError_exit("Equation set when specifying output directory");
+
+    if(case_title_mode_==1){
+        sprintf(main_dir,".");
+    }else if(case_title_mode_==0){
+        if(eqn_set=="Advection"){
+            sprintf(main_dir,"./Results");
+        }else if (eqn_set=="Diffusion"){
+            sprintf(main_dir ,"./Results_diffus");
+        }else if (eqn_set=="Advection_Diffusion"){
+            sprintf(main_dir ,"./Results_AdvecDiffus");
+        }else{
+            FatalError_exit("Equation set when specifying output directory");
+        }
+        mkdir(main_dir,0777);
+        chdir(main_dir);
+        mkdir(case_title.c_str(),0777);
     }
 
-    mkdir(main_dir,0777);
-    chdir(main_dir);
-    mkdir(case_title.c_str(),0777);
     chdir(case_title.c_str());
     mkdir(case_dir,0777);
-    case_postproc_dir = new char[350];
+    case_postproc_dir = new char[400];
 
     if(wave_form_==3){  // burgers decay turb
         chdir(case_dir);
@@ -243,6 +249,7 @@ void SimData::setup_output_directory(){
         chdir(case_dir);
     }
 
+    mkdir("./input",0777);
     mkdir("./aver",0777);
     mkdir("./nodal",0777);
     mkdir("./time_data",0777);
@@ -266,7 +273,8 @@ void SimData::dump_python_inputfile(){
     char *fname=nullptr;
     fname = new char[100];
 
-    sprintf(fname,"./input/python_input.in");
+    //sprintf(fname,"./input/python_input.in");
+    sprintf(fname,"%s/input/python_input.in",case_postproc_dir);
 
     FILE* python_out = fopen(fname,"w");
 
@@ -303,10 +311,12 @@ void SimData::dump_python_inputfile(){
     }else if(eqn_set=="Diffusion"){
         fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
         fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
+        fprintf(python_out,"thermal_diffus:%1.2f\n",thermal_diffus);
     }else if(eqn_set=="Advection_Diffusion"){
         fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
         fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
         fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+        fprintf(python_out,"thermal_diffus:%1.2f\n",thermal_diffus);
     }else{
         FatalError_exit("Eqn_set is not defined for python_dump");
     }

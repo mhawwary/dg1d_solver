@@ -49,7 +49,7 @@
     exit(1);}
 
 #define _print(s) printf("\n---%s\n",s);
-
+#define _print_time(t0,t1) std::cout <<"\nElapsed_time= "<< 1.0*(t1-t0)/CLOCKS_PER_SEC << " sec" << std::endl;
 
 
 

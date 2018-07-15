@@ -34,7 +34,7 @@
 
 //#include<vector>
 
-//#include"omp.h"
+#include"omp.h"
 //#include<mpi.h>
 
 using namespace std;
