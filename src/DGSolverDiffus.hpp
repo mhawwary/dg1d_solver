@@ -82,6 +82,10 @@ protected:
                                  , const int& basis_k_);
    double Compute_common_sol_jump(const double& ul_, const double& ur_);
 
+   //double Compute_localEnergy_perCell(const int& eID);
+   double Compute_waveEnergy();
+   double Compute_ExactwaveEnergy();
+
    void Reset_solver();
 
 protected:
@@ -89,6 +93,7 @@ protected:
    double *u_sol_jump=nullptr;
    double C_lift=1.0;    // C lifting term multiplier for LDG, BR1, BR2/SIP
    double C1_lift=1.0;   // C1 lifting term multiplier for BR1
+   double E_init_=0.0;
 
    double eta_penalty=1.0;  // penalty parameter
    GaussQuad quad_viscF_;

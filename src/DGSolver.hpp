@@ -138,6 +138,9 @@ protected:
                                                 const GaussQuad &quad_)=0;
    virtual void Compute_TimeAccurate_exact_sol()=0;
 
+   //virtual double Compute_localEnergyOneCell(const int& eID_)=0;
+   //virtual double Compute_localEnergyOneCell(const int& eID_)=0;
+
 protected:
 
    GridData *grid_=nullptr;

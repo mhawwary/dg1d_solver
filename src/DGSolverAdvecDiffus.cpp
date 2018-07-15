@@ -464,12 +464,14 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
     double u_jump_jm32 = 0.0;  // [[u]]_j-3/2
 
     int Nghost_l=1; // Needed for BR1 non-compactness
-    if(simdata_->diffus_scheme_type_=="LDG"){
+    /*if(simdata_->diffus_scheme_type_=="LDG"){
         // giving that beta_e+1/2 = 1, beta_e-1/2=0
         u_jump_jm12 = 0.0;
         u_jump_jp12 = 2.0*u_sol_jump[j+1+Nghost_l];
-    }else if(simdata_->diffus_scheme_type_=="SIP"
-             ||simdata_->diffus_scheme_type_=="BR2"){
+    }else*/
+    if(simdata_->diffus_scheme_type_=="SIP"
+             ||simdata_->diffus_scheme_type_=="BR2"
+             ||simdata_->diffus_scheme_type_=="LDG"){
         u_jump_jm12 = u_sol_jump[j+Nghost_l];
         u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="BR1"){
@@ -502,7 +504,10 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
         term3 = tempC1_lift*( (u_jump_jp32 + u_jump_jm12 )* Lk_p1
                               -(u_jump_jp12 + u_jump_jm32 )* Lk_m1); // for BR1, 0.0 for others
         term4 = - du_proj_k ;
-        term5 = - 0.5 * fact_ * ( u_jump_jp12 * dLk_p1 + u_jump_jm12 * dLk_m1 );
+        if(simdata_->diffus_scheme_type_=="LDG")
+            term5 = - fact_ * u_jump_jp12 * dLk_p1 ;
+        else
+            term5 = - 0.5 * fact_ * ( u_jump_jp12 * dLk_p1 + u_jump_jm12 * dLk_m1 );
 
         viscous_resid =  simdata_->thermal_diffus
                 * ( term1 + term2 + term3 + term4 + term5) ;

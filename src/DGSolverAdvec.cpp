@@ -1499,9 +1499,11 @@ void DGSolverAdvec::dump_timeaccurate_sol(){
     emptyarray(fname);
 
     // Dumping Exact solution data:
+    //===========================================
     Compute_projected_exact_sol();
     Compute_exact_vertex_sol();
 
+    //Discontinuous exact solution:
     fname = new char[100];
     sprintf(fname,"%stime_data/u_disc_exact_N%d_%1.3ft.dat"
             ,simdata_->case_postproc_dir
@@ -1522,7 +1524,7 @@ void DGSolverAdvec::dump_timeaccurate_sol(){
     fclose(sol_out);
     emptyarray(fname);
 
-    //==============================================
+    //Continuous Exact solution:
     //Compute_TimeAccurate_exact_sol();
     fname = new char[100];
     sprintf(fname,"%stime_data/u_cont_exact_%1.3ft.dat"
@@ -1602,11 +1604,6 @@ double DGSolverAdvec::compute_totalVariation(){
 
     return TV_;
 }
-
-
-
-
-
 
 
 

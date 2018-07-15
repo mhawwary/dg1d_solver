@@ -300,15 +300,15 @@ double DGSolverDiffus::ExactSol_legendre_proj(const int &eID,
     double xx=0.0;
     double x0,x1;
     double II=0.0;
-    double Qinit_=0.0;
+    double Qexact_=0.0;
     double Lk_=1.0;
 
     for (i=0; i<quad_.Nq; i++){
         xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
                 + grid_->Xc[j];
-        Qinit_ = eval_exact_sol(xx);
+        Qexact_ = eval_exact_sol(xx);
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
-        II += quad_.Gaus_wts[i] * Qinit_ * Lk_ ;
+        II += quad_.Gaus_wts[i] * Qexact_ * Lk_ ;
     }
     II = II / Lk_norm_squar[k] ;
 
@@ -383,12 +383,14 @@ void DGSolverDiffus::UpdateResidOneCell(const int &cellid, double *q_, double *r
     double u_jump_jm32 = 0.0;  // [[u]]_j-3/2
 
     int Nghost_l=1; // Needed for BR1 non-compactness
-    if(simdata_->diffus_scheme_type_=="LDG"){
+    /*if(simdata_->diffus_scheme_type_=="LDG"){
         // giving that beta_e+1/2 = 1, beta_e-1/2=0
         u_jump_jm12 = 0.0;
         u_jump_jp12 = 2.0*u_sol_jump[j+1+Nghost_l];
-    }else if(simdata_->diffus_scheme_type_=="SIP"
-             ||simdata_->diffus_scheme_type_=="BR2"){
+    }else*/
+    if(simdata_->diffus_scheme_type_=="SIP"
+             ||simdata_->diffus_scheme_type_=="BR2"
+             ||simdata_->diffus_scheme_type_=="LDG"){
         u_jump_jm12 = u_sol_jump[j+Nghost_l];
         u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="BR1"){
@@ -414,7 +416,10 @@ void DGSolverDiffus::UpdateResidOneCell(const int &cellid, double *q_, double *r
         term3 = tempC1_lift*( (u_jump_jp32 + u_jump_jm12 )* Lk_p1
                               -(u_jump_jp12 + u_jump_jm32 )* Lk_m1); // for BR1, 0.0 for others
         term4 = - du_proj_k ;
-        term5 = - 0.5 * fact_ * ( u_jump_jp12 * dLk_p1 + u_jump_jm12 * dLk_m1 );
+        if(simdata_->diffus_scheme_type_=="LDG")
+            term5 = - fact_ * u_jump_jp12 * dLk_p1 ;
+        else
+            term5 = - 0.5 * fact_ * ( u_jump_jp12 * dLk_p1 + u_jump_jm12 * dLk_m1 );
 
         resid_[k] = fact_ * Mkk
                 * simdata_->thermal_diffus
@@ -851,6 +856,8 @@ double DGSolverDiffus::L2_error_projected_sol(){
             elem_error += quad_.Gaus_wts[i] * pow((q_ex - q_n),2);
         }
         II += (0.5 * grid_->h_j[j] * elem_error) ;
+        //printf("eID: %d, \t err: %1.5f",j,elem_error);
+        //std::cin.get();
     }
     L2_error = sqrt(II/(grid_->xf-grid_->x0));
 
@@ -1159,10 +1166,16 @@ void DGSolverDiffus::dump_timeaccurate_errors(){
 
     FILE* solerror_out=fopen(fname,"at+");
 
+    double wave_energy_ = Compute_waveEnergy();
+    double wave_exact_energy_ = Compute_ExactwaveEnergy();
+    if(phy_time==0.0)
+        E_init_ = wave_energy_;
+    double GG_ = wave_energy_/E_init_;
+    double GG_ex_ = wave_exact_energy_/E_init_;
     double L1_proj_sol_ = L1_error_projected_sol();
     double L2_proj_sol_ = L2_error_projected_sol();
-    double L1_nodal_sol_ = L1_error_nodal_gausspts();
-    double L2_nodal_sol_ = L2_error_nodal_gausspts();
+    double L1_nodal_sol_ = L1_error_nodal_gausspts_proj();
+    double L2_nodal_sol_ = L2_error_nodal_gausspts_proj();
     //double L1_nodal_sol_ = L1_error_nodal_cont_sol(); //for testing computing at the same nodes as FD
     //double L2_nodal_sol_ = L2_error_nodal_cont_sol(); // but need to make N_exact = N_uniform in griddata
 
@@ -1173,8 +1186,9 @@ void DGSolverDiffus::dump_timeaccurate_errors(){
     fclose(solerror_out);
     emptyarray(fname);
 
-    printf("  L1_proj_sol:%2.5e  L2_proj_sol:%2.5e  L1_nodal:%2.5e  L2_nodal:%2.5e"
-           ,L1_proj_sol_, L2_proj_sol_, L1_nodal_sol_, L2_nodal_sol_);
+    printf("  L1_proj_sol:%2.5e  L2_proj_sol:%2.5e  L1_nodal:%2.5e L2_nodal:%2.5e Energy:%2.5e exactE:%2.5e G:%1.5f G_ex:%1.5f"
+           ,L1_proj_sol_, L2_proj_sol_, L1_nodal_sol_, L2_nodal_sol_
+           , wave_energy_, wave_exact_energy_, GG_, GG_ex_);
 
     return;
 }
@@ -1356,9 +1370,11 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
     emptyarray(fname);
 
     // Dumping Exact solution data:
+    //===========================================
     Compute_projected_exact_sol();
     Compute_exact_vertex_sol();
 
+    //Discontinuous exact solution:
     fname = new char[100];
     sprintf(fname,"%stime_data/u_disc_exact_N%d_%1.3ft.dat"
             ,simdata_->case_postproc_dir
@@ -1379,7 +1395,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
     fclose(sol_out);
     emptyarray(fname);
 
-    //==============================================
+    ////Continuous Exact solution:
     //Compute_TimeAccurate_exact_sol();
     fname = new char[100];
     sprintf(fname,"%stime_data/u_cont_exact_%1.3ft.dat"
@@ -1400,46 +1416,54 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
 
 void DGSolverDiffus::compute_uniform_cont_sol(){
 
+    //_print("-------Inside compute unifrom ");
+
     // Dump continuous data on uniform points:
     //-------------------------------------------
     register int j; int k;
 
     int count_=0; //continuous points counter
 
-    // For element zero:
+    // For first grid point, the first face:
+    //----------------------------------------
     k = simdata_->N_uniform_pts_per_elem_-1;
-    j= grid_->Nelem-1;
+    j= grid_->Nelem-1;   // solution from left cell
     Q_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]); // a potential bug, fixed by changing j-1 to j
 
-    k=0; j=0;
+    k=0; j=0; //solution from right cell
     Q_cont_sol[count_] += evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
-    Q_cont_sol[count_] = 0.5*Q_cont_sol[count_];
+    Q_cont_sol[count_] = 0.5*Q_cont_sol[count_]; //averaging
     count_++;
 
+    // Element zero interior points:
+    //-------------------------------
     for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
         Q_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
         count_++;
     }
 
+    // For the rest of the faces/points:
+    //-----------------------------------
     for(j=1; j<grid_->Nelem; j++){
 
+        //left interface point for elment j:
         k=0;
         Q_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
         k = simdata_->N_uniform_pts_per_elem_-1;
         Q_cont_sol[count_] += evalSolution(&Qn[j-1][0],grid_->xi_uniform[k]);
-
-        Q_cont_sol[count_] = 0.5*Q_cont_sol[count_];
+        Q_cont_sol[count_] = 0.5*Q_cont_sol[count_]; // averaging
         count_++;
 
+        //interior points for elment j:
         for(k=1; k<simdata_->N_uniform_pts_per_elem_-1; k++) {
             Q_cont_sol[count_] = evalSolution(&Qn[j][0],grid_->xi_uniform[k]);
             count_++;
         }
     }
-    Q_cont_sol[count_] = Q_cont_sol[0];
+    Q_cont_sol[count_] = Q_cont_sol[0]; //final right interface/boundary, periodic B.C.
 
-    //printf("\n Count: %d \t N_uniform: %d\n", count_, grid_->N_uniform_pts);
-
+    //printf("\nj:%d \t Count: %d \t N_uniform: %d\n",j, count_, grid_->N_uniform_pts);
+    //std::cin.get();
     return;
 }
 
@@ -1457,4 +1481,44 @@ double DGSolverDiffus::compute_totalVariation(){
     }
 
     return TV_;
+}
+
+double DGSolverDiffus::Compute_waveEnergy(){
+
+    register int j; int i;
+    double wave_energy=0.0,elem_energy=0.0,II=0.0,q_n;
+
+    for(j=0; j<grid_->Nelem; j++){
+        elem_energy=0.0;
+        for(i=0; i<quad_.Nq; i++) {
+            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+            elem_energy += quad_.Gaus_wts[i] * q_n*q_n;
+        }
+        II +=  elem_energy ;
+        //printf("eID: %d, \t numerical energy: %1.5f",j,elem_energy);
+        //std::cin.get();
+    }
+    wave_energy = sqrt(II/(2*grid_->Nelem));
+
+    return wave_energy;
+}
+
+double DGSolverDiffus::Compute_ExactwaveEnergy(){
+
+    register int j; int i;
+    double wave_energy=0.0,elem_energy=0.0,II=0.0,q_ex;
+
+    for(j=0; j<grid_->Nelem; j++){
+        elem_energy=0.0;
+        for(i=0; i<quad_.Nq; i++) {
+            q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
+            elem_energy += quad_.Gaus_wts[i] * q_ex*q_ex;
+        }
+        II += elem_energy ;
+        //printf("eID: %d, \t exact energy: %1.5f",j,elem_energy);
+        //std::cin.get();
+    }
+    wave_energy = sqrt(II/(2*grid_->Nelem));
+
+    return wave_energy;
 }

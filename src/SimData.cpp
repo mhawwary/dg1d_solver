@@ -270,11 +270,13 @@ void SimData::dump_python_inputfile(){
     char *fname=nullptr;
     fname = new char[100];
 
-    if(case_title_mode_==1){
-        sprintf(fname,"%s/input/python_input.in",case_postproc_dir);
-    }else if(case_title_mode_==0){
-        sprintf(fname,"./input/python_input.in");
-    }
+//    if(case_title_mode_==1){
+//        sprintf(fname,"%s/input/python_input.in",case_postproc_dir);
+//    }else if(case_title_mode_==0){
+//        sprintf(fname,"./input/python_input.in");
+//    }
+
+    sprintf(fname,"%s/input/python_input.in",case_postproc_dir);
 
     FILE* python_out = fopen(fname,"w");
 
@@ -311,10 +313,12 @@ void SimData::dump_python_inputfile(){
     }else if(eqn_set=="Diffusion"){
         fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
         fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
+        fprintf(python_out,"thermal_diffus:%1.3e\n",thermal_diffus);
     }else if(eqn_set=="Advection_Diffusion"){
         fprintf(python_out,"Diffusion_scheme:%s\n",diffus_scheme_type_.c_str());
         fprintf(python_out,"Epsilon:%1.2f\n",penalty_param_);
         fprintf(python_out,"Beta:%1.2f\n",upwind_param_);
+        fprintf(python_out,"thermal_diffus:%1.3e\n",thermal_diffus);
     }else{
         FatalError_exit("Eqn_set is not defined for python_dump");
     }
