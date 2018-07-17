@@ -59,18 +59,24 @@ with open(args.python_input) as file:
             Beta=Decimal(row[1]);
         elif row[0] == 'Epsilon':
             Epsilon=Decimal(row[1]);
+        elif row[0] == 'thermal_diffus':
+            gamma_=str(row[1]);
         elif row[0] == 'dt':
             dt_=str(row[1]);
             
-    tt_   = Decimal(args.plot_time)
-    tt_ =  Decimal(tt_.quantize(Decimal('.001')))
-    Beta = Decimal(Beta.quantize(Decimal('.01')))
-    T =  Decimal(T.quantize(Decimal('.001')))
-    
     if eqn_set == 'Advection':
         Epsilon = None;
+    elif eqn_set == 'Diffusion':
+        Beta = None;
+
     if not(Epsilon is None):
         Epsilon = Decimal(Epsilon.quantize(Decimal('.01')))
+    if not(Beta is None):    
+        Beta = Decimal(Beta.quantize(Decimal('.01')))
+    
+    tt_   = Decimal(args.plot_time)
+    tt_ =  Decimal(tt_.quantize(Decimal('.001')))
+    T =  Decimal(T.quantize(Decimal('.001')))
     CFL = Decimal(CFL.quantize(Decimal('.0001')))
     
     cmd=['mkdir',dir_input+'tempfig/']
@@ -101,19 +107,19 @@ if eqn_set=='Advection':
         plot_fft(k_freq*2*2*pi/80,u_amp)
         
 elif eqn_set=='Diffusion':
-    a = plot_diffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
-                  , Epsilon, dir1, aver, nodal_exact, nodal_comp, discont )
+    a = plot_diffus(dir_input, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
+                     , Epsilon, gamma_, diffus_scheme, cont_num_time, disc_num_time,T)
 
 elif args.burger_plot_flag==1:
     if not(args.plot_time is None):
         plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_ \
-                     , Beta, Epsilon, cont_num_time, disc_num_time)
+                     , Beta, Epsilon, gamma_, cont_num_time, disc_num_time)
     else:
         print('bad option for time to plot')
 
 elif eqn_set=='Advection_Diffusion':
     plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_ \
-                     , Beta, Epsilon, dir1, aver, nodal_exact, nodal_comp, discont)
+                     , Beta, Epsilon, gamma_, dir1, aver, nodal_exact, nodal_comp, discont)
 
 
 
