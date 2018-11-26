@@ -23,6 +23,7 @@
 *.ps
 *.pdf
 *.fig  # Matlab figure files
+*.exe
 
 # Binary / run directory
 bin/

@@ -1,4 +1,5 @@
-from matplotlib import pyplot    #and the useful plotting library
+from matplotlib import pyplot as plt   #and the useful plotting library
+from matplotlib import pyplot 
 from matplotlib import ticker
 
 import numpy as np
@@ -56,11 +57,11 @@ def compute_fft(u_data_):
 
     sample_rate = 1/sample_size;
     
-    print('normalize_factor,',normalize_factor, '  sample_size,',sample_size)
+    #print('normalize_factor,',normalize_factor, '  sample_size,',sample_size)
 
     k_freq = fft.rfftfreq(sample_size, sample_rate);
     
-    print('kmax, ',k_freq[-1])
+    #print('kmax, ',k_freq[-1])
 
     return k_freq, u_amp, KEnerg
 
@@ -91,35 +92,79 @@ def compute_ensemble_fft(x_,u_data_):
 
     KEnerg = 0.5 * u_amp**2.0
 
-
     return k_freq, u_amp, KEnerg
 
-def plot_KEnerg(k_freq, KEnerg):
+def plot_KEnerg(kfreq, KEnerg):
 
     # Compute Initial and Exact Spectrum:
-    k_ex, E_ex, k_init, E_init = compute_exact_init_Energy()
+    kfreq_ex, KEnerg_ex, kfreq_init, KEnerg_init = compute_exact_init_Energy()
+    E_tot = compute_Etotal(kfreq,KEnerg)
+    Einit_tot = compute_Etotal(kfreq_init,KEnerg_init)
 
-    # Plotting the FFT:
-    fig, ax = pyplot.subplots(figsize=(10, 8));
-    pyplot.plot(k_freq[1:], KEnerg[1:], '-b', label='Computed KE')
-    pyplot.plot(k_init, E_init, '-r', label='Initial KE')
-    pyplot.plot(k_ex, E_ex, '--k', label=r'E = const * k$^{-2}$')
+    fig, ax = plt.subplots(frameon='True')
+    ax.plot(kfreq_ex, KEnerg_ex*1.4, ':k',lw=0.7)  # theoretical slope of k^-2
+    ax.plot(kfreq_init, KEnerg_init, '--r', label=r'KE$_{init}$, E$_{tot}='+str(np.round(Einit_tot,5))+'$',lw=0.7)
+    #ax.plot(k_freq_DNS[1:], KE_DNS[1:],'-r', label=DNS_label,lw=0.5)
+    markers_on = [35,50,60,70,90,110,125,150,170,200,250,300,400,500]
+    ax.plot(kfreq[1:], KEnerg[1:], '-b', label=r'KE$_{num}$, E$_{tot}='+str(np.round(E_tot,5))+'$'\
+                   , lw=0.85, markevery=markers_on )
 
-    pyplot.xscale('log')
-    pyplot.yscale('log')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.legend(fontsize=19,edgecolor='black',loc='upper right')
+    ax.set_facecolor('white')
+    ax.set_xlabel(r'$k$', labelpad=2,fontsize=24);
+    ax.set_ylabel(r'$E$', labelpad=2, fontsize=24);
+    ax.set_xlim(10**0, 10**4)
+    ax.set_ylim(10**-10, 10 ** -1)
+    ax.tick_params(axis='both', which='both', labelsize=24)
+    #ax.set_title(r'nDOFs$='+str(nDOF)+'$')
+    ax.text(475, 1.5*10**-4, r'k$^{-2}$', fontsize=22)
+    #ax.xaxis.label.set_size(20)  
+    ax.spines["top"].set_visible(True)
+    ax.spines["right"].set_visible(True)
+    ax.spines["bottom"].set_visible(True)
 
-    pyplot.grid()
-    pyplot.legend()
+    fig.set_size_inches(13.0, 9.0, forward=True)
+    fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0,rect=(0.0,0.0,1.0,0.965))
+    
+    return fig, ax
 
-    pyplot.xlabel('k', labelpad=10);
-    pyplot.ylabel('E(k)', labelpad=10);
+def plot_E_vs_time(time,KE):
+    fig, ax = plt.subplots(frameon='True')
+    ax.plot(time,KE,'-r')
+    ax.set_xlabel('time', labelpad=2,fontsize=18)
+    ax.set_ylabel('E', labelpad=2, fontsize=18)
+    ax.grid()
+    ax.set_xlim(0.0, np.max(time))
+    ax.tick_params(axis='both', which='both', labelsize=16)
+    ax.spines["top"].set_visible(True)
+    ax.spines["right"].set_visible(True)
+    ax.spines["bottom"].set_visible(True)
+    fig.set_size_inches(8.0, 6.0, forward=True)
+    fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0\
+                  ,rect=(0.0,0.0,1.0,0.985))
+    return fig, ax
 
-    pyplot.ylim(10 ** -15, 10 ** 0)
-    fig.tight_layout()
-
-    pyplot.show()
-
-    return "true"
+def plot_dissip_rates(time,dE_dt,Dt):
+    fig, ax = plt.subplots(frameon='True')
+    ax.plot(time,-dE_dt,'-^r',label='-dE/dt',lw=0.7)
+    ax.plot(time,Dt,'--ob',label='D(t)',lw=0.7)
+    ax.set_xlabel('time', labelpad=4,fontsize=16)
+    ax.set_ylabel('Kinetic energy dissipation rate'\
+          ,labelpad=4, fontsize=16)
+    ax.set_xlim(0.0, np.max(time))
+    #ax.set_ylim(0.4,1.80)
+    ax.grid()
+    ax.legend(fontsize=16,edgecolor='black',loc='upper right')
+    ax.tick_params(axis='both', which='both', labelsize=14)
+    ax.spines["top"].set_visible(True)
+    ax.spines["right"].set_visible(True)
+    ax.spines["bottom"].set_visible(True)
+    fig.set_size_inches(8.0, 6.0, forward=True)
+    fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0\
+                ,rect=(0.0,0.0,1.0,0.985))
+    return fig, ax
     
 def plot_fft(k_freq,u_amp):
 
@@ -176,6 +221,16 @@ def compute_Dt_dissipation_rate(kfreq,KEnerg, thermal_diffus):
     Dt = 2.0 * nu  * trapz(II,kfreq)
     
     return Dt
+
+def compute_dEkdt(time,Ek):
+    nt = size(time);
+    dEk_dt = zeros([nt])
+
+    dEk_dt[0] = (Ek[1]-Ek[0])/(time[1]-time[0])
+    for i in range(1,nt):
+        dEk_dt[i] = (Ek[i]-Ek[i-1])/(time[i]-time[i-1])
+
+    return dEk_dt
     
 def savez_spectrum(k_freq, u_amp, KEnerg, fname):
     savez(fname, k_freq=k_freq, u_amp=u_amp, KEnerg=KEnerg)
@@ -187,6 +242,22 @@ def loadz_spectrum(fname):
     u_amp = data['u_amp']
     KE_fd = data['KEnerg']
     return k_freq, u_amp, KE_fd
+    
+def savez_spectrum_linearWave(k_freq, u_amp, KEnerg, G, fname):
+    # Saving the spectrum along with G for a linear wave, i.e.
+    # , a sine or Gaussian
+    savez(fname, k_freq=k_freq, u_amp=u_amp, KEnerg=KEnerg, G=G)
+    return
+
+def loadz_spectrum_linearWave(fname):
+    # Loading the spectrum along with G for a linear wave, i.e.
+    # , a sine or Gaussian
+    data = np.load(fname+str('.npz'))
+    k_freq = data['k_freq']
+    u_amp = data['u_amp']
+    KEnerg = data['KEnerg']
+    G = data['G']
+    return k_freq, u_amp, KEnerg, G
 
 #==============================================================================================================#
 #                                      Discontinuous Galerkin Functions
