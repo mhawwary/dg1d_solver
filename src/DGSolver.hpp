@@ -37,65 +37,20 @@ public:
    virtual double L2_error_nodal_gausspts()=0; // L2 at gauss points, but using non-projected exact solution
    virtual double L1_error_nodal_gausspts_proj()=0; // L1 at gauss points, but using projected exact and numerical solutions
    virtual double L2_error_nodal_gausspts_proj()=0; // L2 at gauss points, but using projected exact and numerical solutions
+   virtual double Compute_waveEnergy(double **in_Qn_)=0;
 
-   void UpdatePhyTime(const double& dt_){
-
-       phy_time += dt_;
-
-       return;
-   }
-
-   void SetPhyTime(const double &time_){
-
-       phy_time=time_;
-
-       return;
-   }
-
-   double GetTimeStep(){
-
-       return time_step;
-   }
-
-   double GetLastTimeStep(){
-
-       return last_time_step;
-   }
-
-   double GetCFL(){
-
-       return CFL;
-   }
-
-   int GetNdof(){
-
-       return Ndof;
-   }
-
-   double** GetNumSolution(){ // modal pointer array
-       return Qn;
-   }
-
-   double** GetExactSolution(){ // continuous uniform exact solution
-       return Qex_proj;
-   }
-
-   double* GetVertexNumSol(){ //only numerical solution at nodes only and averaged
-       return Qv;
-   }
-
-   double* GetContUniformNumSol(){  // continuous uniform numerical solution
-       return Q_cont_sol;
-   }
-
-   double* GetContUniformExactSol(){ // continuous uniform exact solution
-       return Q_exact;
-   }
-
-   double GetPhyTime(){
-
-       return phy_time;
-   }
+   inline void UpdatePhyTime(const double& dt_){  phy_time += dt_; }
+   inline void SetPhyTime(const double &time_){ phy_time=time_; }
+   inline double GetTimeStep(){  return time_step; }
+   inline double GetLastTimeStep(){ return last_time_step; }
+   inline double GetCFL(){  return CFL; }
+   inline int GetNdof(){ return Ndof; }
+   inline double** GetNumSolution(){ return Qn; }// modal pointer array
+   inline double** GetExactSolution(){ return Qex_proj; } // continuous uniform exact solution
+   inline double* GetVertexNumSol(){ return Qv; }//only numerical solution at nodes only and averaged
+   inline double* GetContUniformNumSol(){ return Q_cont_sol; } // continuous uniform numerical solution
+   inline double* GetContUniformExactSol(){ return Q_exact; }// continuous uniform exact solution
+   inline double GetPhyTime(){ return phy_time; }
 
    virtual void print_cont_vertex_sol()=0;
    virtual void print_average_sol()=0;
@@ -105,7 +60,10 @@ public:
    virtual void dump_discont_sol()=0;
    virtual void dump_timeaccurate_sol()=0;
    virtual void dump_timeaccurate_errors()=0; // remember that you always have to dump the time_accurate solution first
-
+   virtual void dump_timeaccurate_waveenergy(const double& in_E_ex_,
+                                             const double& in_E_,
+                                             const double& in_GG_ex_,
+                                             const double& in_GG_)=0;
 protected:
 
    virtual void UpdateResidOneCell(const int& cellid, double* q_
@@ -164,6 +122,9 @@ protected:
    double exact_sol_shift=0.;  // at or adt, since exact sol have f(x-at).
    double wave_length_=0.;     // wave length, Lambda
    double wave_speed_=0.0;      // wave speed (a), u_t + a u_x =0
+   double init_wave_E_=0.0;
+   double wave_energy_=0.0;
+   double Peclet_no=1.0;
 
    int Nquad_=1; // Gauss Quadrature rules
 

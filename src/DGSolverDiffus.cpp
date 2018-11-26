@@ -30,7 +30,7 @@ void DGSolverDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
         break;
     case 3:  // p2
         Nquad_ = 8;
-        Nquad_viscFlux_=2;
+        Nquad_viscFlux_=3;
         break;
     case 4:  // p3
         Nquad_ = 8;
@@ -77,15 +77,15 @@ void DGSolverDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     eta_penalty = simdata_->penalty_param_; // penalty param
     C_lift = pow(Ndof,2)/2.0; // C lifting term multiplier for LDG, BR1, BR2/SIP
-    C1_lift = pow(-1,Ndof-1)*Ndof/4.0; // C1 lifting term multiplier for BR1
     if(simdata_->diffus_scheme_type_=="SIP"
             || simdata_->diffus_scheme_type_=="BR2"){
         C_lift = eta_penalty * C_lift;
         C1_lift=0.0;
     }else if(simdata_->diffus_scheme_type_=="BR1"){
         C_lift = (1+eta_penalty)*C_lift;
+        C1_lift = pow(-1,Ndof-1)*Ndof/4.0; // C1 lifting term multiplier for BR1
     }else if(simdata_->diffus_scheme_type_=="LDG"){
-        C_lift = 2 * C_lift + eta_penalty;
+        C_lift = 2.0 * C_lift + eta_penalty;
         C1_lift=0.0;
     }
 
@@ -226,24 +226,25 @@ void DGSolverDiffus::CalcTimeStep(){
     cout <<"\n===============================================\n";
     //cout << "max eigenvalue : "<<max_eigen_advec<<endl;
     //cout << "TotalVariation : "<<TV_<<endl;
+    cout << "Wave length    : "<< wave_length_<<endl;
     cout << "ThermalDiffusiv: "<< simdata_->thermal_diffus << endl;
     cout << "CFL no.        : "<<CFL<<endl;
-    cout << "time step, dt  : "<<time_step<<endl;
-    cout << "last_time_step : "<<last_time_step<<endl;
-    cout << "input Nperiods : "<<simdata_->Nperiods<<endl;
-    cout << "new   Nperiods : "<<simdata_->t_end_/T_period<<endl;
-    cout << "exact_sol_shift: "<<exact_sol_shift<<endl;
+    cout << "Time step, dt  : "<<time_step<<endl;
+    cout << "Last_time_step : "<<last_time_step<<endl;
+    cout << "Input Nperiods : "<<simdata_->Nperiods<<endl;
+    cout << "New   Nperiods : "<<simdata_->t_end_/T_period<<endl;
+    cout << "Exact_sol_shift: "<<exact_sol_shift<<endl;
     cout << "T_period       : "<<T_period<<endl;
-    printf("actual_end_time:%1.5f",simdata_->t_end_);
-    cout <<"\nMax_iter: "<<simdata_->maxIter_<<endl;
+    printf( "Actual_end_time:%1.5f\n",simdata_->t_end_);
+    cout << "Max_iter       : "<<simdata_->maxIter_<<endl;
 
     cout << "\nNumber of Elements: "<< grid_->Nelem<<"  dx:  "<<grid_->dx<<endl;
-    cout << "Polynomial  order : "<< simdata_->poly_order_  << endl;
-    cout << "Runge-Kutta order : "<< simdata_->RK_order_    << endl;
-    cout << "Poly GaussQuad order  : "<< Nquad_ << endl;
-    cout << "Flux GaussQuad order  : "<< Nquad_viscFlux_ << endl;
-    cout << "Penalty parameter : "<< eta_penalty << endl;
-    cout << "Viscous Flux scheme   : "<< simdata_->diffus_scheme_type_<<endl;
+    cout << "Polynomial  order   : "<< simdata_->poly_order_  << endl;
+    cout << "Runge-Kutta order   : "<< simdata_->RK_order_    << endl;
+    cout << "Poly GaussQuad order: "<< Nquad_ << endl;
+    cout << "Flux GaussQuad order: "<< Nquad_viscFlux_ << endl;
+    cout << "Penalty parameter   : "<< eta_penalty << endl;
+    cout << "Viscous Flux scheme : "<< simdata_->diffus_scheme_type_<<endl;
     cout <<"===============================================\n";
 
     return;
@@ -258,6 +259,7 @@ void DGSolverDiffus::InitSol(){
             Qn[j][k] = initSol_legendre_proj(j,k,quad_);
 
     // max_eigen_diffus =  // if needed
+    init_wave_E_ = Compute_waveEnergy(Qn);  // initial wave energy of the projected solution
 
     CalcTimeStep(); // based on maximum eigenvalues if any
 
@@ -304,8 +306,7 @@ double DGSolverDiffus::ExactSol_legendre_proj(const int &eID,
     double Lk_=1.0;
 
     for (i=0; i<quad_.Nq; i++){
-        xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i]
-                + grid_->Xc[j];
+        xx = 0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
         Qexact_ = eval_exact_sol(xx);
         Lk_ = eval_basis_poly(quad_.Gaus_pts[i], k);
         II += quad_.Gaus_wts[i] * Qexact_ * Lk_ ;
@@ -389,8 +390,8 @@ void DGSolverDiffus::UpdateResidOneCell(const int &cellid, double *q_, double *r
         u_jump_jp12 = 2.0*u_sol_jump[j+1+Nghost_l];
     }else*/
     if(simdata_->diffus_scheme_type_=="SIP"
-             ||simdata_->diffus_scheme_type_=="BR2"
-             ||simdata_->diffus_scheme_type_=="LDG"){
+            ||simdata_->diffus_scheme_type_=="BR2"
+            ||simdata_->diffus_scheme_type_=="LDG"){
         u_jump_jm12 = u_sol_jump[j+Nghost_l];
         u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="BR1"){
@@ -412,18 +413,16 @@ void DGSolverDiffus::UpdateResidOneCell(const int &cellid, double *q_, double *r
         // Viscous Residual Computing:
         du_proj_k = eval_local_du_fluxproj_exact(j,q_,k);
         term1 = du_flux_jp1 * Lk_p1 - du_flux_jm1 *Lk_m1;
-        term2 = tempC_lift*( u_jump_jp12 * Lk_p1 - u_jump_jm12 * Lk_m1); // local lift term
+        term2 = tempC_lift*( (u_jump_jp12 * Lk_p1) - (u_jump_jm12 * Lk_m1)); // local lift term
         term3 = tempC1_lift*( (u_jump_jp32 + u_jump_jm12 )* Lk_p1
                               -(u_jump_jp12 + u_jump_jm32 )* Lk_m1); // for BR1, 0.0 for others
         term4 = - du_proj_k ;
         if(simdata_->diffus_scheme_type_=="LDG")
             term5 = - fact_ * u_jump_jp12 * dLk_p1 ;
         else
-            term5 = - 0.5 * fact_ * ( u_jump_jp12 * dLk_p1 + u_jump_jm12 * dLk_m1 );
+            term5 = - 0.5 * fact_ * ( (u_jump_jp12 * dLk_p1) + (u_jump_jm12 * dLk_m1) );
 
-        resid_[k] = fact_ * Mkk
-                * simdata_->thermal_diffus
-                * ( term1 + term2 + term3 + term4 + term5) ;
+        resid_[k] = fact_ * Mkk * simdata_->thermal_diffus * ( term1 + term2 + term3 + term4 + term5) ;
     }
 
     return;
@@ -456,9 +455,10 @@ double DGSolverDiffus::eval_local_du_fast(const int eID,
     return (fact_*II);
 }
 
-double DGSolverDiffus::Compute_common_sol_jump(const double &ul_
-                                               , const double &ur_){
-    return (ur_ - ul_);
+double DGSolverDiffus::Compute_common_sol_jump(const double ul_
+                                               , const double ur_){
+    double jump_ = ur_ - ul_;
+    return jump_;
 }
 
 double DGSolverDiffus::Compute_common_du_flux(const double& dul_
@@ -521,42 +521,71 @@ void DGSolverDiffus::Compute_projected_exact_sol(){
 }
 
 double DGSolverDiffus::eval_init_sol(const double& xx){
+    double wave_value_=0.0;
 
-    if(simdata_->wave_form_==0){  // u(x,0) = A * sin ( (f * PI * x) / L + phy ) + C
+    if(simdata_->wave_form_==0){  // u(x,0) = A * sin/cos ( (f * PI * x) / L + phy ) + C
         double argum_ = (simdata_->wave_freq_*PI*xx)
                 / fabs(wave_length_) + simdata_->wave_shift ;
-        double wave_value_ = simdata_->wave_amp_ * sin(argum_)
-                + simdata_->wave_const;
-        return wave_value_;
-    }else if(simdata_->wave_form_==1){
-        double wave_value_ = simdata_->Gaussian_amp_
+        if(simdata_->trig_wave_type_=="sin")
+            wave_value_ = simdata_->wave_amp_ * sin(argum_)
+                    + simdata_->wave_const;
+        else if(simdata_->trig_wave_type_=="cos")
+            wave_value_ = simdata_->wave_amp_ * cos(argum_)
+                    + simdata_->wave_const;
+
+    }else if(simdata_->wave_form_==1){   // Gaussian wave, f(x) = Amp * exp(-b*x^2)
+        wave_value_ = simdata_->Gaussian_amp_
                 * exp(-simdata_->Gaussian_exponent_*pow(xx,2)) ;
-        return wave_value_;
     }else{
         _notImplemented("Wave form is not implemented");
     }
+    return wave_value_;
 }
 
-double DGSolverDiffus::eval_exact_sol(double &xx){
+double DGSolverDiffus::eval_exact_sol(double &xx_){
 
-    double Qexx_=0.0,wave_initial_value=0.0, Kfreq_=0.0;
-    //xx = xx - exact_sol_shift;
+    double Qexx_=0.0;
 
-    if(simdata_->wave_form_==0){  // single wave mode
-        wave_initial_value = eval_init_sol(xx);
-        Kfreq_ = pow(simdata_->wave_freq_*PI,2);
-    }else if(simdata_->wave_form_==1){ // Gaussian wave
-        double x0 = xx - wave_length_*floor(xx/wave_length_);
-        double x1 = xx + wave_length_*floor(xx/-wave_length_);
-        if(x0==0 && x1==0)
-            wave_initial_value= 0.5*(eval_init_sol(x0)+ eval_init_sol(x1));
-        else
-            wave_initial_value = (eval_init_sol(x0)+ eval_init_sol(x1));
+    if(simdata_->wave_form_==0){  // single wave mode either a sine or a cosine
+        double wave_initial_value = eval_init_sol(xx_);
+        double Kfreq_ = pow(simdata_->wave_freq_*PI/fabs(wave_length_), 2);
+        Qexx_ = wave_initial_value
+                * exp(-Kfreq_ * simdata_->thermal_diffus *phy_time);
+    }else if(simdata_->wave_form_==1){ // Gaussian wave, f(x) = Amp * exp(-b*x^2)
+        register int j;
+        double b_ = simdata_->Gaussian_exponent_;
+        double gamma_=simdata_->thermal_diffus;
+        double L_ = 0.5*wave_length_;  // half of periodic domain width
+        double sqrtb_L_ = sqrt(b_) * L_;
+        double sqrtPib_ = sqrt(PI/b_);
+        static int n_eigenfunc_gaussian_ = 500; // initial number of eigenvalues to use for the exact solution expansion
+        int n_eignfunc_temp=n_eigenfunc_gaussian_;
+
+        double A0_,A_,m;
+        std::complex<double> z_;
+
+        A0_ =(sqrtPib_/(2.0*L_)) * Faddeeva::erf(sqrtb_L_); // Faddeeva is used for erf(complex numbers)
+        Qexx_ = A0_;
+        for(j=1; j<n_eigenfunc_gaussian_+1; j++){
+            m = j*PI/L_;
+            z_ = sqrtb_L_ + 1i*j*PI/(2.0*sqrtb_L_);
+            A_ = (sqrtPib_/L_) * exp(-m*m/(4.0*b_)) * real(Faddeeva::erf(z_));
+            Qexx_ += A_ * cos(m*xx_) * exp(-gamma_* m*m *phy_time);
+            if(A_ <= 1e-10){ // just some tolerance
+                n_eigenfunc_gaussian_=j;
+                j=1e6;
+                break;
+            }
+        }
+        Qexx_ = Qexx_ * simdata_->Gaussian_amp_;
+
+        if(n_eigenfunc_gaussian_ != n_eignfunc_temp)
+            cout << "\nNumber of eigen functions for the Gaussian exact solution: "
+                 << n_eigenfunc_gaussian_ <<endl;
     }else{
         _notImplemented("Wave form is not implemented");
     }
-    Qexx_ = wave_initial_value
-            * exp(-Kfreq_ * simdata_->thermal_diffus *phy_time);
+
     return Qexx_;
 }
 
@@ -836,9 +865,9 @@ double DGSolverDiffus::L1_error_projected_sol(){
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
             elem_error += quad_.Gaus_wts[i] * fabs(q_ex - q_n);
         }
-        II += (0.5 * grid_->h_j[j] * elem_error) ;
+        II += ( grid_->h_j[j] * elem_error) ;
     }
-    L1_error = II/(grid_->xf-grid_->x0);
+    L1_error = 0.5 *II/(grid_->xf-grid_->x0);
 
     return L1_error;
 }
@@ -847,19 +876,22 @@ double DGSolverDiffus::L2_error_projected_sol(){
 
     register int j; int i;
     double L2_error=0.0,elem_error=0.0,II=0.0,q_ex,q_n;
+    double xx=0.0;
 
     for(j=0; j<grid_->Nelem; j++){
         elem_error=0.0;
         for(i=0; i<quad_.Nq; i++) {
             q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
+            //xx =  0.5 * grid_->h_j[j] * quad_.Gaus_pts[i] + grid_->Xc[j];
+            //q_ex = eval_exact_sol(xx);
             q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
             elem_error += quad_.Gaus_wts[i] * pow((q_ex - q_n),2);
         }
-        II += (0.5 * grid_->h_j[j] * elem_error) ;
+        II += (  grid_->h_j[j] * elem_error) ;
         //printf("eID: %d, \t err: %1.5f",j,elem_error);
         //std::cin.get();
     }
-    L2_error = sqrt(II/(grid_->xf-grid_->x0));
+    L2_error = sqrt(0.5 *II/(grid_->xf-grid_->x0));
 
     return L2_error;
 }
@@ -1151,9 +1183,6 @@ void DGSolverDiffus::dump_errors(double& L1_proj_sol_,double& L2_proj_sol_
 }
 
 void DGSolverDiffus::dump_timeaccurate_errors(){
-
-    //Fix me! You always need to make sure that the exact solution has been updated, i.e,
-    // Compute_projected_exact_sol(); Compute_exact_vertex_sol(); has been called
     char *fname=nullptr;
     fname = new char[100];
 
@@ -1164,16 +1193,22 @@ void DGSolverDiffus::dump_timeaccurate_errors(){
             ,eta_penalty
             ,simdata_->Nperiods);
 
-    FILE* solerror_out=fopen(fname,"at+");
+    FILE* solerror_out=nullptr;
 
-    double wave_energy_ = Compute_waveEnergy();
-    double wave_exact_energy_ = Compute_ExactwaveEnergy();
-    if(phy_time==0.0)
-        E_init_ = wave_energy_;
-    double GG_ = wave_energy_/E_init_;
-    double GG_ex_ = wave_exact_energy_/E_init_;
+    if(phy_time==0 && simdata_->restart_flag==1)
+        solerror_out=fopen(fname,"at+");
+    else if(phy_time==0 && simdata_->restart_flag==0)
+        solerror_out=fopen(fname,"w");
+    else
+        solerror_out=fopen(fname,"at+");
+
+    double wave_energy_ = Compute_waveEnergy(Qn);
+    double wave_exact_energy_ = Compute_waveEnergy(Qex_proj);
+    double GG_ = wave_energy_/init_wave_E_;
+    double GG_ex_ = wave_exact_energy_/init_wave_E_;
     double L1_proj_sol_ = L1_error_projected_sol();
     double L2_proj_sol_ = L2_error_projected_sol();
+    //double L2_proj_sol_ = L2_error_modal();
     double L1_nodal_sol_ = L1_error_nodal_gausspts_proj();
     double L2_nodal_sol_ = L2_error_nodal_gausspts_proj();
     //double L1_nodal_sol_ = L1_error_nodal_cont_sol(); //for testing computing at the same nodes as FD
@@ -1186,10 +1221,51 @@ void DGSolverDiffus::dump_timeaccurate_errors(){
     fclose(solerror_out);
     emptyarray(fname);
 
-    printf("  L1_proj_sol:%2.5e  L2_proj_sol:%2.5e  L1_nodal:%2.5e L2_nodal:%2.5e Energy:%2.5e exactE:%2.5e G:%1.5f G_ex:%1.5f"
+    printf("  L1_proj_sol:%2.5e  L2_proj_sol:%2.5e  L1_nodal:%2.5e L2_nodal:%2.5e E_ex:%1.5f E_num:%1.5f G_ex:%1.5f G_num:%1.5f"
            ,L1_proj_sol_, L2_proj_sol_, L1_nodal_sol_, L2_nodal_sol_
-           , wave_energy_, wave_exact_energy_, GG_, GG_ex_);
+           ,wave_exact_energy_,wave_energy_,GG_ex_,GG_);
+    dump_timeaccurate_waveenergy(wave_exact_energy_,wave_energy_,GG_ex_,GG_);
 
+    return;
+}
+
+void DGSolverDiffus::dump_timeaccurate_waveenergy(const double& in_E_ex_,
+                         const double& in_E_,
+                         const double& in_GG_ex_,
+                         const double& in_GG_){
+    char *fname=nullptr;
+    fname = new char[100];
+    if(simdata_->Sim_mode=="CFL_const"
+            || simdata_->Sim_mode =="error_analysis_CFL"
+            || simdata_->Sim_mode =="test"
+            || simdata_->Sim_mode =="normal")
+        sprintf(fname,"%stime_data/wave_energy_N%d_CFL%1.4f_Eps%1.2f.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,CFL
+                ,eta_penalty);
+    else if(simdata_->Sim_mode=="dt_const"
+            || simdata_->Sim_mode=="error_analysis_dt" )
+        sprintf(fname,"%stime_data/wave_energy_N%d_dt%1.3e_Eps%1.2f.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,time_step
+                ,eta_penalty);
+
+    FILE* sol_out=nullptr;
+
+    if(phy_time==0 && simdata_->restart_flag==1)
+        sol_out=fopen(fname,"at+");
+    else if(phy_time==0 && simdata_->restart_flag==0)
+        sol_out=fopen(fname,"w");
+    else
+        sol_out=fopen(fname,"at+");
+
+    fprintf(sol_out, "%1.10f %1.10e %1.10e %1.5f %1.5f\n"
+            ,phy_time, in_E_ex_, in_E_, in_GG_ex_, in_GG_);
+
+    fclose(sol_out);
+    emptyarray(fname);
     return;
 }
 
@@ -1307,7 +1383,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
             || simdata_->Sim_mode =="test"
             || simdata_->Sim_mode =="normal"){
         // Dump time accurate continuous equally spaced solution data:
-        sprintf(fname,"%stime_data/u_cont_N%d_CFL%1.4f_Eps%1.2f_%1.3ft.dat"
+        sprintf(fname,"%stime_data/u_cont_N%d_CFL%1.4f_Eps%1.2f_%1.4ft.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
                 ,CFL
@@ -1316,7 +1392,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
     }else if(simdata_->Sim_mode=="dt_const"
              || simdata_->Sim_mode=="error_analysis_dt" ){
         // Dump time accurate continuous equally spaced solution data:
-        sprintf(fname,"%stime_data/u_cont_N%d_dt%1.3e_Eps%1.2f_%1.3ft.dat"
+        sprintf(fname,"%stime_data/u_cont_N%d_dt%1.3e_Eps%1.2f_%1.4ft.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
                 ,time_step
@@ -1340,7 +1416,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
             || simdata_->Sim_mode =="error_analysis_CFL"
             || simdata_->Sim_mode =="test"
             || simdata_->Sim_mode =="normal"){
-        sprintf(fname,"%stime_data/u_disc_N%d_CFL%1.4f_Eps%1.2f_%1.3ft.dat"
+        sprintf(fname,"%stime_data/u_disc_N%d_CFL%1.4f_Eps%1.2f_%1.4ft.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
                 ,CFL
@@ -1348,7 +1424,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
                 ,phy_time);
     }else if(simdata_->Sim_mode=="dt_const"
              || simdata_->Sim_mode=="error_analysis_dt" ){
-        sprintf(fname,"%stime_data/u_disc_N%d_dt%1.3e_Eps%1.2f_%1.3ft.dat"
+        sprintf(fname,"%stime_data/u_disc_N%d_dt%1.3e_Eps%1.2f_%1.4ft.dat"
                 ,simdata_->case_postproc_dir
                 ,grid_->Nelem
                 ,time_step
@@ -1376,7 +1452,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
 
     //Discontinuous exact solution:
     fname = new char[100];
-    sprintf(fname,"%stime_data/u_disc_exact_N%d_%1.3ft.dat"
+    sprintf(fname,"%stime_data/u_disc_exact_N%d_%1.4ft.dat"
             ,simdata_->case_postproc_dir
             ,grid_->Nelem
             ,phy_time);
@@ -1398,7 +1474,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
     ////Continuous Exact solution:
     //Compute_TimeAccurate_exact_sol();
     fname = new char[100];
-    sprintf(fname,"%stime_data/u_cont_exact_%1.3ft.dat"
+    sprintf(fname,"%stime_data/u_cont_exact_%1.4ft.dat"
             ,simdata_->case_postproc_dir
             ,phy_time);
 
@@ -1410,6 +1486,8 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
 
     fclose(sol_out);
     emptyarray(fname);
+
+    //dump_gaussian_coeffs(); // was a trial to dump exact wavenumbers amplitudes
 
     return;
 }
@@ -1483,42 +1561,135 @@ double DGSolverDiffus::compute_totalVariation(){
     return TV_;
 }
 
-double DGSolverDiffus::Compute_waveEnergy(){
-
+double DGSolverDiffus::Compute_waveEnergy(double **in_Qn_){
+    // This is not exactly an energy quantity, it is precisely:
+    // an averaged amplitude.
+    // So, E = (wave_energy)^2 and KE = 0.5*E
     register int j; int i;
     double wave_energy=0.0,elem_energy=0.0,II=0.0,q_n;
 
     for(j=0; j<grid_->Nelem; j++){
         elem_energy=0.0;
         for(i=0; i<quad_.Nq; i++) {
-            q_n = evalSolution(&Qn[j][0],quad_.Gaus_pts[i]);
+            q_n = evalSolution(&in_Qn_[j][0],quad_.Gaus_pts[i]);
             elem_energy += quad_.Gaus_wts[i] * q_n*q_n;
         }
-        II +=  elem_energy ;
-        //printf("eID: %d, \t numerical energy: %1.5f",j,elem_energy);
-        //std::cin.get();
+        II +=   grid_->h_j[j] * elem_energy ;
     }
-    wave_energy = sqrt(II/(2*grid_->Nelem));
+    wave_energy = sqrt(0.5*II/(grid_->xf-grid_->x0));
 
     return wave_energy;
 }
 
-double DGSolverDiffus::Compute_ExactwaveEnergy(){
+double DGSolverDiffus::L1_norm_modal(double **Qn_, const int in_Nelem_
+                                     , const int in_ndof_){
 
-    register int j; int i;
-    double wave_energy=0.0,elem_energy=0.0,II=0.0,q_ex;
+    register int j; int k;
+    double L1_norm=0.0,II=0.0;
+
+    for(j=0; j<in_Nelem_; j++){
+        for(k=0; k<in_ndof_; k++) {
+            II += fabs(Qn_[j][k]);
+        }
+    }
+    L1_norm = II/(in_ndof_*in_Nelem_);
+
+    return L1_norm;
+}
+
+double DGSolverDiffus::L2_norm_modal(double **Qn_, const int in_Nelem_
+                                     , const int in_ndof_){
+    register int j; int k;
+    double L2_norm=0.0,II=0.0;
+
+    for(j=0; j<in_Nelem_; j++){
+        for(k=0; k<in_ndof_; k++) {
+            II += pow(Qn_[j][k],2);
+        }
+    }
+    L2_norm = sqrt(II/(in_ndof_*in_Nelem_));
+
+    return L2_norm;
+}
+
+double DGSolverDiffus::L2_error_modal(){
+    register int j; int k;
+    double L2_error=0.0,II=0.0;
 
     for(j=0; j<grid_->Nelem; j++){
-        elem_energy=0.0;
-        for(i=0; i<quad_.Nq; i++) {
-            q_ex = evalSolution(&Qex_proj[j][0], quad_.Gaus_pts[i]);
-            elem_energy += quad_.Gaus_wts[i] * q_ex*q_ex;
+        for(k=0; k<Ndof; k++) {
+            II += pow(Qn[j][k]-Qex_proj[j][k],2);
         }
-        II += elem_energy ;
-        //printf("eID: %d, \t exact energy: %1.5f",j,elem_energy);
-        //std::cin.get();
     }
-    wave_energy = sqrt(II/(2*grid_->Nelem));
+    L2_error = sqrt(II/(Ndof*grid_->Nelem));
 
-    return wave_energy;
+    return L2_error;
+}
+
+void DGSolverDiffus::dump_gaussian_coeffs(){
+
+    char *fname=nullptr;
+    fname = new char[250];
+
+    if(simdata_->Sim_mode=="CFL_const"
+            || simdata_->Sim_mode =="error_analysis_CFL"
+            || simdata_->Sim_mode =="test"
+            || simdata_->Sim_mode =="normal"){
+        sprintf(fname,"%stime_data/gaussian_amp_N%d_CFL%1.4f_Eps%1.2f_%1.4ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,CFL
+                ,eta_penalty
+                ,phy_time);
+    }else if(simdata_->Sim_mode=="dt_const"
+             || simdata_->Sim_mode=="error_analysis_dt" ){
+        sprintf(fname,"%stime_data/gaussian_amp_N%d_dt%1.3e_Eps%1.2f_%1.4ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,time_step
+                ,eta_penalty
+                ,phy_time);
+    }
+
+    FILE* sol_out=fopen(fname,"w");
+
+    register int j;
+    double b_ = simdata_->Gaussian_exponent_;
+    double gamma_=simdata_->thermal_diffus;
+    double L_ = 0.5*wave_length_;  // half of periodic domain width
+    double sqrtb_L_ = sqrt(b_) * L_;
+    double sqrtPib_ = sqrt(PI/b_);
+    static int n_eigenfunc_gaussian_ = 500; // initial number of eigenvalues to use for the exact solution expansion
+    int n_eignfunc_temp=n_eigenfunc_gaussian_;
+
+    double A0_,A_,m,Amp_;
+    std::complex<double> z_;
+
+    A0_ =(sqrtPib_/(2.0*L_)) * Faddeeva::erf(sqrtb_L_); // Faddeeva is used for erf(complex numbers)
+    fprintf(sol_out,"%d %2.10e\n",0,A0_);
+
+    for(j=1; j<n_eigenfunc_gaussian_+1; j++){
+        m = j*PI/L_;
+        z_ = sqrtb_L_ + 1i*j*PI/(2.0*sqrtb_L_);
+        A_ = (sqrtPib_/L_) * exp(-m*m/(4.0*b_)) * real(Faddeeva::erf(z_));
+        Amp_= A_ * exp(-gamma_* m*m *phy_time);
+
+        fprintf(sol_out,"%d %2.10e\n",j,Amp_);
+
+        if(A_ <= 1e-10){ // just some tolerance
+            n_eigenfunc_gaussian_=j;
+            j=1e6;
+            break;
+        }
+    }
+
+    // error checking message
+    if(n_eigenfunc_gaussian_ != n_eignfunc_temp)
+        cout << "\nNumber of eigen functions for the Gaussian exact solution: "
+             << n_eigenfunc_gaussian_ <<endl;
+
+    fclose(sol_out);
+    emptyarray(fname);
+
+    return;
 }

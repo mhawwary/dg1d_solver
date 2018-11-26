@@ -31,6 +31,7 @@
 #include <omp.h>
 
 #include"../include/error.h"
+#include"../include/Faddeeva.hpp"
 
 //#include<vector>
 
@@ -38,7 +39,6 @@
 //#include<mpi.h>
 
 using namespace std;
-
 
 template<typename ptr_1D>
 void emptyarray(ptr_1D*& A);

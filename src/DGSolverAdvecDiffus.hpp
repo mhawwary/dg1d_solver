@@ -30,6 +30,7 @@ public:
    virtual double L2_error_nodal_gausspts();
    virtual double L1_error_nodal_gausspts_proj();
    virtual double L2_error_nodal_gausspts_proj();
+   virtual double Compute_waveEnergy(double **in_Qn_);
 
    virtual void print_cont_vertex_sol();
    virtual void print_average_sol();
@@ -39,6 +40,10 @@ public:
    virtual void dump_discont_sol();
    virtual void dump_timeaccurate_sol();
    virtual void dump_timeaccurate_errors(){}
+   virtual void dump_timeaccurate_waveenergy(const double& in_E_ex_,
+                                             const double& in_E_,
+                                             const double& in_GG_ex_,
+                                             const double& in_GG_);
 
    virtual void UpdateResidOneCell(const int& cellid, double* q_
                            , double* resid_);
@@ -91,6 +96,8 @@ protected:
    double Rusanov(const double &Ql, const double &Qr);
    double eval_burgers_invflux(const double& xi_pt, const double *q_);
    double eval_init_u_decay_burger_turb(const double& xx_);
+
+   double compute_Peclet_no();
 
    void Reset_solver();
 

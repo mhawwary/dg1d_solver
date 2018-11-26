@@ -35,6 +35,7 @@ protected:
     void SSPRK22(double **q_);
     void SSPRK33(double **q_);
     void classicRK4(double **q_);
+    //void RK54(double **q_);
 
     void CopyOldSol(double **q_t_, double **qn_);
     void CopyOldResid(double **resid_t_, double **old_resid_);

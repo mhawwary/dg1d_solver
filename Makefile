@@ -56,14 +56,14 @@ OBJ	= obj/
 BIN	= bin/
 INC	= include/
 
-vpath %.cpp src
+vpath %.cpp src include
 vpath %.c src
 vpath %.o   obj
 vpath %.h include src
 vpath %.hpp include src
 
 # Objects
-OBJS	= $(OBJ)DG1DFlow.o $(OBJ)SimData.o $(OBJ)ExplicitTimeSolver.o $(OBJ)DGSolverAdvec.o $(OBJ)DGSolverDiffus.o $(OBJ)DGSolverAdvecDiffus.o # objects 
+OBJS	= $(OBJ)DG1DFlow.o $(OBJ)SimData.o $(OBJ)ExplicitTimeSolver.o $(OBJ)DGSolverAdvec.o $(OBJ)DGSolverDiffus.o $(OBJ)DGSolverAdvecDiffus.o $(OBJ)Faddeeva.o # objects 
 INCLS	= 
 
 # Compile
@@ -91,6 +91,7 @@ $(OBJ)ExplicitTimeSolver.o: ExplicitTimeSolver.hpp ExplicitTimeSolver.cpp
 $(OBJ)DGSolverAdvec.o: DGSolverAdvec.hpp
 $(OBJ)DGSolverDiffus.o: DGSolverDiffus.hpp
 $(OBJ)DGSolverAdvecDiffus.o: DGSolverAdvecDiffus.hpp
+$(OBJ)Faddeeva.o: Faddeeva.hpp Faddeeva.cpp 
 
 clean:
 	rm -f ./$(OBJ)*.o ./$(BIN)*.exe  

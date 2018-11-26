@@ -81,8 +81,6 @@ void InitSim(const int& argc,char** argv){
     time_solver_ = new ExplicitTimeSolver;
     dg_solver_->setup_solver(meshdata_,simdata_);
     dg_solver_->InitSol();
-    dg_solver_->dump_timeaccurate_sol();
-    dg_solver_->dump_timeaccurate_errors();
     time_solver_->setupTimeSolver(dg_solver_,&simdata_);
     simdata_.dump_python_inputfile();
 
@@ -137,6 +135,9 @@ void RunSim(){
 
     printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter()
            ,dg_solver_->GetPhyTime());
+    // Dump initial data:
+    dg_solver_->dump_timeaccurate_sol();
+    dg_solver_->dump_timeaccurate_errors();
     //===========================
     // Solve First Iteration
     //===========================
@@ -257,26 +258,6 @@ void logo(){
 
     return;
 }
-
-//void Dump_errors_vs_time(){
-
-//    double L1_aversol_=0.0,L1_projsol_=0.0
-//            ,L2_aversol_=0.0,L2_projsol_=0.0
-//            , L1_nodal_gausspts, L2_nodal_gausspts;
-
-//    dg_solver_->Compute_vertex_sol();
-
-//    L1_projsol_ = dg_solver_->L1_error_time_proj_sol();
-//    L2_projsol_ = dg_solver_->L2_error_time_proj_sol();
-//    L1_aversol_ = dg_solver_->L1_error_average_sol();
-//    L2_aversol_ = dg_solver_->L2_error_average_sol();
-//    L1_nodal_gausspts = dg_solver_->L1_error_nodal_gausspts();
-//    L2_nodal_gausspts = dg_solver_->L2_error_nodal_gausspts();
-
-//    dg_solver_->dump_errors_vs_time(L1_projsol_,L2_projsol_);
-
-//    return;
-//}
 
 
 

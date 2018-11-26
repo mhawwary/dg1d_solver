@@ -17,36 +17,38 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     Ndof = simdata_->poly_order_+1;
 
-    // Nquad  is for error integrations
+    // Nquad  is for error integrations/ intialization /exact solution projection
     // Nquad_invFlux & Nquad_viscFlux_ are for flux projection
+    // However, since we have computed the integrals of projections
+    // analytically there is no need for flux projections using quadratures.
     switch (Ndof) {
     case 1:  // p0
-        Nquad_ = 1;
+        Nquad_ = 2; //1
         Nquad_invFlux_= 1; // it is not applicable
         Nquad_viscFlux_=1; // it is not applicable
         break;
     case 2: // p1
-        Nquad_ = 2;
+        Nquad_ = 4; //2
         Nquad_invFlux_= 2;
         Nquad_viscFlux_=1;
         break;
     case 3:  // p2
-        Nquad_ = 3;
+        Nquad_ = 5;  //3
         Nquad_invFlux_= 3;
         Nquad_viscFlux_=2;
         break;
     case 4:  // p3
-        Nquad_ = 4;
+        Nquad_ = 6;  //4
         Nquad_invFlux_= 5;
         Nquad_viscFlux_=3;
         break;
     case 5:  // p4
-        Nquad_ = 5;
+        Nquad_ = 8;  //5
         Nquad_invFlux_= 6;
         Nquad_viscFlux_=4;
         break;
     case 6:  // p5
-        Nquad_ = 6;
+        Nquad_ = 8; //6
         Nquad_invFlux_= 8;
         Nquad_viscFlux_=5;
         break;
@@ -85,15 +87,15 @@ void DGSolverAdvecDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 
     eta_penalty = simdata_->penalty_param_; // penalty param
     C_lift = pow(Ndof,2)/2.0; // C lifting term multiplier for LDG, BR1, BR2/SIP
-    C1_lift = pow(-1,Ndof-1)*Ndof/4.0; // C1 lifting term multiplier for BR1
     if(simdata_->diffus_scheme_type_=="SIP"
             || simdata_->diffus_scheme_type_=="BR2"){
         C_lift = eta_penalty * C_lift;
         C1_lift=0.0;
     }else if(simdata_->diffus_scheme_type_=="BR1"){
         C_lift = (1+eta_penalty)*C_lift;
+        C1_lift = pow(-1,Ndof-1)*Ndof/4.0; // C1 lifting term multiplier for BR1
     }else if(simdata_->diffus_scheme_type_=="LDG"){
-        C_lift = 2 * C_lift + eta_penalty;
+        C_lift = 2.0 * C_lift + eta_penalty;
         C1_lift=0.0;
     }
 
@@ -167,6 +169,9 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
     T_period = (grid_->xf - grid_->x0) / simdata_->a_wave_;
     radius_advec_ =  max_eigen_advec / dx  ;
     radius_diffus_ = simdata_->thermal_diffus / dx2 ;
+    Peclet_no = max_eigen_advec * dx / simdata_->thermal_diffus;
+    wave_energy_ =Compute_waveEnergy(Qn); // updating the initial wave_energy for Peclet number computations
+    Peclet_no = compute_Peclet_no();
 
     if(simdata_->calc_dt_flag==1){   // use CFL as input
         CFL = simdata_->CFL_;
@@ -254,9 +259,11 @@ void DGSolverAdvecDiffus::CalcTimeStep(){
 
     // Screen Output of input and simulation parameters:
     cout <<"\n===============================================\n";
+    cout << "Domain length   : "<< wave_length_<<endl;
     cout << "max eigenvalue : "<<max_eigen_advec<<endl;
     cout << "TotalVariation : "<<TV_<<endl;
     cout << "ThermalDiffusiv: "<< simdata_->thermal_diffus << endl;
+    cout << "Cell Peclet no.: "<< Peclet_no<<endl;
     cout << "CFL no.        : "<<CFL<<endl;
     cout << "time step, dt  : "<<time_step<<endl;
     cout << "last_time_step : "<<last_time_step<<endl;
@@ -317,8 +324,9 @@ void DGSolverAdvecDiffus::InitSol(){
         FatalError_exit("Equation type is not implemented");
     }
 
-    CalcTimeStep(); // based on maximum eigenvalues
+    init_wave_E_ = Compute_waveEnergy(Qn);  // initial wave energy of the projected solution
 
+    CalcTimeStep(); // based on maximum eigenvalues
     return;
 }
 
@@ -470,8 +478,8 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
         u_jump_jp12 = 2.0*u_sol_jump[j+1+Nghost_l];
     }else*/
     if(simdata_->diffus_scheme_type_=="SIP"
-             ||simdata_->diffus_scheme_type_=="BR2"
-             ||simdata_->diffus_scheme_type_=="LDG"){
+            ||simdata_->diffus_scheme_type_=="BR2"
+            ||simdata_->diffus_scheme_type_=="LDG"){
         u_jump_jm12 = u_sol_jump[j+Nghost_l];
         u_jump_jp12 = u_sol_jump[j+1+Nghost_l];
     }else if(simdata_->diffus_scheme_type_=="BR1"){
@@ -500,14 +508,14 @@ void DGSolverAdvecDiffus::UpdateResidOneCell(const int &cellid, double *q_, doub
         // Viscous Residual Computing:
         du_proj_k = eval_local_du_fluxproj_exact(j,q_,k);
         term1 = du_flux_jp1 * Lk_p1 - du_flux_jm1 *Lk_m1;
-        term2 = tempC_lift*( u_jump_jp12 * Lk_p1 - u_jump_jm12 * Lk_m1); // local lift term
-        term3 = tempC1_lift*( (u_jump_jp32 + u_jump_jm12 )* Lk_p1
-                              -(u_jump_jp12 + u_jump_jm32 )* Lk_m1); // for BR1, 0.0 for others
+        term2 = tempC_lift*( (u_jump_jp12 * Lk_p1) - (u_jump_jm12 * Lk_m1)); // local lift term
+        term3 = tempC1_lift*( ((u_jump_jp32 + u_jump_jm12 )* Lk_p1)
+                              -((u_jump_jp12 + u_jump_jm32 )* Lk_m1)); // for BR1, 0.0 for others
         term4 = - du_proj_k ;
         if(simdata_->diffus_scheme_type_=="LDG")
             term5 = - fact_ * u_jump_jp12 * dLk_p1 ;
         else
-            term5 = - 0.5 * fact_ * ( u_jump_jp12 * dLk_p1 + u_jump_jm12 * dLk_m1 );
+            term5 = - 0.5 * fact_ * ( (u_jump_jp12 * dLk_p1) + (u_jump_jm12 * dLk_m1) );
 
         viscous_resid =  simdata_->thermal_diffus
                 * ( term1 + term2 + term3 + term4 + term5) ;
@@ -1278,6 +1286,30 @@ double DGSolverAdvecDiffus::L2_error_average_sol(){
     return L2_error;
 }
 
+double DGSolverAdvecDiffus::Compute_waveEnergy(double **in_Qn_){
+
+    register int j; int i;
+    double wave_energy=0.0,elem_energy=0.0,II=0.0,q_n;
+
+    for(j=0; j<grid_->Nelem; j++){
+        elem_energy=0.0;
+        for(i=0; i<quad_.Nq; i++) {
+            q_n = evalSolution(&in_Qn_[j][0],quad_.Gaus_pts[i]);
+            elem_energy += quad_.Gaus_wts[i] * q_n*q_n;
+        }
+        II +=   grid_->h_j[j] * elem_energy ;
+    }
+    wave_energy = sqrt(0.5*II/(grid_->xf-grid_->x0)); // u_amp
+
+    // This is not exactly an energy quantity, it is precisely:
+    // an averaged amplitude.
+    // So, E = (wave_energy)^2 and KE = 0.5*E
+
+    wave_energy = 4.0*0.5*pow(wave_energy,2);  // KE
+
+    return wave_energy;
+}
+
 void DGSolverAdvecDiffus::print_cont_vertex_sol(){
 
     register int j=0;
@@ -1721,6 +1753,57 @@ void DGSolverAdvecDiffus::dump_timeaccurate_sol(){
     fclose(sol_out);
     emptyarray(fname);
 
+    wave_energy_ = Compute_waveEnergy(Qn);
+    Peclet_no=compute_Peclet_no();
+    //double wave_exact_energy_ = Compute_waveEnergy(Qex_proj);
+    double GG_ = wave_energy_/init_wave_E_;
+    //double GG_ex_ = wave_exact_energy_/init_wave_E_;
+    dump_timeaccurate_waveenergy(0.0,wave_energy_,0.0,GG_);
+
+    printf("    KEnerg:%1.5f   G:%1.5f    Peclet_no:%1.3f"
+             , wave_energy_, GG_,Peclet_no);
+
+    return;
+}
+
+void DGSolverAdvecDiffus::dump_timeaccurate_waveenergy(const double& in_E_ex_,
+                                                       const double& in_E_,
+                                                       const double& in_GG_ex_,
+                                                       const double& in_GG_){
+    char *fname=nullptr;
+    fname = new char[120];
+    if(simdata_->Sim_mode=="CFL_const"
+            || simdata_->Sim_mode =="error_analysis_CFL"
+            || simdata_->Sim_mode =="test"
+            || simdata_->Sim_mode =="normal")
+        sprintf(fname,"%stime_data/wave_energy_N%d_CFL%1.4f_Beta%1.2f_Eps%1.2f.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,CFL
+                ,simdata_->upwind_param_
+                ,eta_penalty);
+    else if(simdata_->Sim_mode=="dt_const"
+            || simdata_->Sim_mode=="error_analysis_dt" )
+        sprintf(fname,"%stime_data/wave_energy_N%d_dt%1.3e_Beta%1.2f_Eps%1.2f.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,time_step
+                ,simdata_->upwind_param_
+                ,eta_penalty);
+
+    FILE* sol_out=nullptr;
+
+    if(phy_time==0 && simdata_->restart_flag==1)
+        sol_out=fopen(fname,"at+");
+    else if(phy_time==0 && simdata_->restart_flag==0)
+        sol_out=fopen(fname,"w");
+    else
+        sol_out=fopen(fname,"at+");
+
+    fprintf(sol_out, "%1.10f %1.10e %1.5f %1.5f\n",phy_time,in_E_,in_GG_,Peclet_no);
+
+    fclose(sol_out);
+    emptyarray(fname);
     return;
 }
 
@@ -1785,7 +1868,10 @@ double DGSolverAdvecDiffus::compute_totalVariation(){
     return TV_;
 }
 
-
+double DGSolverAdvecDiffus::compute_Peclet_no(){
+//   the 0.5 is to return it to u_rms_
+    return (0.5*wave_energy_ * grid_->dx /simdata_->thermal_diffus);
+}
 
 
 

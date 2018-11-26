@@ -32,6 +32,7 @@ void SimData::Parse(const std::string &fname){
     a_wave_ = gp_input("wave/wave_speed",1.0);
     wave_form_ = gp_input("wave/wave_form",0);
     // ./trigonometric:
+    trig_wave_type_ = gp_input("wave/trigonometric/wave_type","sin");
     wave_freq_ = gp_input("wave/trigonometric/wave_freq",2.0);
     wave_amp_  = gp_input("wave/trigonometric/wave_amplitude",1.0);
     wave_const = gp_input("wave/trigonometric/wave_const",0.0);
@@ -292,8 +293,8 @@ void SimData::dump_python_inputfile(){
     fprintf(python_out,"Eqn_set:%s\n",eqn_set.c_str());
     fprintf(python_out,"Eqn_type:%s\n",eqn_type_.c_str());
 
-    if(wave_form_==0) fprintf(python_out,"wave_form:%s\n",(char*)"sine_wave");
-    else if(wave_form_==1) fprintf(python_out,"wave_form:%s\n",(char*)"Gaussian_wave");
+    if(wave_form_==0) fprintf(python_out,"wave_form:%s\n",(char*)"Trigonometric");
+    else if(wave_form_==1) fprintf(python_out,"wave_form:%s\n",(char*)"Gaussian");
     else if(wave_form_==2) fprintf(python_out,"wave_form:%s\n",(char*)"InViscid_Burgers");
     else if(wave_form_==3) fprintf(python_out,"wave_form:%s\n",(char*)"Decaying_Burgers_turb");
 

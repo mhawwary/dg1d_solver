@@ -259,6 +259,8 @@ void DGSolverAdvec::InitSol(){
     CalcTimeStep(); // based on maximum eigenvalues
     quad_temp_.Reset_quad();
 
+    init_wave_E_ = Compute_waveEnergy(Qn);  // initial wave energy of the projected solution
+
     return;
 }
 

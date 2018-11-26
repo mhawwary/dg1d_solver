@@ -31,6 +31,7 @@ public:
    virtual double L2_error_nodal_gausspts();
    virtual double L1_error_nodal_gausspts_proj();
    virtual double L2_error_nodal_gausspts_proj();
+   virtual double Compute_waveEnergy(double **in_Qn_);
 
    virtual void print_cont_vertex_sol();
    virtual void print_average_sol();
@@ -41,6 +42,10 @@ public:
    virtual void dump_discont_sol();
    virtual void dump_timeaccurate_sol();
    virtual void dump_timeaccurate_errors();
+   virtual void dump_timeaccurate_waveenergy(const double& in_E_ex_,
+                                             const double& in_E_,
+                                             const double& in_GG_ex_,
+                                             const double& in_GG_);
 
    virtual void UpdateResidOneCell(const int& cellid, double* q_
                            , double* resid_);
@@ -80,11 +85,16 @@ protected:
                                  , const int& basis_k_);
    double eval_local_du_fluxproj_exact(const int eID, const double* q_
                                  , const int& basis_k_);
-   double Compute_common_sol_jump(const double& ul_, const double& ur_);
+   double Compute_common_sol_jump(const double ul_, const double ur_);
+   double L1_norm_modal(double **Qn_, const int in_Nelem_
+                        , const int in_ndof_);
+   double L2_norm_modal(double **Qn_, const int in_Nelem_
+                        , const int in_ndof_);
 
-   //double Compute_localEnergy_perCell(const int& eID);
-   double Compute_waveEnergy();
-   double Compute_ExactwaveEnergy();
+   double L1_error_modal(){}
+   double L2_error_modal();
+
+   void dump_gaussian_coeffs();
 
    void Reset_solver();
 
@@ -93,7 +103,8 @@ protected:
    double *u_sol_jump=nullptr;
    double C_lift=1.0;    // C lifting term multiplier for LDG, BR1, BR2/SIP
    double C1_lift=1.0;   // C1 lifting term multiplier for BR1
-   double E_init_=0.0;
+   double L1norm_modal_init_=0.0;
+   double L2norm_modal_init_=0.0;
 
    double eta_penalty=1.0;  // penalty parameter
    GaussQuad quad_viscF_;

@@ -31,6 +31,7 @@ public:
    virtual double L2_error_nodal_gausspts();
    virtual double L1_error_nodal_gausspts_proj();
    virtual double L2_error_nodal_gausspts_proj();
+   virtual double Compute_waveEnergy(double **in_Qn_){}
    double L1_error_nodal_cont_sol();
    double L2_error_nodal_cont_sol();
 
@@ -43,6 +44,10 @@ public:
    virtual void dump_discont_sol();
    virtual void dump_timeaccurate_sol();
    virtual void dump_timeaccurate_errors();
+   virtual void dump_timeaccurate_waveenergy(const double& in_E_ex_,
+                                             const double& in_E_,
+                                             const double& in_GG_ex_,
+                                             const double& in_GG_){}
 
    virtual void UpdateResidOneCell(const int& cellid, double* q_
                            , double* resid_);
