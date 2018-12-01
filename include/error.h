@@ -50,6 +50,8 @@
 
 #define _print(s) printf("\n---%s\n",s);
 
+#define _print_log(s) printf("%s ..............\n",s);
+
 
 
 

@@ -65,10 +65,12 @@ void InitSim(const int& argc,char** argv){
             simdata_.prepare_dump_burgers_turb_param();
     }
 
+    _print_log("Init grid");
     meshdata_.set_grid_param(simdata_);
     meshdata_.generate_grid();
 
     // Allocating Solvers:
+    _print_log("Init space solvers")
     if(simdata_.eqn_set=="Advection")
         dg_solver_ = new DGSolverAdvec;
     else if(simdata_.eqn_set=="Diffusion")
@@ -78,6 +80,7 @@ void InitSim(const int& argc,char** argv){
     else
         _notImplemented("Equation set");
 
+    _print_log("Init time solvers")
     time_solver_ = new ExplicitTimeSolver;
     dg_solver_->setup_solver(meshdata_,simdata_);
     dg_solver_->InitSol();
@@ -249,11 +252,11 @@ void logo(){
 
     cout<<"_________________________________________________________________________________________"<<endl;
     cout<<"                                                                                         "<<endl;
-    cout<<"                 "<<"  Welcome to the Discontinuous Galerkin solver   "<<"               "<<endl;
-    cout<<"                   "<<"  for 1D wave and scalar conservation laws   "<<"                      "<<endl;
+    cout<<"                "<<"  Welcome to the Discontinuous Galerkin solver   "<<"                "<<endl;
+    cout<<"                "<<"  for 1D wave/heat and scalar conservation laws  "<<"                "<<endl;
     cout<<"                                                                                         "<<endl;
     cout<<"       Author:               Mohammad Alhawwary, PhD. Student                            "<<endl;
-    cout<<"       Affiliation:  Aerospace Engineering Department, University of Kansas, USA             "<< endl;
+    cout<<"       Affiliation:  Aerospace Engineering Department, University of Kansas, USA         "<< endl;
     cout<<"_______________________________________04/05/2017________________________________________"<<endl;
 
     return;
