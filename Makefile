@@ -6,6 +6,14 @@ TECIO	= NO
 CODE	= RELEASE
 OPENMP	= NO
 
+ifeq ($(CODE),RELEASE)
+     bin_name = DG1DFlow.exe
+endif
+
+ifeq ($(CODE),DEBUG)
+    bin_name = DG1DFlow_debug.exe
+endif
+
 # Specifing Standard Variables:
 CXX	= g++ -std=gnu++11 #-pedantic-errors # c++ gcc compiler
 CXXFLAGS=       # C++ compiler flags
@@ -54,6 +62,7 @@ endif
 SRC	= src/
 OBJ	= obj/
 BIN	= bin/
+DEBUG_dir = debug/
 INC	= include/
 
 vpath %.cpp src include
@@ -75,11 +84,16 @@ default: all
 help:	
 	@echo 'help'
 
-all: DG1DFlow.exe
+all: $(bin_name)
 
-DG1DFlow.exe: $(OBJS)
+ifeq ($(CODE),DEBUG)
+    $(bin_name): $(OBJS) 
+	$(CXX) $(OPTS) -o $(DEBUG_dir)$@ $+
+endif
+ifeq ($(CODE),RELEASE)
+    $(bin_name): $(OBJS) 
 	$(CXX) $(OPTS) -o $(BIN)$@ $+
-
+endif
 
 $(OBJ)%.o : %.cpp 
 	$(CXX) $(OPTS) -c -o $@ $<
@@ -95,6 +109,10 @@ $(OBJ)Faddeeva.o: Faddeeva.hpp Faddeeva.cpp
 
 clean:
 	rm -f ./$(OBJ)*.o ./$(BIN)*.exe  
+	@echo  removing all object and executable files
+
+clean_debug:
+	rm -f ./$(OBJ)*.o ./$(DEBUG_dir)*.exe  
 	@echo  removing all object and executable files
 
 clean_temp:
