@@ -87,6 +87,8 @@ void DGSolverDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
     }else if(simdata_->diffus_scheme_type_=="LDG"){
         C_lift = 2.0 * C_lift + eta_penalty;
         C1_lift=0.0;
+    }else if(simdata_->diffus_scheme_type_=="CGR"){
+        load_cgr_scheme_matrices();
     }
 
     SetPhyTime(simdata_->t_init_);
@@ -105,9 +107,7 @@ void DGSolverDiffus::setup_solver(GridData& meshdata_, SimData& osimdata_){
 }
 
 void DGSolverDiffus::setup_basis_interpolation_matrices(){
-
     int k;
-
     for(k=0; k<Ndof; k++){
         Lk[k][0] = eval_basis_poly(-1,k);
         Lk[k][1] = eval_basis_poly(1,k);
@@ -141,6 +141,58 @@ void DGSolverDiffus::Reset_solver(){
     return;
 }
 
+void DGSolverDiffus::load_cgr_scheme_matrices(){
+
+    _print_log("loading CGR matrices");
+
+    std::string scheme_name_;
+    std::ostringstream oss;
+    oss<<"CGR_chi"<<std::fixed<<std::setprecision(2)<<eta_penalty
+          <<"_p"<<Ndof-1;
+    scheme_name_ = oss.str();
+
+    std::string fname_;
+    fname_ = "./schemes_data/CGR_michigan/"+scheme_name_+".bn";
+    std::ifstream sol_reader_;
+    sol_reader_.open(fname_.c_str(),std::ios::in | std::ios::binary);
+
+    // first: reading the matrix size & allocating
+    int nrow_o,ncol_o;
+    std::vector<std::vector<long double>> Ktemp_;
+    sol_reader_.read((char*) &nrow_o,sizeof(int));
+    sol_reader_.read((char*) &ncol_o,sizeof(int));
+    Ktemp_.resize(nrow_o);
+    Km1_s.resize(nrow_o);
+    K0_s.resize(nrow_o);
+    Kp1_s.resize(nrow_o);
+
+    // second: reading the matrices by row:
+    for(int i=0; i<nrow_o; i++){
+        Ktemp_[i].resize(ncol_o);
+        Km1_s[i].resize(ncol_o);
+        sol_reader_.read((char*) &Ktemp_[i][0], ncol_o*sizeof(long double));
+        for(int j=0; j<ncol_o; j++)
+            Km1_s[i][j]=static_cast<double>(Ktemp_[i][j]);
+    }
+    for(int i=0; i<nrow_o; i++){
+        Ktemp_[i].resize(ncol_o);
+        K0_s[i].resize(ncol_o);
+        sol_reader_.read((char*) &Ktemp_[i][0], ncol_o*sizeof(long double));
+        for(int j=0; j<ncol_o; j++)
+            K0_s[i][j]=static_cast<double>(Ktemp_[i][j]);
+    }
+    for(int i=0; i<nrow_o; i++){
+        Ktemp_[i].resize(ncol_o);
+        Kp1_s[i].resize(ncol_o);
+        sol_reader_.read((char*) &Ktemp_[i][0], ncol_o*sizeof(long double));
+        for(int j=0; j<ncol_o; j++)
+            Kp1_s[i][j]=static_cast<double>(Ktemp_[i][j]);
+    }
+    sol_reader_.close();
+
+
+    return;
+}
 
 // Solver functions
 //-------------------------------------------
@@ -223,7 +275,7 @@ void DGSolverDiffus::CalcTimeStep(){
     }
 
     // Screen Output of input and simulation parameters:
-    cout <<"\n===============================================\n";
+    cout <<"===============================================\n";
     //cout << "max eigenvalue : "<<max_eigen_advec<<endl;
     //cout << "TotalVariation : "<<TV_<<endl;
     cout << "Wave length    : "<< wave_length_<<endl;
@@ -318,6 +370,19 @@ double DGSolverDiffus::ExactSol_legendre_proj(const int &eID,
 
 void DGSolverDiffus::UpdateResid(double **Resid_, double **Qn_){
 
+    if(simdata_->diffus_scheme_type_=="CGR"){
+        // left most cell, periodic B.C.:
+        UpdateResidOneCell_cgr(0,&Qn_[grid_->Nelem-1][0]
+                              ,&Qn_[0][0],&Qn_[1][0],&Resid_[0][0]);
+        // right most cell, periodic B.C.:
+        UpdateResidOneCell_cgr(grid_->Nelem-1,&Qn_[grid_->Nelem-2][0]
+                              ,&Qn_[grid_->Nelem-1][0],&Qn_[0][0],&Resid_[grid_->Nelem-1][0]);
+        // interior cells:
+        for(register int j=1; j<grid_->Nelem-1; j++)
+            UpdateResidOneCell_cgr(j,&Qn_[j-1][0],&Qn_[j][0],&Qn_[j+1][0],&Resid_[j][0]);
+        return;
+    }
+
     register int j;
     double dQl=0.0,dQr=0.0, Ql=0.0, Qr=0.0;
 
@@ -358,7 +423,7 @@ void DGSolverDiffus::UpdateResid(double **Resid_, double **Qn_){
     return;
 }
 
-void DGSolverDiffus::UpdateResidOneCell(const int &cellid, double *q_, double *resid_){
+void DGSolverDiffus::UpdateResidOneCell(const int &cellid,double *q_, double *resid_){
 
     // General parameters:
     unsigned int j=cellid;
@@ -423,6 +488,38 @@ void DGSolverDiffus::UpdateResidOneCell(const int &cellid, double *q_, double *r
             term5 = - 0.5 * fact_ * ( (u_jump_jp12 * dLk_p1) + (u_jump_jm12 * dLk_m1) );
 
         resid_[k] = fact_ * Mkk * simdata_->thermal_diffus * ( term1 + term2 + term3 + term4 + term5) ;
+    }
+
+    return;
+}
+
+
+void DGSolverDiffus::UpdateResidOneCell_cgr(const int &eID_,const double *qm1_,const double *q0_
+                                            ,const double *qp1_,double *resid_){
+
+    double h0_inv,hm1_inv,hp1_inv;
+    if(eID_==0) //periodic B.C.
+        hm1_inv=1./(grid_->h_j[grid_->Nelem-1]*grid_->h_j[grid_->Nelem-1]);
+    else
+        hm1_inv = 1./(grid_->h_j[eID_-1]*grid_->h_j[eID_-1]);
+
+    h0_inv  = 1./(grid_->h_j[eID_]*grid_->h_j[eID_]);
+
+    if(eID_==grid_->Nelem-1) //periodic B.C.
+        hp1_inv=1./(grid_->h_j[0]*grid_->h_j[0]);
+    else
+        hp1_inv = 1./(grid_->h_j[eID_+1]*grid_->h_j[eID_+1]);
+
+
+    double temp_m1,temp_0,temp_p1;
+    for(int k=0; k<Ndof; k++){
+        temp_m1=0.; temp_0=0.; temp_p1=0.;
+        for(int j=0; j<Ndof; j++){
+            temp_m1+= Km1_s[k][j]*qm1_[j];
+            temp_0+= K0_s[k][j]*q0_[j];
+            temp_p1+= Kp1_s[k][j]*qp1_[j];
+        }
+        resid_[k]=simdata_->thermal_diffus*(temp_m1*hm1_inv,temp_0*h0_inv+temp_p1*hp1_inv);
     }
 
     return;

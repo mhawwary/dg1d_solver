@@ -16,7 +16,6 @@ ExplicitTimeSolver *time_solver_;
 void InitSim(const int& argc, char** argv);
 void RunSim();
 void PostProcess();
-//void Dump_errors_vs_time();
 void logo();
 
 int main(int argc, char** argv){
@@ -36,16 +35,10 @@ int main(int argc, char** argv){
 
     RunSim();
 
-    //    if(simdata_.wave_form_!=3){
-    //        PostProcess();
-    //    }else{
-    //        printf("\nFinal Iteration number is: %d\n",time_solver_->GetIter());
-    //        printf("Final time is: %1.5f\n",dg_solver_->GetPhyTime());
-    //    }
-
     clock_t t_end=clock();
 
-    cout << "\n\nElapsed Time: " << 1.0*(t_end-t_start)/CLOCKS_PER_SEC
+    _print_log("\n\nEnd simulation");
+    cout << "Elapsed Time: " << 1.0*(t_end-t_start)/CLOCKS_PER_SEC
          << " seconds\n" <<endl;
 
     emptypointer(dg_solver_);
@@ -70,7 +63,7 @@ void InitSim(const int& argc,char** argv){
     meshdata_.generate_grid();
 
     // Allocating Solvers:
-    _print_log("Init space solvers")
+    _print_log("Init space solver")
     if(simdata_.eqn_set=="Advection")
         dg_solver_ = new DGSolverAdvec;
     else if(simdata_.eqn_set=="Diffusion")
@@ -80,10 +73,11 @@ void InitSim(const int& argc,char** argv){
     else
         _notImplemented("Equation set");
 
-    _print_log("Init time solvers")
-    time_solver_ = new ExplicitTimeSolver;
     dg_solver_->setup_solver(meshdata_,simdata_);
     dg_solver_->InitSol();
+
+    _print_log("Init time solver")
+    time_solver_ = new ExplicitTimeSolver;
     time_solver_->setupTimeSolver(dg_solver_,&simdata_);
     simdata_.dump_python_inputfile();
 
@@ -133,10 +127,10 @@ void RunSim(){
         FatalError_exit("unsteady data print flag error");
     }
 
-    printf("\nnIter to print unsteady data: %d, dt_last: %1.5e"
+    printf("N_iter to print unsteady data: %d, dt_last: %1.5e\n"
            ,n_iter_print, dt_last_print);
 
-    printf("\nIter No:%d, time: %1.5f",time_solver_->GetIter()
+    printf("Iter No:%d, time: %1.5f",time_solver_->GetIter()
            ,dg_solver_->GetPhyTime());
     // Dump initial data:
     dg_solver_->dump_timeaccurate_sol();
@@ -144,6 +138,7 @@ void RunSim(){
     //===========================
     // Solve First Iteration
     //===========================
+    _print_log("\nComputing initial residual & solve one step");
     time_solver_->ComputeInitialResid(dg_solver_->GetNumSolution());
     time_solver_->SolveOneStep(dg_solver_->GetNumSolution());
     time_solver_->space_solver->UpdatePhyTime(dt_);
@@ -160,6 +155,7 @@ void RunSim(){
     //======================================================================
     //                        Main Solution Loop
     //======================================================================
+    _print_log("\nBegin main solution loop (time advance)");
     if(simdata_.unsteady_data_print_flag_==0
             || simdata_.unsteady_data_print_flag_==1){
         while ( gtime < (simdata_.t_end_-(1+1e-5)*(dt_+1e-10))){

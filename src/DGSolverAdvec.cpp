@@ -199,7 +199,7 @@ void DGSolverAdvec::CalcTimeStep(){
     }
 
     // Screen Output of input and simulation parameters:
-    cout <<"\n===============================================\n";
+    cout <<"===============================================\n";
     cout << "max eigenvalue : "<<max_eigen_advec<<endl;
     cout << "TotalVariation : "<<TV_<<endl;
     cout << "CFL no.        : "<<CFL<<endl;

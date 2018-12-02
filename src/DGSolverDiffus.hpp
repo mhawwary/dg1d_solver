@@ -75,7 +75,7 @@ public:
                                                 const GaussQuad &quad_){}
    virtual void Compute_TimeAccurate_exact_sol(){}
 
-protected:
+private:
    double eval_basis_poly_derivative(const double& xi_pt, const int& basis_k_);
    double eval_local_du(const int eID, const double* q_, const double& xi_pt);
    double eval_local_du_fast(const int eID, const double* q_
@@ -86,6 +86,12 @@ protected:
    double eval_local_du_fluxproj_exact(const int eID, const double* q_
                                  , const int& basis_k_);
    double Compute_common_sol_jump(const double ul_, const double ur_);
+
+   // CGR related functions:
+   void load_cgr_scheme_matrices();
+   void UpdateResidOneCell_cgr(const int &eID_,const double *qm1_,const double *q0_
+                               ,const double *qp1_,double *resid_);
+
    double L1_norm_modal(double **Qn_, const int in_Nelem_
                         , const int in_ndof_);
    double L2_norm_modal(double **Qn_, const int in_Nelem_
@@ -111,6 +117,14 @@ protected:
    int Nquad_viscFlux_=1;
 
    double **dLk=nullptr; //Derivatives of legendre polynomials at(-1), (1)
+
+   typedef std::vector<double> vector;
+   typedef std::vector<std::vector<double>> matrix;
+   typedef std::vector<int> ivector;
+   typedef std::vector<std::vector<int>> imatrix;
+
+   matrix K0_s,Km1_s,Kp1_s;
+
 
 };
 
