@@ -151,6 +151,8 @@ void DGSolverDiffus::load_cgr_scheme_matrices(){
           <<"_p"<<Ndof-1;
     scheme_name_ = oss.str();
 
+    printf("cgr data fname:%s\n",scheme_name_.c_str());
+
     std::string fname_;
     fname_ = "./schemes_data/CGR_michigan/"+scheme_name_+".bn";
     std::ifstream sol_reader_;
@@ -381,46 +383,47 @@ void DGSolverDiffus::UpdateResid(double **Resid_, double **Qn_){
         for(register int j=1; j<grid_->Nelem-1; j++)
             UpdateResidOneCell_cgr(j,&Qn_[j-1][0],&Qn_[j][0],&Qn_[j+1][0],&Resid_[j][0]);
         return;
-    }
+    }else{
 
-    register int j;
-    double dQl=0.0,dQr=0.0, Ql=0.0, Qr=0.0;
+        register int j;
+        double dQl=0.0,dQr=0.0, Ql=0.0, Qr=0.0;
 
-    // Face loop to calculate the common interface fluxes:
-    //----------------------------------------------------
-    // fixme: Left and right boundary fluxes :
-    j=0.0;
-    Ql = evalSolution(&Qn_[grid_->Nelem-1][0], 1);
-    Qr = evalSolution(&Qn_[j][0], 0);
-    dQl = eval_local_du_fast(grid_->Nelem-1, &Qn_[grid_->Nelem-1][0], 1);
-    dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
-    // Viscous Common Flux:
-    int Nghost_l=1; // Needed for BR1 non-compactness
-    flux_com[j] = Compute_common_du_flux(dQl,dQr);
-    u_sol_jump[j+Nghost_l] = Compute_common_sol_jump(Ql,Qr);
-    flux_com[grid_->Nfaces-1] = flux_com[j];
-    u_sol_jump[grid_->Nfaces-1+Nghost_l] = u_sol_jump[j+Nghost_l];
-
-    // Interior Faces
-    for(j=1; j<grid_->Nfaces-1; j++){
-        Ql = evalSolution(&Qn_[j-1][0], 1);
+        // Face loop to calculate the common interface fluxes:
+        //----------------------------------------------------
+        // fixme: Left and right boundary fluxes :
+        j=0.0;
+        Ql = evalSolution(&Qn_[grid_->Nelem-1][0], 1);
         Qr = evalSolution(&Qn_[j][0], 0);
-        dQl = eval_local_du_fast(j-1, &Qn_[j-1][0], 1);
+        dQl = eval_local_du_fast(grid_->Nelem-1, &Qn_[grid_->Nelem-1][0], 1);
         dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
         // Viscous Common Flux:
+        int Nghost_l=1; // Needed for BR1 non-compactness
         flux_com[j] = Compute_common_du_flux(dQl,dQr);
         u_sol_jump[j+Nghost_l] = Compute_common_sol_jump(Ql,Qr);
-    }
-    // Updating the additional jump values for BR1:
-    u_sol_jump[0] = u_sol_jump[grid_->Nfaces-2+Nghost_l]; // for left Boundary
-    u_sol_jump[grid_->Nfaces+Nghost_l] = u_sol_jump[1+Nghost_l]; // for right Boundary
-    // Element loop to calculate and update the residual:
-    //----------------------------------------------------
-    for(j=0; j<grid_->Nelem; j++){
-        UpdateResidOneCell(j, &Qn_[j][0], &Resid_[j][0]);
-    }
+        flux_com[grid_->Nfaces-1] = flux_com[j];
+        u_sol_jump[grid_->Nfaces-1+Nghost_l] = u_sol_jump[j+Nghost_l];
 
-    return;
+        // Interior Faces
+        for(j=1; j<grid_->Nfaces-1; j++){
+            Ql = evalSolution(&Qn_[j-1][0], 1);
+            Qr = evalSolution(&Qn_[j][0], 0);
+            dQl = eval_local_du_fast(j-1, &Qn_[j-1][0], 1);
+            dQr = eval_local_du_fast(j, &Qn_[j][0], 0);
+            // Viscous Common Flux:
+            flux_com[j] = Compute_common_du_flux(dQl,dQr);
+            u_sol_jump[j+Nghost_l] = Compute_common_sol_jump(Ql,Qr);
+        }
+        // Updating the additional jump values for BR1:
+        u_sol_jump[0] = u_sol_jump[grid_->Nfaces-2+Nghost_l]; // for left Boundary
+        u_sol_jump[grid_->Nfaces+Nghost_l] = u_sol_jump[1+Nghost_l]; // for right Boundary
+        // Element loop to calculate and update the residual:
+        //----------------------------------------------------
+        for(j=0; j<grid_->Nelem; j++){
+            UpdateResidOneCell(j, &Qn_[j][0], &Resid_[j][0]);
+        }
+
+        return;
+    }
 }
 
 void DGSolverDiffus::UpdateResidOneCell(const int &cellid,double *q_, double *resid_){
@@ -516,7 +519,7 @@ void DGSolverDiffus::UpdateResidOneCell_cgr(const int &eID_,const double *qm1_,c
         temp_m1=0.; temp_0=0.; temp_p1=0.;
         for(int j=0; j<Ndof; j++){
             temp_m1+= Km1_s[k][j]*qm1_[j];
-            temp_0+= K0_s[k][j]*q0_[j];
+            temp_0 += K0_s [k][j]*q0_[j];
             temp_p1+= Kp1_s[k][j]*qp1_[j];
         }
         resid_[k]=simdata_->thermal_diffus*(temp_m1*hm1_inv,temp_0*h0_inv+temp_p1*hp1_inv);
@@ -1310,16 +1313,18 @@ void DGSolverDiffus::dump_timeaccurate_errors(){
     double L2_nodal_sol_ = L2_error_nodal_gausspts_proj();
     //double L1_nodal_sol_ = L1_error_nodal_cont_sol(); //for testing computing at the same nodes as FD
     //double L2_nodal_sol_ = L2_error_nodal_cont_sol(); // but need to make N_exact = N_uniform in griddata
+    double L1_aver_sol_ = L1_error_average_sol();
+    double L2_aver_sol_ = L2_error_average_sol();
 
     fprintf(solerror_out, "%1.10f %2.10e %2.10e %2.10e %2.10e\n"
             ,phy_time,L1_proj_sol_, L2_proj_sol_
-            , L1_nodal_sol_, L2_nodal_sol_);
+            , L1_aver_sol_, L2_aver_sol_);
 
     fclose(solerror_out);
     emptyarray(fname);
 
-    printf("  L1_proj_sol:%2.5e  L2_proj_sol:%2.5e  L1_nodal:%2.5e L2_nodal:%2.5e E_ex:%1.5f E_num:%1.5f G_ex:%1.5f G_num:%1.5f"
-           ,L1_proj_sol_, L2_proj_sol_, L1_nodal_sol_, L2_nodal_sol_
+    printf("  L1_proj_sol:%2.5e  L2_proj_sol:%2.5e  L1_aver:%2.5e L2_aver:%2.5e E_ex:%1.5f E_num:%1.5f G_ex:%1.5f G_num:%1.5f"
+           ,L1_proj_sol_, L2_proj_sol_, L1_aver_sol_, L2_aver_sol_
            ,wave_exact_energy_,wave_energy_,GG_ex_,GG_);
     dump_timeaccurate_waveenergy(wave_exact_energy_,wave_energy_,GG_ex_,GG_);
 
