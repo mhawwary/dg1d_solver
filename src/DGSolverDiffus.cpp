@@ -151,6 +151,8 @@ void DGSolverDiffus::load_cgr_scheme_matrices(){
           <<"_p"<<Ndof-1;
     scheme_name_ = oss.str();
 
+    printf("cgr data fname:%s\n",scheme_name_.c_str());
+
     std::string fname_;
     fname_ = "./schemes_data/CGR_michigan/"+scheme_name_+".bn";
     std::ifstream sol_reader_;
