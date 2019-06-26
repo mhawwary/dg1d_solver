@@ -213,9 +213,9 @@ void SimData::setup_output_directory(){
     char *main_dir=nullptr;
     main_dir = new char[25];
 
-    if(case_title_mode_==1){
+    if(case_title_mode_==0){
         sprintf(main_dir,".");
-    }else if(case_title_mode_==0){
+    }else if(case_title_mode_==1){
         if(eqn_set=="Advection"){
             sprintf(main_dir,"./Results");
         }else if (eqn_set=="Diffusion"){
