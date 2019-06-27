@@ -4,28 +4,32 @@ void SimData::Parse(const std::string &fname){
 
     GetPot gp_input(fname.c_str());
 
+    input_fname=fname;
+
     // Case parameters:
     //-----------------------------
-    case_title = gp_input("Case/title","test");
-    case_title_mode_ = gp_input("Case/title_mode",0);
+    case_title = gp_input("Case/title",".",false);
+    case_title_mode_ = gp_input("Case/title_mode",0,false);
     Nelem_ = gp_input("Case/num_elements",1);
     x0_ = gp_input("Case/x_begin",0.0);
     xf_ = gp_input("Case/x_end",1.0);
-    uniform_ = gp_input("Case/uniform_grid",1);
-    refine_level_ = gp_input("Case/refinement_level",0);
-    N_exact_plot_pts = gp_input("Case/N_exact_plot_pts",100);
-    N_uniform_pts_per_elem_ = gp_input("Case/N_uniform_pts_per_elem",2);
+    uniform_ = gp_input("Case/uniform_grid",1,false);
+    refine_level_ = gp_input("Case/refinement_level",0,false);
+    N_exact_plot_pts = gp_input("Case/N_exact_plot_pts",100,false);
+    N_uniform_pts_per_elem_ = gp_input("Case/N_uniform_pts_per_elem",2,false);
     Npplot = N_uniform_pts_per_elem_;
 
     // Simulation parameters:
     //-----------------------------
-    unsteady_data_print_flag_=gp_input("Simulation/unsteady_data_print_flag",0);
-    unsteady_data_print_iter_=gp_input("Simulation/unsteady_data_print_iter",0);
-    unsteady_data_print_time_=gp_input("Simulation/unsteady_data_print_time",1.0);
-    restart_iter_ = gp_input("Simulation/restart_iter",0);
-    restart_flag = gp_input("Simulation/restart_flag",0);
-    Sim_mode = gp_input("Simulation/mode","normal");
-    case_no_ = gp_input("Simulation/case_no","00");
+    unsteady_data_print_flag_=gp_input("Simulation/unsteady_data_print_flag",0,false);
+    if(unsteady_data_print_flag_==0)
+      unsteady_data_print_iter_=gp_input("Simulation/unsteady_data_print_iter",1,false);
+    else if(unsteady_data_print_flag_==1)
+      unsteady_data_print_time_=gp_input("Simulation/unsteady_data_print_time",1.0,false);
+    restart_iter_ = gp_input("Simulation/restart_iter",0,false);
+    restart_flag = gp_input("Simulation/restart_flag",0,false);
+    Sim_mode = gp_input("Simulation/mode","normal",false);
+    case_no_ = gp_input("Simulation/case_no","00",false);
 
     // Wave parameters:
     //----------------------------
@@ -43,55 +47,58 @@ void SimData::Parse(const std::string &fname){
     // ./Burger_turb:
     if(wave_form_==3){  // Burger's Turbulence
         turb_prob_type_
-                = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_Adams");
-        max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024);
-        max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10.0);
-        spectrum_restart_flag = gp_input("wave/Burger_turb/spectrum_restart_flag",0);
-        velocity_mean_ = gp_input("wave/Burger_turb/velocity_mean",0.0);
+                = gp_input("wave/Burger_turb/turb_prob_type","Decay_turb_omerSan",false);
+        max_wave_no_ = gp_input("wave/Burger_turb/max_wave_no",1024,false);
+        max_energy_wave_no_ = gp_input("wave/Burger_turb/ko",10.0,false);
+        spectrum_restart_flag = gp_input("wave/Burger_turb/spectrum_restart_flag",0,false);
+        velocity_mean_ = gp_input("wave/Burger_turb/velocity_mean",0.0,false);
     }
 
     // Space Solver parameters:
     //-----------------------------
     eqn_set = gp_input("space_solver/eqn_set","Advection");
-    eqn_type_ = gp_input("space_solver/eqn_type","linear_advec");
     if(eqn_set=="Advection"){
+      eqn_type_ = gp_input("space_solver/eqn_type","linear_advec",false);
         if(eqn_type_!="linear_advec"
                 && eqn_type_!="inv_burger")
-            FatalError_exit("eqn type is not compatible");
+            FatalError_exit("space_solver/eqn_type is not correct, use either linear_advec or inv_burger");
     }else if(eqn_set=="Diffusion"){
+      eqn_type_ = gp_input("space_solver/eqn_type","linear_diffus",false);
         if(eqn_type_!="linear_diffus")
-            FatalError_exit("eqn type is not compatible");
+            FatalError_exit("space_solver/eqn_type is not correct, use linear_diffus");
     }else if(eqn_set=="Advection_Diffusion"){
+      eqn_type_ = gp_input("space_solver/eqn_type","linear_advec_diffus",false);
         if(eqn_type_!="linear_advec_diffus"
                 && eqn_type_!="visc_burger")
-            FatalError_exit("eqn type is not compatible");
+            FatalError_exit("space_solver/eqn_type is not correct, use either linear_advec_diffus or visc_burger");
     }else{
-        FatalError_exit("eqn set is not implemented");
+        FatalError_exit("space_solver/eqn_set is not implemented");
     }
-    poly_order_=gp_input("space_solver/polynomial_order",1);
+    poly_order_=gp_input("space_solver/polynomial_order",1,false);
     // ./advec_eqn:
-    upwind_param_=gp_input("space_solver/advec_eqn/upwind_param",1.0);
+    upwind_param_=gp_input("space_solver/advec_eqn/upwind_param",1.0,false);
     // ./heat_eqn:
-    thermal_diffus
-            = gp_input("space_solver/heat_eqn/thermal_diffusivity",1.0);
-    penalty_param_
-            = gp_input("space_solver/heat_eqn/penalty_param",1.0);
-    diffus_scheme_type_ =
-            gp_input("space_solver/heat_eqn/diffus_scheme_type","SIP");
+    if(eqn_set=="Diffusion" || eqn_set=="Advection_Diffusion"){
+      thermal_diffus= gp_input("space_solver/heat_eqn/thermal_diffusivity",1.0);
+      penalty_param_
+          = gp_input("space_solver/heat_eqn/penalty_param",1.0,false);
+      diffus_scheme_type_ =
+          gp_input("space_solver/heat_eqn/diffus_scheme_type","SIP",false);
+    }
 
     // Time Solver parameters:
     //--------------------------------
-    calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1);
-    calc_dt_adv_diffus_flag = gp_input("time_solver/calc_dt_adv_diffus_flag",0);
-    CFL_ = gp_input("time_solver/CFL_no",1.0);
-    dt_ = gp_input("time_solver/dt",1e-9);
+    calc_dt_flag = gp_input("time_solver/calculate_dt_flag",1,false);
+    calc_dt_adv_diffus_flag = gp_input("time_solver/calc_dt_adv_diffus_flag",0,false);
+    CFL_ = gp_input("time_solver/CFL_no",0.00001,false);
+    dt_ = gp_input("time_solver/dt",1e-9,false);
     t_init_ = gp_input("time_solver/initial_time",0.0);
     t_end_ = gp_input("time_solver/final_time",1.0);
-    maxIter_ = gp_input("time_solver/maximum_iteration",1e9);
-    end_of_sim_flag_ = gp_input("time_solver/end_of_simulation_flag",0);
-    Nperiods = gp_input("time_solver/no_of_periods",1.0);
+    maxIter_ = gp_input("time_solver/maximum_iteration",1e9,false);
+    end_of_sim_flag_ = gp_input("time_solver/end_of_simulation_flag",0,false);
+    Nperiods = gp_input("time_solver/no_of_periods",1.0,false);
     // ./explicit:
-    RK_order_=gp_input("time_solver/explicit/RK_order",1);
+    RK_order_=gp_input("time_solver/explicit/RK_order",2,false);
 }
 
 void SimData::prepare_dump_burgers_turb_param(){
@@ -184,86 +191,125 @@ void SimData::setup_output_directory(){
     // Setting up some directories:
     //---------------------------------
     allocator<char> allchar; // default allocator for char
-
-    case_postproc_dir =new char[300];
-
-//    char *case_title=nullptr;
-//    case_title=new char[30];
-//    if(wave_form_==0) sprintf(case_title,"sine_wave");
-//    else if(wave_form_==1) sprintf(case_title,"Gaussian_wave");
-//    else if(wave_form_==2) sprintf(case_title,"InViscid_Burgers");
-//    else if(wave_form_==3) sprintf(case_title,"Decaying_Burgers_turb");
-//    else FatalError_exit("Wrong Wave form and not implemented");
-
-    char *case_dir=nullptr;
-    case_dir=new char[70];
-    if(Sim_mode=="normal" || Sim_mode=="CFL_const" || Sim_mode=="dt_const")
-        sprintf(case_dir,"p%dRK%d",poly_order_,RK_order_);
-    else if(Sim_mode=="test")
-        sprintf(case_dir,"p%dRK%d_test",poly_order_,RK_order_);
-    else if(Sim_mode=="error_analysis_CFL"
-            || Sim_mode=="error_analysis_dt"
-            || Sim_mode=="error_analysis_Beta")
-        sprintf(case_dir,"p%dRK%d_error_analysis",poly_order_,RK_order_);
-    else FatalError_exit("Simulation mode is not defined");
-
+    case_postproc_dir =new char[400];
     char *current_working_dir=allchar.allocate(1500);
     getcwd(current_working_dir,1500);
 
-    char *main_dir=nullptr;
-    main_dir = new char[25];
+    if(case_title_mode_==0){      // new way and more general
+      std::string input_dir=GetFileDirectory(input_fname);
 
-    if(case_title_mode_==0){
-        sprintf(main_dir,".");
-    }else if(case_title_mode_==1){
-        if(eqn_set=="Advection"){
-            sprintf(main_dir,"./Results");
-        }else if (eqn_set=="Diffusion"){
-            sprintf(main_dir ,"./Results_diffus");
-        }else if (eqn_set=="Advection_Diffusion"){
-            sprintf(main_dir ,"./Results_AdvecDiffus");
-        }else{
-            FatalError_exit("Equation set when specifying output directory");
-        }
-        mkdir(main_dir,0777);
-        chdir(main_dir);
-        mkdir(case_title.c_str(),0777);
-    }
+      if(wave_form_==3){  // burgers decaying turbulence cases
+        chdir(input_dir.c_str());
+        char *case_no_t = nullptr;
+        case_no_t = new char[25];
+        sprintf(case_no_t,"case%s",case_no_.c_str());
+#ifdef __linux__
+        mkdir(case_no_t,0777);
+#else
+        _mkdir(case_no_t);
+#endif
+        sprintf(case_postproc_dir,"%s%s/",input_dir.c_str(),case_no_t);
+        emptyarray(case_no_t);
+        chdir(current_working_dir);
+        std::string copy_fname=case_postproc_dir;
+        copy_fname+="case_input.in";
+        copyFile(input_fname, copy_fname);
+      }else{
+        sprintf(case_postproc_dir,"%s",input_dir.c_str());
+      }
 
-    chdir(case_title.c_str());
-    mkdir(case_dir,0777);
-    case_postproc_dir = new char[400];
+    }else if(case_title_mode_==1){  // old usage way for fast testing of different cases
+      char *main_dir=nullptr;
+      main_dir = new char[25];
+      char *case_dir=nullptr;
+      case_dir=new char[70];
 
-    if(wave_form_==3){  // burgers decay turb
+      if(eqn_set=="Advection"){
+        sprintf(main_dir,"Results");
+      }else if (eqn_set=="Diffusion"){
+        sprintf(main_dir ,"Results_diffus");
+      }else if (eqn_set=="Advection_Diffusion"){
+        sprintf(main_dir ,"Results_AdvecDiffus");
+      }else{
+        FatalError_exit("Equation set when specifying output directory");
+      }
+
+#ifdef __linux__
+      mkdir(main_dir,0777);
+      chdir(main_dir);
+      mkdir(case_title.c_str(),0777);
+#else
+      _mkdir(main_dir);
+      chdir(main_dir);
+      _mkdir(case_title.c_str());
+#endif
+
+      if(Sim_mode=="normal" || Sim_mode=="CFL_const" || Sim_mode=="dt_const")
+        sprintf(case_dir,"p%dRK%d",poly_order_,RK_order_);
+      else if(Sim_mode=="test")
+        sprintf(case_dir,"p%dRK%d_test",poly_order_,RK_order_);
+      else if(Sim_mode=="error_analysis_CFL"
+              || Sim_mode=="error_analysis_dt"
+              || Sim_mode=="error_analysis_Beta")
+        sprintf(case_dir,"p%dRK%d_error_analysis",poly_order_,RK_order_);
+      else FatalError_exit("Simulation mode is not defined");
+
+      chdir(case_title.c_str());
+#ifdef __linux__
+      mkdir(case_dir,0777);
+#else
+      _mkdir(case_dir);
+#endif
+
+      if(wave_form_==3){  // burgers decaying turbulence cases
         chdir(case_dir);
         char *case_no_t = nullptr;
         case_no_t = new char[100];
         sprintf(case_no_t,"case%s",case_no_.c_str());
+#ifdef __linux__
         mkdir(case_no_t,0777);
+#else
+        _mkdir(case_no_t);
+#endif
         chdir(case_no_t);
         sprintf(case_no_t,"%s/case%s",case_dir,case_no_.c_str());
         sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title.c_str(),case_no_t);
         emptyarray(case_no_t);
-    }else{
+      }else{
         sprintf(case_postproc_dir,"%s/%s/%s/",main_dir,case_title.c_str(),case_dir);
-        chdir(case_dir);
+      }
+
+      emptyarray(case_dir);
+      emptyarray(main_dir);
+
+      chdir(current_working_dir);
+      std::string copy_fname=case_postproc_dir;
+      copy_fname+="case_input.in";
+      copyFile(input_fname, copy_fname);
     }
 
+    chdir(case_postproc_dir);
+
+#ifdef __linux__
     mkdir("./input",0777);
     mkdir("./aver",0777);
     mkdir("./nodal",0777);
     mkdir("./time_data",0777);
     mkdir("./errors",0777);
+#else
+    _mkdir("./input");
+    _mkdir("./aver");
+    _mkdir("./nodal");
+    _mkdir("./time_data");
+    _mkdir("./errors");
+#endif
 
     chdir(current_working_dir);
 
-    cout<<"\n--> Currnet working directory: "<<current_working_dir<<endl;
+    cout<<"\n--> Current working directory: "<<current_working_dir<<endl;
     cout<<"--> Post processing directory: "<<case_postproc_dir<<endl;
 
-    emptyarray(case_dir);
-    emptyarray(main_dir);
     emptyarray(current_working_dir);
-    //emptyarray(case_title);
 
     return;
 }
@@ -274,11 +320,15 @@ void SimData::dump_python_inputfile(){
     fname = new char[100];
 
     //sprintf(fname,"./input/python_input.in");
-    sprintf(fname,"%s/input/python_input.in",case_postproc_dir);
+    sprintf(fname,"%sinput/python_input.in",case_postproc_dir);
 
     FILE* python_out = fopen(fname,"w");
 
-    fprintf(python_out,"dir:%s\n",case_postproc_dir);
+    allocator<char> allchar; // default allocator for char
+    char *current_working_dir=allchar.allocate(1500);
+    getcwd(current_working_dir,1500);
+    fprintf(python_out,"dir:%s/%s\n",current_working_dir,case_postproc_dir);
+    emptyarray(current_working_dir);
     fprintf(python_out,"errors:%s\n",(char*)"errors/errors");
     fprintf(python_out,"aver:%s\n",(char*)"aver/u_aver");
     fprintf(python_out,"cont_exact:%s\n",(char*)"nodal/u_cont_exact");

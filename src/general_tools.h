@@ -1,8 +1,9 @@
 #pragma once
 
 #include <iostream>
-#include <random>
 #include <fstream>
+#include <sstream>
+#include <random>
 #include <cmath>
 #include <new>
 #include <iomanip>
@@ -10,11 +11,10 @@
 //#include <limits>
 #include <cfloat>
 #ifdef _WIN32
- #include <direct.h>       // those are for mkdir and chdir and other directory and filesystem commands
-#elif defined __linux__
- #include <sys/types.h>    // those are for mkdir and chdir and other directory and filesystem commands
- #include <sys/stat.h>     // those are for mkdir and chdir and other directory and filesystem commands
+ #include <direct.h>
 #endif
+#include <sys/types.h>    // those are for mkdir and chdir and other directory and filesystem commands
+#include <sys/stat.h>     // those are for mkdir and chdir and other directory and filesystem commands
 
 #include<chrono>
 
@@ -39,6 +39,23 @@
 
 using namespace std;
 
+
+void QuickSort(double*& szArray,double*& ssArray , int nLower, int nUpper);
+int Partition(double*& szArray, double*& ssArray,int nLower, int nUpper);
+
+void QuickSort3(double*& mainArray,double*& A1 , int*& A2 , int nLower, int nUpper);
+int Partition3(double*& mainArray,double*& A1 , int*& A2, int nLower, int nUpper);
+
+void open_inputfile_forreading(std::string& o_readfname_, std::ifstream& o_input_);
+std::string remove_extension(const std::string& filename);
+std::string remove_from_end_up_to_string(const std::string field,const std::string& filename);
+std::string GetFileExtension(const std::string& FileName);
+std::string GetFileDirectory(const std::string& FileName);
+void line2intdata(const std::string line, std::vector<int> &data, int& n_data_oneline);
+void line2doubledata(const std::string line, std::vector<double> &data, int& n_data_oneline);
+bool is_a_comment_line(const std::string& line_in);
+bool is_a_text_line(const std::string& line_in);
+void copyFile(const std::string& fileNameFrom, const std::string& fileNameTo);
 
 template<typename ptr_1D>
 void emptyarray(ptr_1D*& A);

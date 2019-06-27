@@ -8,10 +8,15 @@
 #pragma once
 
 #include <cstdlib>
-#include <execinfo.h>
 #include <stdio.h>
 #include <iostream>
 #include <unistd.h>
+
+#ifdef _WIN32
+ #include <direct.h>
+#elif defined __linux__
+ #include <execinfo.h>
+#endif
 
 //! Prints the error message, the source file and line number, and exits
 #define FatalError_exit(s) {                                             \
@@ -24,6 +29,12 @@
    }
 
 //! Prints the error message, the source file ane line number, the full stack trace, and exits
+#ifdef _WIN32
+#define FatalErrorST(s) {                                           \
+  printf("\nFatal error '%s' at %s:%d\n\n",s,__FILE__,__LINE__);      \
+  exit(1); }
+
+#elif defined __linux__
 #define FatalErrorST(s) {                                           \
   void* array[10];                                                  \
   size_t size;                                                      \
@@ -31,6 +42,7 @@
   printf("\nFatal error '%s' at %s:%d\n\n",s,__FILE__,__LINE__);      \
   backtrace_symbols_fd(array, size, STDERR_FILENO);                 \
   exit(1); }
+#endif
 
 //! Prints the error message, the source file and line number, and exits
 #define FileOpenError(s) {     \
