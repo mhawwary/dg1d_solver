@@ -63,6 +63,8 @@ SRC	= src/
 OBJ	= obj/
 BIN	= bin/
 INC	= include/
+$(shell mkdir obj)
+$(shell mkdir bin)
 
 vpath %.cpp src
 vpath %.c src
