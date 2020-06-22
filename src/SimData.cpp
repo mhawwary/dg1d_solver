@@ -22,10 +22,10 @@ void SimData::Parse(const std::string &fname){
     // Simulation parameters:
     //-----------------------------
     unsteady_data_print_flag_=gp_input("Simulation/unsteady_data_print_flag",0,false);
-    if(unsteady_data_print_flag_==0)
-      unsteady_data_print_iter_=gp_input("Simulation/unsteady_data_print_iter",1,false);
-    else if(unsteady_data_print_flag_==1)
-      unsteady_data_print_time_=gp_input("Simulation/unsteady_data_print_time",1.0,false);
+    //if(unsteady_data_print_flag_==0)
+    unsteady_data_print_iter_=gp_input("Simulation/unsteady_data_print_iter",1,false);
+    //else if(unsteady_data_print_flag_==1)
+    unsteady_data_print_time_=gp_input("Simulation/unsteady_data_print_time",1.0,false);
     restart_iter_ = gp_input("Simulation/restart_iter",0,false);
     restart_flag = gp_input("Simulation/restart_flag",0,false);
     Sim_mode = gp_input("Simulation/mode","normal",false);
@@ -166,7 +166,7 @@ void SimData::prepare_dump_burgers_turb_param(){
         if(stat(fname, &statbuf)==-1){
             FatalError_exit("Spectrum Binary file does not exist");
         }else{
-            printf("--> Reading Spectrum Binrary file...........\n");
+            printf("--> Reading Spectrum Binary file...........\n");
             FILE*  b_spect_in_=fopen(fname,"rb");
             k_wave_no_ = new int[max_wave_no_];
             epsi_phase_ = new double[max_wave_no_];
