@@ -1208,22 +1208,27 @@ void DGSolverDiffus::dump_timeaccurate_errors(){
     double GG_ex_ = wave_exact_energy_/init_wave_E_;
     double L1_proj_sol_ = L1_error_projected_sol();
     double L2_proj_sol_ = L2_error_projected_sol();
-    //double L2_proj_sol_ = L2_error_modal();
-    double L1_nodal_sol_ = L1_error_nodal_gausspts_proj();
-    double L2_nodal_sol_ = L2_error_nodal_gausspts_proj();
+    double L1_average_sol_= L1_error_average_sol();
+    double L2_average_sol_= L2_error_average_sol();
+    double L2_error_modal_= L2_error_modal();
+//    double L1_nodal_sol_ = L1_error_nodal_gausspts_proj();
+//    double L2_nodal_sol_ = L2_error_nodal_gausspts_proj();
+    double L1_nodal_sol_ = L1_error_nodal_gausspts();
+    double L2_nodal_sol_ = L2_error_nodal_gausspts();
     //double L1_nodal_sol_ = L1_error_nodal_cont_sol(); //for testing computing at the same nodes as FD
     //double L2_nodal_sol_ = L2_error_nodal_cont_sol(); // but need to make N_exact = N_uniform in griddata
 
-    fprintf(solerror_out, "%1.10f %2.10e %2.10e %2.10e %2.10e\n"
+    fprintf(solerror_out, "%1.10f %2.10e %2.10e %2.10e %2.10e %2.10e %2.10e\n"
             ,phy_time,L1_proj_sol_, L2_proj_sol_
-            , L1_nodal_sol_, L2_nodal_sol_);
+            , L1_nodal_sol_, L2_nodal_sol_,L1_average_sol_,L2_average_sol_);
 
     fclose(solerror_out);
     emptyarray(fname);
 
-    printf("  L1_proj_sol:%2.5e  L2_proj_sol:%2.5e  L1_nodal:%2.5e L2_nodal:%2.5e E_ex:%1.5f E_num:%1.5f G_ex:%1.5f G_num:%1.5f"
+    printf(" \nL1_projsol:%2.5e  L2_projsol:%2.5e  L1_nodal:%2.5e L2_nodal:%2.5e L1_cellaver:%2.5e L2_cellaver:%2.5e L2_modes:%2.5e\n"
            ,L1_proj_sol_, L2_proj_sol_, L1_nodal_sol_, L2_nodal_sol_
-           ,wave_exact_energy_,wave_energy_,GG_ex_,GG_);
+           ,L1_average_sol_, L2_average_sol_,L2_error_modal_);
+    printf("E_ex:%1.5f E_num:%1.5f G_ex:%1.5f G_num:%1.5f",wave_exact_energy_,wave_energy_,GG_ex_,GG_);
     dump_timeaccurate_waveenergy(wave_exact_energy_,wave_energy_,GG_ex_,GG_);
 
     return;
@@ -1372,10 +1377,59 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
     double xx=0.0,qq=0.0;
 
     char *fname=nullptr;
+
+    // Dump time accurate numerical modes/DOF data:
+    //-------------------------------------------------
     fname = new char[250];
+    if(simdata_->Sim_mode=="CFL_const"
+            || simdata_->Sim_mode =="error_analysis_CFL"
+            || simdata_->Sim_mode =="test"
+            || simdata_->Sim_mode =="normal"){
+        sprintf(fname,"%stime_data/u_modes_N%d_CFL%1.4f_Eps%1.2f_%1.4ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,CFL
+                ,eta_penalty
+                ,phy_time);
+    }else if(simdata_->Sim_mode=="dt_const"
+             || simdata_->Sim_mode=="error_analysis_dt" ){
+        sprintf(fname,"%stime_data/u_modes_N%d_dt%1.3e_Eps%1.2f_%1.4ft.dat"
+                ,simdata_->case_postproc_dir
+                ,grid_->Nelem
+                ,time_step
+                ,eta_penalty
+                ,phy_time);
+    }
+
+    FILE* sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->Nelem; j++)
+        for(k=0; k<Ndof; k++)
+            fprintf(sol_out,"%d %d %2.10e\n",j,j*Ndof+k,Qn[j][k]);
+
+    fclose(sol_out);
+    emptyarray(fname);
+
+    // Dump time accurate exact modes/DOF data:
+    //-------------------------------------------
+    fname = new char[100];
+    sprintf(fname,"%stime_data/u_modes_exact_N%d_%1.4ft.dat"
+            ,simdata_->case_postproc_dir
+            ,grid_->Nelem
+            ,phy_time);
+
+    sol_out=fopen(fname,"w");
+
+    for(j=0; j<grid_->Nelem; j++)
+        for(k=0; k<Ndof; k++)
+            fprintf(sol_out,"%d %d %2.10e\n",j,j*Ndof+k,Qex_proj[j][k]);
+
+    fclose(sol_out);
+    emptyarray(fname);
 
     // Dump continuous data on uniform points:
     //-------------------------------------------
+    fname = new char[250];
     compute_uniform_cont_sol(); // compute time accurate solution
 
     if(simdata_->Sim_mode=="CFL_const"
@@ -1401,7 +1455,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
 
     }
 
-    FILE* sol_out=fopen(fname,"w");
+    sol_out=fopen(fname,"w");
 
     for(j=0; j<grid_->N_uniform_pts; j++)
         fprintf(sol_out,"%2.10e %2.10e\n"
@@ -1411,6 +1465,7 @@ void DGSolverDiffus::dump_timeaccurate_sol(){
     emptyarray(fname);
 
     // Dump time accurate Discontinuous data:
+    //-------------------------------------------
     fname = new char[250];
     if(simdata_->Sim_mode=="CFL_const"
             || simdata_->Sim_mode =="error_analysis_CFL"
