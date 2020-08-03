@@ -27,6 +27,7 @@ pyplot.rcParams[u'axes.spines.top']='true';
 pyplot.rcParams[u'lines.linewidth'] = 1.5;
 pyplot.rcParams[u'lines.markersize'] = 8;
 
+#<<<<<<<<HEAD
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 def compute_fitted_wave(Np, Nelem, x_disc, u_disc):
     N_disc = size(x_disc)  
@@ -75,13 +76,23 @@ def plot_initial_proj_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt
     Np1 = int(int(DG)+1)
     dt = float(dt_)
 
+#=======
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+#
+#                                  D I F F U S I ON
+#
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+#def plot_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
+#                     , Epsilon, gamma_, diffus_scheme, cont_num, disc_num, T):
+
+#    dt = float(dt_);
+#>>>>>>> master
     if  (mode == 'test') | (mode == 'dt_const'):
         mm_name = str('_dt') + dt_
         m_name = str('dt=') + dt_
     elif(mode == 'CFL_const') | (mode == 'normal'):
         mm_name = str('_CFL')+ str(CFL)
         m_name = str('CFL=')+ str(CFL)
-
     #===================================================
     # Reading continuous data
     #===================================================
@@ -92,6 +103,7 @@ def plot_initial_proj_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt
     data = loadtxt(fname)
     x_cont = data[:, 0]
     u_cont = data[:, 1]
+#<<<<<<< HEAD
     del fname, data
     k_freq, u_amp, KE = compute_fft(u_cont[0:-1])
     E_tot = compute_Etotal(k_freq,KE)
@@ -124,6 +136,22 @@ def plot_initial_proj_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt
 
     print('\nfft_u_amp_num: ',np.sqrt(E_tot), '\nfft_u_amp_ex: ',np.sqrt(E_ex))
 
+#=======
+#    del fname, data
+#    k_freq, u_amp, KE = compute_fft(u_cont)
+#    E_tot = compute_Etotal(k_freq,KE)
+#    #Exact:
+#    fname = dir1 + 'time_data/u_cont_exact_'+ str(tt_) + str("t.dat");
+#    data = loadtxt(fname);  # continuous exact nodal solution
+#    x_cont_exact = data[:, 0];
+#    u_cont_exact = data[:, 1];
+#    del fname, data
+#    k_freq_exact, u_amp_exact, KE_exact = compute_fft(u_cont_exact)
+#    E_ex = compute_Etotal(k_freq_exact,KE_exact)
+    
+#    print('\nu_amp_num: ',np.sqrt(E_tot), '\tu_amp_ex: ',np.sqrt(E_ex), '\n')
+
+#>>>>>>> master
     #===================================================
     # Reading discontinuous data
     #===================================================
@@ -134,6 +162,7 @@ def plot_initial_proj_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt
     data = loadtxt(fname)
     x_disc = data[:, 0]
     u_disc = data[:, 1]
+
     N_disc = size(x_disc)
     Np = N_disc_ppt
     del fname, data
@@ -142,8 +171,15 @@ def plot_initial_proj_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt
     data = loadtxt(fname);  # continuous exact nodal solution
     x_disc_exact = data[:, 0];
     u_disc_exact = data[:, 1];
-    del fname, data
 
+    del fname, data
+    #Exact:
+    fname = dir1 + 'time_data/u_disc_exact_N'+Nelem+"_"+ str(tt_) + str("t.dat");
+    data = loadtxt(fname);  # continuous exact nodal solution
+    x_disc_exact = data[:, 0];
+    u_disc_exact = data[:, 1];
+    del fname, data
+    
     print('u_cont_max: ',max(u_cont))
     print('u_disc_max: ',max(u_disc))
     print('u_cont_exact_max: ',max(u_cont_exact))
@@ -538,6 +574,29 @@ def plot_diffus(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     plt.grid()
     plt.xlim(min(x_cont_exact), max(x_cont_exact))
     plt.ylim(min(ylim_0), max(ylim_1)*1.3)
+
+    #=========================== PLOTTING Solution(1) ============================#
+    fig = pyplot.figure();
+    #plotting continuous data:
+    pyplot.plot(x_cont_exact, u_cont_exact, '-k', label='Exact solution');
+    label_cont = str("DGp")+ str(DG) + r'-$\eta$' + str(Epsilon) \
+    +"_RK" + str(RK) +", CFL="+str(CFL)+", t=" + str(tt_); # discontinuous label
+    pyplot.plot(x_cont, u_cont, '--b', label=label_cont,lw=1.2);
+    
+    ylim_0 = list();
+    ylim_1 = list();
+    ylim_0.append(min(u_cont_exact));
+    ylim_1.append(max(u_cont_exact));
+
+    #plotting discontinuous numerical data:
+    nn = size(x_disc)
+    Np = N_disc_ppt
+    #markers_on=[0,5,10,15,19]
+    markers_on=1;
+    for i in range(0, size(x_disc) - 1, Np):
+        xx = x_disc[i:i + Np];
+        uu = u_disc[i:i + Np];
+        pyplot.plot(xx, uu, ':om',lw=0.7,markevery=markers_on);
 
     fig.tight_layout()
     figname = dir1 + 'tempfig/u_cont_'+casename0+'.png'
@@ -985,6 +1044,7 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     x_cont = data[:, 0]
     u_cont = data[:, 1]
     del fname, data
+
     k_freq, u_amp, KE = compute_fft(u_cont)
     E_tot = compute_Etotal(k_freq,KE)
     #Exact:
@@ -993,6 +1053,7 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
     x_cont_exact = data[:, 0];
     u_cont_exact = data[:, 1];
     del fname, data
+
     k_freq_exact, u_amp_exact, KE_exact = compute_fft(u_cont_exact)
     E_ex = compute_Etotal(k_freq_exact,KE_exact)
     
@@ -1006,9 +1067,10 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
             + str('_')+ str(tt_) + str("t.dat")
     data = loadtxt(fname)
     x_disc = data[:, 0]
-    u_disc = data[:, 1]
+    u_disc = data[:, 1]D
     nn = size(x_disc)
     Np = N_disc_ppt
+
     del fname, data
     #Exact:
     fname = dir1 + 'time_data/u_disc_exact_N'+Nelem+"_"+ str(tt_) + str("t.dat");
@@ -1063,7 +1125,6 @@ def plot_advec(dir1, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
 
     pyplot.xlim(min(x_cont_exact), max(x_cont_exact));
     pyplot.ylim(min(ylim_0) * 1.05, max(ylim_1) * 1.05);
-
     n_divisions = 8;
     xtick_dx = (x_cont_exact[-1] - x_cont_exact[0] ) / n_divisions;
     xlabels = arange(x_cont_exact[0], x_cont_exact[-1]+xtick_dx,xtick_dx);
@@ -1301,12 +1362,16 @@ def plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_\
 #
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
  
+#<<<<<<< HEAD
 def plot_burgers_decay_turb(dir_input,mode,DG,RK,CFL,Nelem,N_disc_ppt,tt_,dt_\
                          ,Beta,Epsilon,gamma_,diffus_scheme,cont_num,disc_num):
     
     nelem = int(Nelem)
     Np = int(int(DG)+1)
     nDOF = nelem *Np
+#=======
+#def plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_, Beta, Epsilon, gamma_, cont_num, disc_num):
+#>>>>>>> master
     
     if  (mode == 'test') | (mode == 'dt_const'):
         mm_name = str('_dt') + dt_
@@ -1379,6 +1444,7 @@ def plot_burgers_decay_turb(dir_input,mode,DG,RK,CFL,Nelem,N_disc_ppt,tt_,dt_\
 
     fig.set_size_inches(13.0, 9.0, forward=True)
     fig.tight_layout(pad=0, w_pad=10.0, h_pad=10.0,rect=(0.0,0.0,1.0,0.985))
+#<<<<<<< HEAD
     temp_name = 'sol_vs_x_' +case_data_string
     figname = dir_input + str('/tempfig/eps/') + temp_name +'.eps'
     fig.savefig(figname,format='eps',bbox='tight')
@@ -1394,6 +1460,33 @@ def plot_burgers_decay_turb(dir_input,mode,DG,RK,CFL,Nelem,N_disc_ppt,tt_,dt_\
     fig1.savefig(figname,format='eps',bbox='tight')
     figname = dir_input + str('/tempfig/png/')+temp_name+'.png'
     fig1.savefig(figname,format='png',bbox='tight',dpi=150)
+#=======
+    
+#    temp_name = 'sol_vs_x_p' + DG + 'RK' + RK +'_Ne'+ str(Nelem) +'_'+ m_name \
+#              + '_t'+ str(tt_);
+           
+#    figname = dir_input + str('/tempfig/') + temp_name +'.eps'
+#    fig.savefig(figname,format='eps',bbox='tight')
+#    figname = dir_input + str('/tempfig/') + temp_name +'.png'
+#    plt.savefig(figname,format='png',bbox='tight')
+    
+#    ###################### Plot the fft ##########################
+#    fig, ax = pyplot.subplots(frameon='True')
+#    ax.plot(k_freq, KEnerg)
+#    ax.set_xscale('log')
+#    ax.set_yscale('log')
+#    ax.legend(fontsize=19,edgecolor='black')
+#    ax.set_facecolor('white')
+#    ax.set_xlabel(r'$k$', labelpad=2,fontsize=24);
+#    ax.set_ylabel(r'$E$', labelpad=2, fontsize=24);
+#    ax.set_xlim(10**0, 10**4)
+#    ax.set_ylim(10**-10, 10 ** -1)
+#    ax.tick_params(axis='both', which='both', labelsize=24)
+    
+#    ax.spines["top"].set_visible(True)
+#    ax.spines["right"].set_visible(True)
+#    ax.spines["bottom"].set_visible(True)
+#>>>>>>> master
     
     pyplot.show()
     
@@ -1445,6 +1538,11 @@ def plot_dissipation_rates(dir_input,mode,DG,RK,CFL,Nelem,N_disc_ppt,tt_,dt_\
     fig, ax = plot_E_vs_time(time_array,KE_array)
     temp_name = 'Et_' + case_string_name
     figname = dir_input + str('/tempfig/eps/') + temp_name+'.eps'
+#=======
+#    temp_name = 'KE_p' + DG + 'RK' + RK +'_Ne'+ str(Nelem)+ '_' + m_name \
+#              + '_t'+ str(tt_);
+#    figname = dir_input + str('/tempfig/') + temp_name+'.eps'
+#>>>>>>> master
     fig.savefig(figname,format='eps',bbox='tight')
     figname = dir_input + str('/tempfig/png/') + temp_name+'.png'
     fig.savefig(figname,format='png',bbox='tight',dpi=150)

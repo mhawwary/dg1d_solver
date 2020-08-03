@@ -5,12 +5,20 @@ COMP	= GCC
 TECIO	= NO
 CODE	= RELEASE
 OPENMP	= NO
+PLATFORM = LINUX
 
 # Specifing Standard Variables:
-CXX	= g++ -std=gnu++11 #-pedantic-errors # c++ gcc compiler
-CXXFLAGS=       # C++ compiler flags
-LDLFLAGS=	# linker flags
-CPPFLAGS=	# c/c++ preprocessor flags
+ifeq ($(PLATFORM), LINUX)
+	CXX = g++ #-pedantic-errors # c++ gcc compiler
+	LDLFLAGS =  # linker flags
+        BINNAME = dg1dflow 
+else
+	CXX = x86_64-w64-mingw32-g++ # c++ gcc compiler
+	LDLFLAGS = -static-libgcc -static-libstdc++ # linker flags
+        BINNAME = dg1dflow.exe
+endif
+CXXFLAGS= -std=gnu++11 # C++ compiler flags
+CPPFLAGS=  # c/c++ preprocessor flags
 
 OPTS	= 	# optimization flags and other options
 
@@ -55,6 +63,8 @@ SRC	= src/
 OBJ	= obj/
 BIN	= bin/
 INC	= include/
+$(shell mkdir obj)
+$(shell mkdir bin)
 
 vpath %.cpp src include
 vpath %.c src
@@ -63,7 +73,7 @@ vpath %.h include src
 vpath %.hpp include src
 
 # Objects
-OBJS	= $(OBJ)DG1DFlow.o $(OBJ)SimData.o $(OBJ)ExplicitTimeSolver.o $(OBJ)DGSolverAdvec.o $(OBJ)DGSolverDiffus.o $(OBJ)DGSolverAdvecDiffus.o $(OBJ)Faddeeva.o # objects 
+OBJS	= $(OBJ)DG1DFlow.o $(OBJ)SimData.o $(OBJ)ExplicitTimeSolver.o $(OBJ)DGSolverAdvec.o $(OBJ)DGSolverDiffus.o $(OBJ)DGSolverAdvecDiffus.o $(OBJ)general_tools.o $(OBJ)Faddeeva.o # objects 
 INCLS	= 
 
 # Compile
@@ -75,14 +85,14 @@ default: all
 help:	
 	@echo 'help'
 
-all: DG1DFlow.exe
-
-DG1DFlow.exe: $(OBJS)
+all: $(BINNAME)
+$(BINNAME): $(OBJS)
 	$(CXX) $(OPTS) -o $(BIN)$@ $+
 
-
 $(OBJ)%.o : %.cpp 
-	$(CXX) $(OPTS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(OPTS) -c -o $@ $<
+$(OBJ)%.o : %.c 
+	$(CXX) $(CXXFLAGS) $(OPTS) -c -o $@ $<
 
 
 $(OBJ)DG1DFlow.o:   DG1DFlow.cpp 
@@ -92,9 +102,10 @@ $(OBJ)DGSolverAdvec.o: DGSolverAdvec.hpp
 $(OBJ)DGSolverDiffus.o: DGSolverDiffus.hpp
 $(OBJ)DGSolverAdvecDiffus.o: DGSolverAdvecDiffus.hpp
 $(OBJ)Faddeeva.o: Faddeeva.hpp Faddeeva.cpp 
+$(OBJ)general_tools.o: general_tools.cpp
 
 clean:
-	rm -f ./$(OBJ)*.o ./$(BIN)*.exe  
+	rm -f ./$(OBJ)*.o ./$(BIN)*.exe ./$(BIN)$(BINNAME) 
 	@echo  removing all object and executable files
 
 clean_temp:

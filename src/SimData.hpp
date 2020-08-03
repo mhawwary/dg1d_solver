@@ -82,6 +82,7 @@ struct SimData {
     //------------------------------------------------------------------
 
     char *case_postproc_dir=nullptr;
+    std::string input_fname;
 
     // Function members:
     //--------------------------

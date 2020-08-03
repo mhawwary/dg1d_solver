@@ -79,11 +79,16 @@ with open(args.python_input) as file:
     if not(Beta is None):    
         Beta = Decimal(Beta.quantize(Decimal('.01')))
     
-    tt_   = Decimal(args.plot_time) 
+#<<<<<<< HEAD
+    tt_   = Decimal(args.plot_time)
     if eqn_set=='Diffusion':
         tt_ =  Decimal(tt_.quantize(Decimal('.0001')))
     else:
         tt_ =  Decimal(tt_.quantize(Decimal('.001')))
+#=======
+#    tt_   = Decimal(args.plot_time)
+#    tt_ =  Decimal(tt_.quantize(Decimal('.001')))
+#>>>>>>> master
     T =  Decimal(T.quantize(Decimal('.001')))
     CFL = Decimal(CFL.quantize(Decimal('.0001')))
     
@@ -107,10 +112,20 @@ if eqn_set=='Advection':
                      , Beta, Epsilon, cont_num_time, disc_num_time,T, K_den)
         
 elif eqn_set=='Diffusion':
+#<<<<<<< HEAD
     if tt_>0.0000:
         a = plot_diffus(dir_input, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
         , Epsilon, gamma_, diffus_scheme, cont_num_time\
         , disc_num_time,T, K_den, wave_form_)
+#=======
+#    a = plot_diffus(dir_input, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
+#                     , Epsilon, gamma_, diffus_scheme, cont_num_time, disc_num_time,T)
+
+#elif args.burger_plot_flag==1:
+#    if not(args.plot_time is None):
+#        plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem, tt_, dt_ \
+#                     , Beta, Epsilon, gamma_, cont_num_time, disc_num_time)
+#>>>>>>> master
     else:
         a = plot_initial_proj_diffus(dir_input, mode, DG, RK, CFL, Nelem, N_disc_ppt, tt_, dt_ \
                  , Epsilon, gamma_, diffus_scheme, cont_num_time\
@@ -120,22 +135,8 @@ elif eqn_set=='Diffusion':
      #                , Epsilon, gamma_, diffus_scheme, cont_num_time, disc_num_time,T, K_den, wave_form_)
 
 elif eqn_set=='Advection_Diffusion':
-    if args.burger_plot_flag==1:
-        if not(args.plot_time is None):
-            plot_burgers_decay_turb(dir_input, mode, DG, RK, CFL, Nelem\
-                         ,N_disc_ppt,tt_,dt_,Beta,Epsilon,gamma_,diffus_scheme\
-                         ,cont_num_time, disc_num_time)
-        else:
-            print('bad option for time to plot')
-
-        if args.compute_dEdt_flag==1:
-            plot_dissipation_rates(dir_input, mode, DG, RK, CFL, Nelem\
-                           ,N_disc_ppt,tt_,dt_,Beta,Epsilon,gamma_,diffus_scheme\
-                           ,cont_num_time, disc_num_time)
-    else:
-        plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_ \
-                        , Beta, Epsilon, gamma_, dir1, aver, nodal_exact, \
-                        nodal_comp, discont)
+    plot_AdvecDiffus(diffus_scheme, mode, DG, RK, CFL, Nelem, T, dt_ \
+                     , Beta, Epsilon, gamma_, dir1, aver, nodal_exact, nodal_comp, discont)
 
 
 
