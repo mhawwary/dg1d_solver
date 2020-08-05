@@ -34,6 +34,7 @@ protected:
     void FwdEuler(double **q_);
     void SSPRK22(double **q_);
     void SSPRK33(double **q_);
+    void SSPRK99(double **q_);
     void classicRK4(double **q_);
     //void RK54(double **q_);
 
@@ -55,6 +56,14 @@ protected:
     double **resid_temp0=nullptr;
     double **resid_temp1=nullptr;
     double **resid_temp2=nullptr;
+    double **q_temp1=nullptr;
+    double **q_temp2=nullptr;
+    double **q_temp3=nullptr;
+    double **q_temp4=nullptr;
+    double **q_temp5=nullptr;
+    double **q_temp6=nullptr;
+    double **q_temp7=nullptr;
+
 
     int Ndof=1;
 
